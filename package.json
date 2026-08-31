@@ -1,0 +1,23 @@
+{
+  "name": "uade-tpo-ingenieria-de-datos-ii-fixture",
+  "version": "1.0.0",
+  "description": "Módulo Documental de Equipos y Jugadores - Fixture 2030 (MongoDB)",
+  "main": "run-all.js",
+  "scripts": {
+    "generate-data": "node data/generate-dataset.js",
+    "init-mongo": "node scripts/runner.js init",
+    "run-queries": "node scripts/runner.js all",
+    "test": "node scripts/runner.js all"
+  },
+  "keywords": [
+    "mongodb",
+    "uade",
+    "ingenieria-de-datos",
+    "fixture2030"
+  ],
+  "author": "Grupo UADE Fixture 2030",
+  "license": "MIT",
+  "dependencies": {
+    "mongodb": "^6.8.0"
+  }
+}
