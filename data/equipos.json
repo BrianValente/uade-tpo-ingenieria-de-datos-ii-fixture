@@ -1,0 +1,1090 @@
+[
+  {
+    "codigo_fifa": "ARG",
+    "nombre": "Argentina",
+    "confederacion": "CONMEBOL",
+    "ranking_fifa": 1,
+    "grupo": "Grupo A",
+    "entrenador": {
+      "nombre": "Lionel Scaloni",
+      "nacionalidad": "Argentina",
+      "edad": 52
+    },
+    "titulos_mundiales": 3,
+    "estadio_sede_principal": "Estadio Monumental, Buenos Aires",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "NGA",
+    "nombre": "Nigeria",
+    "confederacion": "CAF",
+    "ranking_fifa": 30,
+    "grupo": "Grupo A",
+    "entrenador": {
+      "nombre": "Finidi George",
+      "nacionalidad": "Nigeria",
+      "edad": 55
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Monumental, Buenos Aires",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "POL",
+    "nombre": "Polonia",
+    "confederacion": "UEFA",
+    "ranking_fifa": 28,
+    "grupo": "Grupo A",
+    "entrenador": {
+      "nombre": "Michal Probierz",
+      "nacionalidad": "Polonia",
+      "edad": 53
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Monumental, Buenos Aires",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "NZL",
+    "nombre": "Nueva Zelanda",
+    "confederacion": "OFC",
+    "ranking_fifa": 60,
+    "grupo": "Grupo A",
+    "entrenador": {
+      "nombre": "Darren Bazeley",
+      "nacionalidad": "Inglaterra",
+      "edad": 54
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Monumental, Buenos Aires",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "FRA",
+    "nombre": "Francia",
+    "confederacion": "UEFA",
+    "ranking_fifa": 2,
+    "grupo": "Grupo B",
+    "entrenador": {
+      "nombre": "Didier Deschamps",
+      "nacionalidad": "Francia",
+      "edad": 61
+    },
+    "titulos_mundiales": 2,
+    "estadio_sede_principal": "Stade de France, Saint-Denis",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "AUS",
+    "nombre": "Australia",
+    "confederacion": "AFC",
+    "ranking_fifa": 24,
+    "grupo": "Grupo B",
+    "entrenador": {
+      "nombre": "Graham Arnold",
+      "nacionalidad": "Australia",
+      "edad": 63
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Stade de France, Saint-Denis",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "CHI",
+    "nombre": "Chile",
+    "confederacion": "CONMEBOL",
+    "ranking_fifa": 40,
+    "grupo": "Grupo B",
+    "entrenador": {
+      "nombre": "Ricardo Gareca",
+      "nacionalidad": "Argentina",
+      "edad": 68
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Stade de France, Saint-Denis",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "MLI",
+    "nombre": "Malí",
+    "confederacion": "CAF",
+    "ranking_fifa": 48,
+    "grupo": "Grupo B",
+    "entrenador": {
+      "nombre": "Eric Chelle",
+      "nacionalidad": "Malí",
+      "edad": 48
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Stade de France, Saint-Denis",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "ESP",
+    "nombre": "España",
+    "confederacion": "UEFA",
+    "ranking_fifa": 3,
+    "grupo": "Grupo C",
+    "entrenador": {
+      "nombre": "Luis de la Fuente",
+      "nacionalidad": "España",
+      "edad": 65
+    },
+    "titulos_mundiales": 1,
+    "estadio_sede_principal": "Santiago Bernabéu, Madrid",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "EGY",
+    "nombre": "Egipto",
+    "confederacion": "CAF",
+    "ranking_fifa": 36,
+    "grupo": "Grupo C",
+    "entrenador": {
+      "nombre": "Hossam Hassan",
+      "nacionalidad": "Egipto",
+      "edad": 60
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Santiago Bernabéu, Madrid",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "KOR",
+    "nombre": "Corea del Sur",
+    "confederacion": "AFC",
+    "ranking_fifa": 22,
+    "grupo": "Grupo C",
+    "entrenador": {
+      "nombre": "Hong Myung-bo",
+      "nacionalidad": "Corea del Sur",
+      "edad": 57
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Santiago Bernabéu, Madrid",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "CRC",
+    "nombre": "Costa Rica",
+    "confederacion": "CONCACAF",
+    "ranking_fifa": 52,
+    "grupo": "Grupo C",
+    "entrenador": {
+      "nombre": "Gustavo Alfaro",
+      "nacionalidad": "Argentina",
+      "edad": 64
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Santiago Bernabéu, Madrid",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "ENG",
+    "nombre": "Inglaterra",
+    "confederacion": "UEFA",
+    "ranking_fifa": 4,
+    "grupo": "Grupo D",
+    "entrenador": {
+      "nombre": "Thomas Tuchel",
+      "nacionalidad": "Alemania",
+      "edad": 53
+    },
+    "titulos_mundiales": 1,
+    "estadio_sede_principal": "Wembley Stadium, Londres",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "PAR",
+    "nombre": "Paraguay",
+    "confederacion": "CONMEBOL",
+    "ranking_fifa": 55,
+    "grupo": "Grupo D",
+    "entrenador": {
+      "nombre": "Gustavo Alfaro",
+      "nacionalidad": "Argentina",
+      "edad": 63
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Wembley Stadium, Londres",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "QAT",
+    "nombre": "Catar",
+    "confederacion": "AFC",
+    "ranking_fifa": 34,
+    "grupo": "Grupo D",
+    "entrenador": {
+      "nombre": "Tintín Márquez",
+      "nacionalidad": "España",
+      "edad": 64
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Wembley Stadium, Londres",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "RSA",
+    "nombre": "Sudáfrica",
+    "confederacion": "CAF",
+    "ranking_fifa": 58,
+    "grupo": "Grupo D",
+    "entrenador": {
+      "nombre": "Hugo Broos",
+      "nacionalidad": "Bélgica",
+      "edad": 74
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Wembley Stadium, Londres",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "BRA",
+    "nombre": "Brasil",
+    "confederacion": "CONMEBOL",
+    "ranking_fifa": 5,
+    "grupo": "Grupo E",
+    "entrenador": {
+      "nombre": "Dorival Júnior",
+      "nacionalidad": "Brasil",
+      "edad": 64
+    },
+    "titulos_mundiales": 5,
+    "estadio_sede_principal": "Maracanã, Río de Janeiro",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "SRB",
+    "nombre": "Serbia",
+    "confederacion": "UEFA",
+    "ranking_fifa": 32,
+    "grupo": "Grupo E",
+    "entrenador": {
+      "nombre": "Dragan Stojkovic",
+      "nacionalidad": "Serbia",
+      "edad": 61
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Maracanã, Río de Janeiro",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "KSA",
+    "nombre": "Arabia Saudita",
+    "confederacion": "AFC",
+    "ranking_fifa": 56,
+    "grupo": "Grupo E",
+    "entrenador": {
+      "nombre": "Roberto Mancini",
+      "nacionalidad": "Italia",
+      "edad": 61
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Maracanã, Río de Janeiro",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "GUA",
+    "nombre": "Guatemala",
+    "confederacion": "CONCACAF",
+    "ranking_fifa": 64,
+    "grupo": "Grupo E",
+    "entrenador": {
+      "nombre": "Luis Fernando Tena",
+      "nacionalidad": "México",
+      "edad": 68
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Maracanã, Río de Janeiro",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "BEL",
+    "nombre": "Bélgica",
+    "confederacion": "UEFA",
+    "ranking_fifa": 6,
+    "grupo": "Grupo F",
+    "entrenador": {
+      "nombre": "Domenico Tedesco",
+      "nacionalidad": "Italia",
+      "edad": 40
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Rey Balduino, Bruselas",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "CAN",
+    "nombre": "Canadá",
+    "confederacion": "CONCACAF",
+    "ranking_fifa": 35,
+    "grupo": "Grupo F",
+    "entrenador": {
+      "nombre": "Jesse Marsch",
+      "nacionalidad": "Estados Unidos",
+      "edad": 52
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Rey Balduino, Bruselas",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "CMR",
+    "nombre": "Camerún",
+    "confederacion": "CAF",
+    "ranking_fifa": 51,
+    "grupo": "Grupo F",
+    "entrenador": {
+      "nombre": "Marc Brys",
+      "nacionalidad": "Bélgica",
+      "edad": 64
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Rey Balduino, Bruselas",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "UAE",
+    "nombre": "Emiratos Árabes",
+    "confederacion": "AFC",
+    "ranking_fifa": 62,
+    "grupo": "Grupo F",
+    "entrenador": {
+      "nombre": "Paulo Bento",
+      "nacionalidad": "Portugal",
+      "edad": 57
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Rey Balduino, Bruselas",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "NED",
+    "nombre": "Países Bajos",
+    "confederacion": "UEFA",
+    "ranking_fifa": 7,
+    "grupo": "Grupo G",
+    "entrenador": {
+      "nombre": "Ronald Koeman",
+      "nacionalidad": "Países Bajos",
+      "edad": 63
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Johan Cruyff Arena, Ámsterdam",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "ECU",
+    "nombre": "Ecuador",
+    "confederacion": "CONMEBOL",
+    "ranking_fifa": 27,
+    "grupo": "Grupo G",
+    "entrenador": {
+      "nombre": "Sebastián Beccacece",
+      "nacionalidad": "Argentina",
+      "edad": 45
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Johan Cruyff Arena, Ámsterdam",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "TUN",
+    "nombre": "Túnez",
+    "confederacion": "CAF",
+    "ranking_fifa": 41,
+    "grupo": "Grupo G",
+    "entrenador": {
+      "nombre": "Faouzi Benzarti",
+      "nacionalidad": "Túnez",
+      "edad": 76
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Johan Cruyff Arena, Ámsterdam",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "JOR",
+    "nombre": "Jordania",
+    "confederacion": "AFC",
+    "ranking_fifa": 63,
+    "grupo": "Grupo G",
+    "entrenador": {
+      "nombre": "Jamal Sellami",
+      "nacionalidad": "Marruecos",
+      "edad": 55
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Johan Cruyff Arena, Ámsterdam",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "POR",
+    "nombre": "Portugal",
+    "confederacion": "UEFA",
+    "ranking_fifa": 8,
+    "grupo": "Grupo H",
+    "entrenador": {
+      "nombre": "Roberto Martínez",
+      "nacionalidad": "España",
+      "edad": 53
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estádio da Luz, Lisboa",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "CIV",
+    "nombre": "Costa de Marfil",
+    "confederacion": "CAF",
+    "ranking_fifa": 39,
+    "grupo": "Grupo H",
+    "entrenador": {
+      "nombre": "Emerse Faé",
+      "nacionalidad": "Costa de Marfil",
+      "edad": 42
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estádio da Luz, Lisboa",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "UZB",
+    "nombre": "Uzbekistán",
+    "confederacion": "AFC",
+    "ranking_fifa": 57,
+    "grupo": "Grupo H",
+    "entrenador": {
+      "nombre": "Srecko Katanec",
+      "nacionalidad": "Eslovenia",
+      "edad": 63
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estádio da Luz, Lisboa",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "HON",
+    "nombre": "Honduras",
+    "confederacion": "CONCACAF",
+    "ranking_fifa": 61,
+    "grupo": "Grupo H",
+    "entrenador": {
+      "nombre": "Reinaldo Rueda",
+      "nacionalidad": "Colombia",
+      "edad": 69
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estádio da Luz, Lisboa",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "COL",
+    "nombre": "Colombia",
+    "confederacion": "CONMEBOL",
+    "ranking_fifa": 9,
+    "grupo": "Grupo I",
+    "entrenador": {
+      "nombre": "Néstor Lorenzo",
+      "nacionalidad": "Argentina",
+      "edad": 60
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Metropolitano, Barranquilla",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "DEN",
+    "nombre": "Dinamarca",
+    "confederacion": "UEFA",
+    "ranking_fifa": 21,
+    "grupo": "Grupo I",
+    "entrenador": {
+      "nombre": "Lars Knudsen",
+      "nacionalidad": "Dinamarca",
+      "edad": 49
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Metropolitano, Barranquilla",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "ALG",
+    "nombre": "Argelia",
+    "confederacion": "CAF",
+    "ranking_fifa": 46,
+    "grupo": "Grupo I",
+    "entrenador": {
+      "nombre": "Vladimir Petkovic",
+      "nacionalidad": "Suiza",
+      "edad": 63
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Metropolitano, Barranquilla",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "SLV",
+    "nombre": "El Salvador",
+    "confederacion": "CONCACAF",
+    "ranking_fifa": 59,
+    "grupo": "Grupo I",
+    "entrenador": {
+      "nombre": "David Dóniga",
+      "nacionalidad": "España",
+      "edad": 45
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Metropolitano, Barranquilla",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "ITA",
+    "nombre": "Italia",
+    "confederacion": "UEFA",
+    "ranking_fifa": 10,
+    "grupo": "Grupo J",
+    "entrenador": {
+      "nombre": "Luciano Spalletti",
+      "nacionalidad": "Italia",
+      "edad": 67
+    },
+    "titulos_mundiales": 4,
+    "estadio_sede_principal": "San Siro, Milán",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "USA",
+    "nombre": "Estados Unidos",
+    "confederacion": "CONCACAF",
+    "ranking_fifa": 18,
+    "grupo": "Grupo J",
+    "entrenador": {
+      "nombre": "Mauricio Pochettino",
+      "nacionalidad": "Argentina",
+      "edad": 54
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "San Siro, Milán",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "PER",
+    "nombre": "Perú",
+    "confederacion": "CONMEBOL",
+    "ranking_fifa": 43,
+    "grupo": "Grupo J",
+    "entrenador": {
+      "nombre": "Jorge Fossati",
+      "nacionalidad": "Uruguay",
+      "edad": 73
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "San Siro, Milán",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "BFA",
+    "nombre": "Burkina Faso",
+    "confederacion": "CAF",
+    "ranking_fifa": 54,
+    "grupo": "Grupo J",
+    "entrenador": {
+      "nombre": "Brama Traore",
+      "nacionalidad": "Burkina Faso",
+      "edad": 52
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "San Siro, Milán",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "GER",
+    "nombre": "Alemania",
+    "confederacion": "UEFA",
+    "ranking_fifa": 11,
+    "grupo": "Grupo K",
+    "entrenador": {
+      "nombre": "Julian Nagelsmann",
+      "nacionalidad": "Alemania",
+      "edad": 39
+    },
+    "titulos_mundiales": 4,
+    "estadio_sede_principal": "Allianz Arena, Múnich",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "URU",
+    "nombre": "Uruguay",
+    "confederacion": "CONMEBOL",
+    "ranking_fifa": 12,
+    "grupo": "Grupo K",
+    "entrenador": {
+      "nombre": "Marcelo Bielsa",
+      "nacionalidad": "Argentina",
+      "edad": 71
+    },
+    "titulos_mundiales": 2,
+    "estadio_sede_principal": "Estadio Centenario, Montevideo",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "JAM",
+    "nombre": "Jamaica",
+    "confederacion": "CONCACAF",
+    "ranking_fifa": 53,
+    "grupo": "Grupo K",
+    "entrenador": {
+      "nombre": "Steve McClaren",
+      "nacionalidad": "Inglaterra",
+      "edad": 65
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Allianz Arena, Múnich",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "FIJ",
+    "nombre": "Fiyi",
+    "confederacion": "OFC",
+    "ranking_fifa": 64,
+    "grupo": "Grupo K",
+    "entrenador": {
+      "nombre": "Rob Sherman",
+      "nacionalidad": "Gales",
+      "edad": 66
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Allianz Arena, Múnich",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "CRO",
+    "nombre": "Croacia",
+    "confederacion": "UEFA",
+    "ranking_fifa": 13,
+    "grupo": "Grupo L",
+    "entrenador": {
+      "nombre": "Zlatko Dalic",
+      "nacionalidad": "Croacia",
+      "edad": 59
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Maksimir, Zagreb",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "MAR",
+    "nombre": "Marruecos",
+    "confederacion": "CAF",
+    "ranking_fifa": 14,
+    "grupo": "Grupo L",
+    "entrenador": {
+      "nombre": "Walid Regragui",
+      "nacionalidad": "Marruecos",
+      "edad": 50
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Maksimir, Zagreb",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "PAN",
+    "nombre": "Panamá",
+    "confederacion": "CONCACAF",
+    "ranking_fifa": 37,
+    "grupo": "Grupo L",
+    "entrenador": {
+      "nombre": "Thomas Christiansen",
+      "nacionalidad": "España",
+      "edad": 53
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Maksimir, Zagreb",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "IRQ",
+    "nombre": "Irak",
+    "confederacion": "AFC",
+    "ranking_fifa": 50,
+    "grupo": "Grupo L",
+    "entrenador": {
+      "nombre": "Jesús Casas",
+      "nacionalidad": "España",
+      "edad": 52
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Maksimir, Zagreb",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "JPN",
+    "nombre": "Japón",
+    "confederacion": "AFC",
+    "ranking_fifa": 15,
+    "grupo": "Grupo M",
+    "entrenador": {
+      "nombre": "Hajime Moriyasu",
+      "nacionalidad": "Japón",
+      "edad": 58
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Internacional, Yokohama",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "MEX",
+    "nombre": "México",
+    "confederacion": "CONCACAF",
+    "ranking_fifa": 16,
+    "grupo": "Grupo M",
+    "entrenador": {
+      "nombre": "Javier Aguirre",
+      "nacionalidad": "México",
+      "edad": 67
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Azteca, CDMX",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "SWE",
+    "nombre": "Suecia",
+    "confederacion": "UEFA",
+    "ranking_fifa": 29,
+    "grupo": "Grupo M",
+    "entrenador": {
+      "nombre": "Jon Dahl Tomasson",
+      "nacionalidad": "Dinamarca",
+      "edad": 50
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Internacional, Yokohama",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "BOL",
+    "nombre": "Bolivia",
+    "confederacion": "CONMEBOL",
+    "ranking_fifa": 62,
+    "grupo": "Grupo M",
+    "entrenador": {
+      "nombre": "Óscar Villegas",
+      "nacionalidad": "Bolivia",
+      "edad": 56
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Estadio Internacional, Yokohama",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "SUI",
+    "nombre": "Suiza",
+    "confederacion": "UEFA",
+    "ranking_fifa": 17,
+    "grupo": "Grupo N",
+    "entrenador": {
+      "nombre": "Murat Yakin",
+      "nacionalidad": "Suiza",
+      "edad": 52
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "St. Jakob-Park, Basilea",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "SEN",
+    "nombre": "Senegal",
+    "confederacion": "CAF",
+    "ranking_fifa": 19,
+    "grupo": "Grupo N",
+    "entrenador": {
+      "nombre": "Pape Thiaw",
+      "nacionalidad": "Senegal",
+      "edad": 45
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "St. Jakob-Park, Basilea",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "IRN",
+    "nombre": "Irán",
+    "confederacion": "AFC",
+    "ranking_fifa": 20,
+    "grupo": "Grupo N",
+    "entrenador": {
+      "nombre": "Amir Ghalenoei",
+      "nacionalidad": "Irán",
+      "edad": 62
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "St. Jakob-Park, Basilea",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "TRI",
+    "nombre": "Trinidad y Tobago",
+    "confederacion": "CONCACAF",
+    "ranking_fifa": 63,
+    "grupo": "Grupo N",
+    "entrenador": {
+      "nombre": "Dwight Yorke",
+      "nacionalidad": "Trinidad y Tobago",
+      "edad": 54
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "St. Jakob-Park, Basilea",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "AUT",
+    "nombre": "Austria",
+    "confederacion": "UEFA",
+    "ranking_fifa": 23,
+    "grupo": "Grupo O",
+    "entrenador": {
+      "nombre": "Ralf Rangnick",
+      "nacionalidad": "Alemania",
+      "edad": 68
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Ernst Happel Stadion, Viena",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "UKR",
+    "nombre": "Ucrania",
+    "confederacion": "UEFA",
+    "ranking_fifa": 25,
+    "grupo": "Grupo O",
+    "entrenador": {
+      "nombre": "Serhiy Rebrov",
+      "nacionalidad": "Ucrania",
+      "edad": 52
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Ernst Happel Stadion, Viena",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "GHA",
+    "nombre": "Ghana",
+    "confederacion": "CAF",
+    "ranking_fifa": 49,
+    "grupo": "Grupo O",
+    "entrenador": {
+      "nombre": "Otto Addo",
+      "nacionalidad": "Ghana",
+      "edad": 51
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Ernst Happel Stadion, Viena",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "VEN",
+    "nombre": "Venezuela",
+    "confederacion": "CONMEBOL",
+    "ranking_fifa": 44,
+    "grupo": "Grupo O",
+    "entrenador": {
+      "nombre": "Fernando Batista",
+      "nacionalidad": "Argentina",
+      "edad": 55
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Ernst Happel Stadion, Viena",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "TUR",
+    "nombre": "Turquía",
+    "confederacion": "UEFA",
+    "ranking_fifa": 26,
+    "grupo": "Grupo P",
+    "entrenador": {
+      "nombre": "Vincenzo Montella",
+      "nacionalidad": "Italia",
+      "edad": 52
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Atatürk Olympic Stadium, Estambul",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "NOR",
+    "nombre": "Noruega",
+    "confederacion": "UEFA",
+    "ranking_fifa": 31,
+    "grupo": "Grupo P",
+    "entrenador": {
+      "nombre": "Stale Solbakken",
+      "nacionalidad": "Noruega",
+      "edad": 58
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Atatürk Olympic Stadium, Estambul",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "CZE",
+    "nombre": "República Checa",
+    "confederacion": "UEFA",
+    "ranking_fifa": 33,
+    "grupo": "Grupo P",
+    "entrenador": {
+      "nombre": "Ivan Hasek",
+      "nacionalidad": "República Checa",
+      "edad": 63
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Atatürk Olympic Stadium, Estambul",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  },
+  {
+    "codigo_fifa": "GRE",
+    "nombre": "Grecia",
+    "confederacion": "UEFA",
+    "ranking_fifa": 45,
+    "grupo": "Grupo P",
+    "entrenador": {
+      "nombre": "Ivan Jovanovic",
+      "nacionalidad": "Serbia",
+      "edad": 64
+    },
+    "titulos_mundiales": 0,
+    "estadio_sede_principal": "Atatürk Olympic Stadium, Estambul",
+    "activo": true,
+    "creado_en": "2026-08-31T21:23:12.543Z",
+    "actualizado_en": "2026-08-31T21:23:12.543Z"
+  }
+]
