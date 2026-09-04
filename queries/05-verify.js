@@ -1,5 +1,16 @@
 const projectDatabase = db.getSiblingDB(process.env.MONGO_INITDB_DATABASE || "fixture2030");
 
+/**
+ * Cuenta documentos existentes que no cumplen el validador activo.
+ *
+ * `collMod` aplica el validador a escrituras futuras, pero no corrige documentos
+ * anteriores. Por eso esta comprobacion recupera el `$jsonSchema` configurado y
+ * lo aplica tambien al estado que ya esta guardado en la coleccion.
+ *
+ * @param {string} collectionName Nombre de la coleccion que se debe comprobar.
+ * @returns {number} Cantidad de documentos que incumplen el esquema actual.
+ * @throws {Error} Si la coleccion no tiene un validador configurado.
+ */
 function invalidDocumentCount(collectionName) {
   const collectionInfo = projectDatabase.getCollectionInfos({ name: collectionName })[0];
   const validator = collectionInfo?.options?.validator;

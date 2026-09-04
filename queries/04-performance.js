@@ -3,6 +3,15 @@ const argentina = projectDatabase.equipos.findOne({ codigo: "ARG" }, { _id: 1 })
 const filter = { equipoId: argentina._id, posicion: "Delantero" };
 const indexName = "jugadores_equipo_posicion_dorsal";
 
+/**
+ * Extrae las metricas principales de un resultado de `explain`.
+ * La salida reducida permite comparar planes sin depender del arbol completo,
+ * que contiene detalles internos y puede cambiar entre versiones de MongoDB.
+ *
+ * @param {string} label Nombre legible de la medicion.
+ * @param {object} explainResult Resultado de `explain("executionStats")`.
+ * @returns {object} Resumen de etapa, documentos y claves examinadas.
+ */
 function summary(label, explainResult) {
   return {
     medicion: label,

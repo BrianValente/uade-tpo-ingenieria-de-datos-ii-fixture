@@ -12,11 +12,22 @@ const qualificationSource = {
   revision: "1368724802",
 };
 
-function uuidV5(value) {
+/**
+ * Genera un UUID v5 deterministico para una clave logica del dominio.
+ *
+ * UUID v5 combina un namespace fijo con `logicalKey`. Por eso una clave como
+ * `equipo:ARG` siempre produce el mismo identificador. Los prefijos `equipo:`
+ * y `jugador:` evitan colisiones entre tipos de entidad. SHA-1 forma parte del
+ * estandar UUID v5; no se usa aqui como mecanismo de seguridad.
+ *
+ * @param {string} logicalKey Clave estable, por ejemplo `jugador:ARG:10`.
+ * @returns {string} UUID v5 en formato canonico.
+ */
+function uuidV5(logicalKey) {
   const namespaceBytes = Buffer.from(namespace.replaceAll("-", ""), "hex");
   const hash = crypto
     .createHash("sha1")
-    .update(Buffer.concat([namespaceBytes, Buffer.from(value, "utf8")]))
+    .update(Buffer.concat([namespaceBytes, Buffer.from(logicalKey, "utf8")]))
     .digest();
   hash[6] = (hash[6] & 0x0f) | 0x50;
   hash[8] = (hash[8] & 0x3f) | 0x80;
@@ -128,6 +139,14 @@ if (teams.length !== 64) {
   throw new Error(`Se esperaban 64 equipos y se generaron ${teams.length}.`);
 }
 
+/**
+ * Asigna una posicion segun el numero de orden del jugador en el plantel.
+ * La regla fija mantiene una distribucion reproducible de 3 arqueros,
+ * 8 defensores, 8 mediocampistas y 5 delanteros por equipo.
+ *
+ * @param {number} number Numero de orden entre 1 y 24.
+ * @returns {"Arquero"|"Defensor"|"Mediocampista"|"Delantero"} Posicion generada.
+ */
 function positionFor(number) {
   if (number <= 3) return "Arquero";
   if (number <= 11) return "Defensor";
@@ -161,6 +180,18 @@ const players = teams.flatMap((team, teamIndex) =>
   }),
 );
 
+/**
+ * Reemplaza documentos por `_id` en lotes y crea los que todavia no existen.
+ *
+ * `replaceOne` con `upsert` hace que la carga sea idempotente: una segunda
+ * ejecucion actualiza la misma entidad en vez de duplicarla. Los lotes evitan
+ * construir una unica operacion demasiado grande.
+ *
+ * @param {object} collection Coleccion de MongoDB que recibe los documentos.
+ * @param {object[]} documents Documentos completos que se deben cargar.
+ * @param {number} [batchSize=500] Cantidad maxima de operaciones por lote.
+ * @returns {void}
+ */
 function replaceInBatches(collection, documents, batchSize = 500) {
   for (let offset = 0; offset < documents.length; offset += batchSize) {
     collection.bulkWrite(
