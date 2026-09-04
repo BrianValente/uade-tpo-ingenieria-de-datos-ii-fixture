@@ -29,8 +29,7 @@ No se necesita instalar Python, Node.js, MongoDB ni Neo4j en la computadora.
    Tambien se puede iniciar una sola base:
 
    ```bash
-   make mongodb
-   make neo4j
+   make up mongodb
    make up neo4j
    ```
 

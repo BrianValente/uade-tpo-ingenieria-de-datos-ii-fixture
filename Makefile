@@ -7,9 +7,8 @@ DOWN_VOLUMES := $(if $(filter volumes,$(MAKECMDGOALS)),--volumes,)
 help:
 	@printf '%s\n' \
 		'make up                   Inicia MongoDB y Neo4j' \
+		'make up mongodb            Inicia solo MongoDB' \
 		'make up neo4j             Inicia solo Neo4j' \
-		'make mongodb              Inicia solo MongoDB' \
-		'make neo4j                Inicia solo Neo4j' \
 		'make status               Muestra el estado de los servicios' \
 		'make logs-mongodb         Sigue los logs de MongoDB' \
 		'make logs-neo4j           Sigue los logs de Neo4j' \
@@ -20,11 +19,8 @@ help:
 up:
 	docker compose up -d $(UP_ENGINES)
 
-mongodb:
-	$(if $(filter up down,$(MAKECMDGOALS)),@:,docker compose up -d mongodb)
-
-neo4j:
-	$(if $(filter up down,$(MAKECMDGOALS)),@:,docker compose up -d neo4j)
+mongodb neo4j:
+	$(if $(filter up down,$(MAKECMDGOALS)),@:,$(error Use 'make up $@' o 'make down $@'))
 
 status:
 	docker compose ps
@@ -33,7 +29,7 @@ down:
 	docker compose down $(DOWN_VOLUMES) $(SELECTED_ENGINES)
 
 volumes:
-	@:
+	$(if $(filter down,$(MAKECMDGOALS)),@:,$(error Use 'make down volumes'))
 
 logs-mongodb:
 	docker compose logs --follow mongodb
