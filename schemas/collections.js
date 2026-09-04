@@ -37,7 +37,6 @@ const validators = {
       bsonType: "object",
       required: [
         "_id",
-        "codigo",
         "equipoId",
         "equipoCodigo",
         "nombre",
@@ -53,7 +52,6 @@ const validators = {
       ],
       properties: {
         _id: { bsonType: "string", pattern: uuidPattern },
-        codigo: { bsonType: "string", pattern: "^[A-Z]{3}-[0-9]{2}$" },
         equipoId: { bsonType: "string", pattern: uuidPattern },
         equipoCodigo: { bsonType: "string", pattern: "^[A-Z]{3}$" },
         nombre: { bsonType: "string", minLength: 2, maxLength: 80 },
@@ -93,8 +91,8 @@ projectDatabase.equipos.createIndex(
   { name: "equipos_codigo_unico", unique: true },
 );
 projectDatabase.jugadores.createIndex(
-  { codigo: 1 },
-  { name: "jugadores_codigo_unico", unique: true },
+  { equipoId: 1, dorsal: 1 },
+  { name: "jugadores_equipo_dorsal_unico", unique: true },
 );
 projectDatabase.jugadores.createIndex(
   { equipoId: 1, posicion: 1, dorsal: 1 },

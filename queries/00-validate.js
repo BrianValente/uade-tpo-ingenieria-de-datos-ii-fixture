@@ -4,7 +4,6 @@ let rejected = false;
 try {
   projectDatabase.jugadores.insertOne({
     _id: "identificador-invalido",
-    codigo: "BAD-01",
     equipoId: "equipo-inexistente",
     equipoCodigo: "BAD",
     nombre: "Dato",
@@ -18,6 +17,6 @@ try {
   print("Documento invalido rechazado por MongoDB con codigo 121.");
 }
 
-if (!rejected || projectDatabase.jugadores.countDocuments({ codigo: "BAD-01" }) !== 0) {
+if (!rejected || projectDatabase.jugadores.countDocuments({ _id: "identificador-invalido" }) !== 0) {
   throw new Error("El validador acepto un documento invalido.");
 }

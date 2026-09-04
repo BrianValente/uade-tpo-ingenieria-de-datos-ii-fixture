@@ -32,9 +32,9 @@ Reiniciamos el contenedor con `docker compose restart mongodb`, esperamos hasta 
 
 ## Operaciones
 
-`queries/01-read.js` recupero el equipo `ARG` y el jugador `ARG-10`. Tambien devolvio equipos filtrados por CONMEBOL y la segunda pagina de cinco jugadores de Argentina con proyeccion, orden y limite.
+`queries/01-read.js` permite recuperar el equipo `ARG` por codigo y un jugador de Argentina por su UUID v5. Tambien incluye equipos filtrados por CONMEBOL y la segunda pagina de cinco jugadores de Argentina con proyeccion, orden y limite.
 
-`queries/02-insert-update.js` inserto el equipo no participante `TST` y el jugador `TST-01`. Despues agrego la sede de entrenamiento al equipo y cambio `disponible` a `false` en el jugador. La relacion `equipoId` se mantuvo sin cambios. El script comprueba que ambas actualizaciones encontraron exactamente un documento.
+`queries/02-insert-update.js` inserto el equipo no participante `TST` y un jugador de demostracion asociado. Despues agrego la sede de entrenamiento al equipo y cambio `disponible` a `false` en el jugador. La relacion `equipoId` se mantuvo sin cambios. El script comprueba que ambas actualizaciones encontraron exactamente un documento.
 
 `queries/03-aggregate.js` consolido los 64 equipos y 1.536 jugadores por confederacion. Por ejemplo, UEFA devolvio 28 equipos y 672 jugadores.
 

@@ -30,7 +30,6 @@ let playerInserted = false;
 if (!existingPlayer) {
   const insertPlayerResult = projectDatabase.jugadores.insertOne({
     _id: playerId,
-    codigo: "TST-01",
     equipoId: teamId,
     equipoCodigo: "TST",
     nombre: "Jugador",

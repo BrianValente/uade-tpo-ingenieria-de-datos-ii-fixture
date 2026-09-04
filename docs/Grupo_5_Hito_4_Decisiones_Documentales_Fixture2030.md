@@ -8,15 +8,15 @@ Implementamos en MongoDB las fichas de equipos y jugadores. Esta eleccion mantie
 
 La coleccion `equipos` guarda la identidad deportiva, la confederacion y el origen de la seleccion para el dataset. La coleccion `jugadores` guarda la ficha deportiva sintetica y una referencia `equipoId` al documento de su equipo.
 
-Guardamos tambien `equipoCodigo` en cada jugador. Este campo permite reconocer la relacion al inspeccionar datos y crear codigos como `ARG-10`. El script de verificacion comprueba que coincide con `equipos.codigo`.
+Guardamos tambien `equipoCodigo` en cada jugador. Este campo permite reconocer la relacion al inspeccionar datos. El script de verificacion comprueba que coincide con `equipos.codigo`.
 
 | Decision | Alternativas consideradas | Eleccion | Justificacion | Impacto esperado |
 | --- | --- | --- | --- | --- |
 | Relacion equipo-jugador | Plantel embebido en `equipos`; colecciones separadas con referencia | Colecciones separadas; `jugadores.equipoId` referencia a `equipos._id` | El plantel tiene 24 fichas que pueden cambiar de forma independiente. La consulta de un jugador no necesita leer ni reescribir todo el equipo. | Documentos pequenos y actualizaciones independientes. La aplicacion debe comprobar la referencia porque MongoDB no ofrece una clave foranea. |
 | Validacion documental | Aceptar cualquier forma; validar solo en scripts; usar `$jsonSchema` en MongoDB | Validadores estrictos con tipos, campos requeridos, rangos, patrones y valores permitidos | Los validadores rechazan fichas sin identificador, relacion, posicion u otros datos criticos. | Menos documentos incompletos. Cambiar el modelo exige actualizar el validador. |
-| Estrategia de identificadores | `ObjectId`; codigo deportivo; UUID aleatorio; UUID v5 | UUID v5 como `_id` y codigo legible unico | El mismo equipo o jugador recibe siempre el mismo identificador. Este valor se puede compartir luego con Neo4j e IRIS. | La carga puede usar `upsert` sin duplicar entidades. El codigo sigue siendo util para busquedas y lectura humana. |
-| Indices principales | Solo `_id`; indices simples; indice compuesto segun la consulta | Unicidad en `codigo` e indice `{ equipoId: 1, posicion: 1, dorsal: 1 }` | `codigo` identifica cada ficha. El indice compuesto responde a la consulta frecuente de un plantel filtrado por posicion y ordenado por dorsal. | Mejora la lectura del plantel. Cada indice agrega almacenamiento y trabajo durante las escrituras. |
-| Carga y actualizacion | Inserciones sin control; borrar y recargar; reemplazo con `upsert` | `bulkWrite` con `replaceOne` y `upsert`, en lotes de 500 | La carga se puede repetir y corrige cada documento canonico sin eliminar datos ajenos. | No crea duplicados. Los UUID y codigos unicos protegen la identidad. Los documentos externos al dataset permanecen. |
+| Estrategia de identificadores | `ObjectId`; codigo deportivo; UUID aleatorio; UUID v5 | UUID v5 como `_id` para ambas entidades y codigo legible unico solo para equipos | El mismo equipo o jugador recibe siempre el mismo identificador. El codigo deportivo aporta valor en equipos, pero `ARG-10` no seria una identidad estable para un jugador porque el dorsal puede cambiar. | La carga puede usar `upsert` sin duplicar entidades. Los UUID se pueden compartir con Neo4j e IRIS. |
+| Indices principales | Solo `_id`; indices simples; indice compuesto segun la consulta | Unicidad en `equipos.codigo` y en `{ equipoId: 1, dorsal: 1 }`, mas el indice `{ equipoId: 1, posicion: 1, dorsal: 1 }` | El codigo identifica al equipo. La combinacion de equipo y dorsal evita repeticiones dentro de un plantel. El indice compuesto responde a la consulta de jugadores por posicion y dorsal. | Mejora la integridad y la lectura del plantel. Cada indice agrega almacenamiento y trabajo durante las escrituras. |
+| Carga y actualizacion | Inserciones sin control; borrar y recargar; reemplazo con `upsert` | `bulkWrite` con `replaceOne` y `upsert`, en lotes de 500 | La carga se puede repetir y corrige cada documento canonico sin eliminar datos ajenos. | No crea duplicados. Los UUID y las restricciones unicas protegen la identidad. Los documentos externos al dataset permanecen. |
 
 ## Seleccion de equipos y datos
 
@@ -37,7 +37,7 @@ Generamos 24 jugadores por equipo, para un total de 1.536. Sus nombres, fechas d
 | Consulta | Campos usados | Indice |
 | --- | --- | --- |
 | Buscar una ficha de equipo por codigo | `equipos.codigo` | `equipos_codigo_unico` |
-| Buscar una ficha de jugador por codigo | `jugadores.codigo` | `jugadores_codigo_unico` |
+| Evitar dorsales repetidos dentro de un plantel | `equipoId`, `dorsal` | `jugadores_equipo_dorsal_unico` |
 | Mostrar jugadores de un equipo por posicion y dorsal | `equipoId`, `posicion`, `dorsal` | `jugadores_equipo_posicion_dorsal` |
 
 No agregamos un indice para cada campo. El volumen es pequeno y cada indice aumenta el costo de escritura. Los indices elegidos corresponden a operaciones concretas del modulo.

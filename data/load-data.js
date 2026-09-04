@@ -107,7 +107,6 @@ const players = teams.flatMap((team, teamIndex) =>
     const paddedNumber = String(number).padStart(2, "0");
     return {
       _id: uuidV5(`jugador:${team.codigo}:${paddedNumber}`),
-      codigo: `${team.codigo}-${paddedNumber}`,
       equipoId: team._id,
       equipoCodigo: team.codigo,
       nombre: "Jugador",
