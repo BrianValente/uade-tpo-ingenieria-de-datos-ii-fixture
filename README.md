@@ -1,6 +1,6 @@
 # Fixture 2030
 
-Modulo documental del Hito 4 de Ingenieria de Datos II. MongoDB almacena las fichas de 64 equipos y 1.536 jugadores sinteticos.
+Repositorio del TPO de Ingenieria de Datos II para desarrollar la plataforma Fixture 2030.
 
 ## Requisitos
 
@@ -8,7 +8,7 @@ Modulo documental del Hito 4 de Ingenieria de Datos II. MongoDB almacena las fic
 - Al menos 1 GB de espacio libre para la imagen y el volumen.
 - MongoDB Compass o `mongosh` son opcionales.
 
-No se necesita instalar Python, Node.js ni MongoDB en la notebook.
+No se necesita instalar Python, Node.js ni MongoDB en la computadora.
 
 ## Inicio y carga
 
