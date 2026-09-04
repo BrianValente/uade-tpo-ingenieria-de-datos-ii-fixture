@@ -109,6 +109,8 @@ No usar `docker compose down -v` salvo que se quiera borrar toda la informacion 
 |   `-- evidencia.md
 |-- init-scripts/
 |   `-- 01-create-collections.js
+|-- lib/
+|   `-- uuid.js
 |-- queries/
 |   |-- 00-validate.js
 |   |-- 01-read.js

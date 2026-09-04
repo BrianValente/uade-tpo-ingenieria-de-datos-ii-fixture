@@ -6,7 +6,7 @@ Implementamos en MongoDB las fichas de equipos y jugadores. Esta eleccion mantie
 
 ## Modelo
 
-La coleccion `equipos` guarda la identidad deportiva, la confederacion, el origen de la seleccion para el dataset y la fuente externa. La coleccion `jugadores` guarda la ficha deportiva sintetica y una referencia `equipoId` al documento de su equipo.
+La coleccion `equipos` guarda la identidad deportiva, la confederacion y el origen de la seleccion para el dataset. La coleccion `jugadores` guarda la ficha deportiva sintetica y una referencia `equipoId` al documento de su equipo.
 
 Guardamos tambien `equipoCodigo` en cada jugador. Este campo permite reconocer la relacion al inspeccionar datos y crear codigos como `ARG-10`. El script de verificacion comprueba que coincide con `equipos.codigo`.
 

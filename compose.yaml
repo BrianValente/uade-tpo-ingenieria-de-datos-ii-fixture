@@ -13,6 +13,7 @@ services:
     volumes:
       - mongodb_data:/data/db
       - ./init-scripts:/docker-entrypoint-initdb.d:ro
+      - ./lib:/workspace/lib:ro
       - ./schemas:/workspace/schemas:ro
     healthcheck:
       test:

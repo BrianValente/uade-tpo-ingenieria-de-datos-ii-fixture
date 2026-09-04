@@ -15,8 +15,6 @@ const validators = {
         "origenSeleccion",
         "etapaClasificacion",
         "participaFixture2030",
-        "fuente",
-        "actualizadoEn",
       ],
       properties: {
         _id: { bsonType: "string", pattern: uuidPattern },
@@ -31,15 +29,6 @@ const validators = {
         etapaClasificacion: { bsonType: "string", minLength: 2, maxLength: 120 },
         participaFixture2030: { bsonType: "bool" },
         sedeEntrenamiento: { bsonType: "string", minLength: 2, maxLength: 100 },
-        fuente: {
-          bsonType: "object",
-          required: ["url", "revision"],
-          properties: {
-            url: { bsonType: "string", minLength: 3 },
-            revision: { bsonType: "string", minLength: 2 },
-          },
-        },
-        actualizadoEn: { bsonType: "date" },
       },
     },
   },
@@ -61,7 +50,6 @@ const validators = {
         "convocado",
         "disponible",
         "datosSinteticos",
-        "actualizadoEn",
       ],
       properties: {
         _id: { bsonType: "string", pattern: uuidPattern },
@@ -78,7 +66,6 @@ const validators = {
         convocado: { bsonType: "bool" },
         disponible: { bsonType: "bool" },
         datosSinteticos: { bsonType: "bool" },
-        actualizadoEn: { bsonType: "date" },
       },
     },
   },

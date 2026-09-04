@@ -1,138 +1,85 @@
 load("/workspace/schemas/collections.js");
+load("/workspace/lib/uuid.js");
 
-const crypto = require("crypto");
-const namespace = "d650d6d8-e518-5f7d-8917-7ff4cc50bc94";
-const loadedAt = ISODate("2026-08-28T00:00:00Z");
-const worldCupSource = {
-  url: "https://en.wikipedia.org/w/index.php?title=2026_FIFA_World_Cup&oldid=1371616839",
-  revision: "1371616839",
-};
-const qualificationSource = {
-  url: "https://en.wikipedia.org/w/index.php?title=2026_FIFA_World_Cup_qualification&oldid=1368724802",
-  revision: "1368724802",
-};
-
-/**
- * Genera un UUID v5 deterministico para una clave logica del dominio.
- *
- * UUID v5 combina un namespace fijo con `logicalKey`. Por eso una clave como
- * `equipo:ARG` siempre produce el mismo identificador. Los prefijos `equipo:`
- * y `jugador:` evitan colisiones entre tipos de entidad. SHA-1 forma parte del
- * estandar UUID v5; no se usa aqui como mecanismo de seguridad.
- *
- * @param {string} logicalKey Clave estable, por ejemplo `jugador:ARG:10`.
- * @returns {string} UUID v5 en formato canonico.
- */
-function uuidV5(logicalKey) {
-  const namespaceBytes = Buffer.from(namespace.replaceAll("-", ""), "hex");
-  const hash = crypto
-    .createHash("sha1")
-    .update(Buffer.concat([namespaceBytes, Buffer.from(logicalKey, "utf8")]))
-    .digest();
-  hash[6] = (hash[6] & 0x0f) | 0x50;
-  hash[8] = (hash[8] & 0x3f) | 0x80;
-  const hexadecimal = hash.subarray(0, 16).toString("hex");
-  return [
-    hexadecimal.slice(0, 8),
-    hexadecimal.slice(8, 12),
-    hexadecimal.slice(12, 16),
-    hexadecimal.slice(16, 20),
-    hexadecimal.slice(20),
-  ].join("-");
-}
-
-const classifiedTeams = [
-  ["AUS", "Australia", "AFC"],
-  ["IRN", "Iran", "AFC"],
-  ["IRQ", "Iraq", "AFC"],
-  ["JPN", "Japan", "AFC"],
-  ["JOR", "Jordan", "AFC"],
-  ["QAT", "Qatar", "AFC"],
-  ["KSA", "Saudi Arabia", "AFC"],
-  ["KOR", "South Korea", "AFC"],
-  ["UZB", "Uzbekistan", "AFC"],
-  ["ALG", "Algeria", "CAF"],
-  ["CPV", "Cape Verde", "CAF"],
-  ["COD", "DR Congo", "CAF"],
-  ["EGY", "Egypt", "CAF"],
-  ["GHA", "Ghana", "CAF"],
-  ["CIV", "Ivory Coast", "CAF"],
-  ["MAR", "Morocco", "CAF"],
-  ["SEN", "Senegal", "CAF"],
-  ["RSA", "South Africa", "CAF"],
-  ["TUN", "Tunisia", "CAF"],
-  ["CAN", "Canada", "CONCACAF"],
-  ["CUW", "Curacao", "CONCACAF"],
-  ["HAI", "Haiti", "CONCACAF"],
-  ["MEX", "Mexico", "CONCACAF"],
-  ["PAN", "Panama", "CONCACAF"],
-  ["USA", "United States", "CONCACAF"],
-  ["ARG", "Argentina", "CONMEBOL"],
-  ["BRA", "Brazil", "CONMEBOL"],
-  ["COL", "Colombia", "CONMEBOL"],
-  ["ECU", "Ecuador", "CONMEBOL"],
-  ["PAR", "Paraguay", "CONMEBOL"],
-  ["URU", "Uruguay", "CONMEBOL"],
-  ["NZL", "New Zealand", "OFC"],
-  ["AUT", "Austria", "UEFA"],
-  ["BEL", "Belgium", "UEFA"],
-  ["BIH", "Bosnia and Herzegovina", "UEFA"],
-  ["CRO", "Croatia", "UEFA"],
-  ["CZE", "Czech Republic", "UEFA"],
-  ["ENG", "England", "UEFA"],
-  ["FRA", "France", "UEFA"],
-  ["GER", "Germany", "UEFA"],
-  ["NED", "Netherlands", "UEFA"],
-  ["NOR", "Norway", "UEFA"],
-  ["POR", "Portugal", "UEFA"],
-  ["SCO", "Scotland", "UEFA"],
-  ["ESP", "Spain", "UEFA"],
-  ["SWE", "Sweden", "UEFA"],
-  ["SUI", "Switzerland", "UEFA"],
-  ["TUR", "Turkey", "UEFA"],
-];
-
-const additionalTeams = [
-  ["JAM", "Jamaica", "CONCACAF", "Inter-confederation play-off final"],
-  ["NCL", "New Caledonia", "OFC", "Inter-confederation play-off semi-final"],
-  ["BOL", "Bolivia", "CONMEBOL", "Inter-confederation play-off final"],
-  ["SUR", "Suriname", "CONCACAF", "Inter-confederation play-off semi-final"],
-  ["ITA", "Italy", "UEFA", "UEFA second round, Path A final"],
-  ["WAL", "Wales", "UEFA", "UEFA second round, Path A semi-final"],
-  ["NIR", "Northern Ireland", "UEFA", "UEFA second round, Path A semi-final"],
-  ["POL", "Poland", "UEFA", "UEFA second round, Path B final"],
-  ["UKR", "Ukraine", "UEFA", "UEFA second round, Path B semi-final"],
-  ["ALB", "Albania", "UEFA", "UEFA second round, Path B semi-final"],
-  ["KVX", "Kosovo", "UEFA", "UEFA second round, Path C final"],
-  ["SVK", "Slovakia", "UEFA", "UEFA second round, Path C semi-final"],
-  ["ROU", "Romania", "UEFA", "UEFA second round, Path C semi-final"],
-  ["DEN", "Denmark", "UEFA", "UEFA second round, Path D final"],
-  ["IRL", "Republic of Ireland", "UEFA", "UEFA second round, Path D semi-final"],
-  ["MKD", "North Macedonia", "UEFA", "UEFA second round, Path D semi-final"],
-];
-
+const classifiedOrigin = "clasificado_2026";
+const additionalOrigin = "adicional_eliminatorias";
+const classifiedStage = "Qualified for the 2026 FIFA World Cup";
 const teams = [
-  ...classifiedTeams.map(([codigo, nombre, confederacion]) => ({
-    codigo,
-    nombre,
-    confederacion,
-    origenSeleccion: "clasificado_2026",
-    etapaClasificacion: "Qualified for the 2026 FIFA World Cup",
-    fuente: worldCupSource,
-  })),
-  ...additionalTeams.map(([codigo, nombre, confederacion, etapaClasificacion]) => ({
-    codigo,
-    nombre,
-    confederacion,
-    origenSeleccion: "adicional_eliminatorias",
-    etapaClasificacion,
-    fuente: qualificationSource,
-  })),
-].map((team) => ({
-  _id: uuidV5(`equipo:${team.codigo}`),
-  ...team,
+  // Classified teams
+  ["AUS", "Australia", "AFC", classifiedOrigin, classifiedStage],
+  ["IRN", "Iran", "AFC", classifiedOrigin, classifiedStage],
+  ["IRQ", "Iraq", "AFC", classifiedOrigin, classifiedStage],
+  ["JPN", "Japan", "AFC", classifiedOrigin, classifiedStage],
+  ["JOR", "Jordan", "AFC", classifiedOrigin, classifiedStage],
+  ["QAT", "Qatar", "AFC", classifiedOrigin, classifiedStage],
+  ["KSA", "Saudi Arabia", "AFC", classifiedOrigin, classifiedStage],
+  ["KOR", "South Korea", "AFC", classifiedOrigin, classifiedStage],
+  ["UZB", "Uzbekistan", "AFC", classifiedOrigin, classifiedStage],
+  ["ALG", "Algeria", "CAF", classifiedOrigin, classifiedStage],
+  ["CPV", "Cape Verde", "CAF", classifiedOrigin, classifiedStage],
+  ["COD", "DR Congo", "CAF", classifiedOrigin, classifiedStage],
+  ["EGY", "Egypt", "CAF", classifiedOrigin, classifiedStage],
+  ["GHA", "Ghana", "CAF", classifiedOrigin, classifiedStage],
+  ["CIV", "Ivory Coast", "CAF", classifiedOrigin, classifiedStage],
+  ["MAR", "Morocco", "CAF", classifiedOrigin, classifiedStage],
+  ["SEN", "Senegal", "CAF", classifiedOrigin, classifiedStage],
+  ["RSA", "South Africa", "CAF", classifiedOrigin, classifiedStage],
+  ["TUN", "Tunisia", "CAF", classifiedOrigin, classifiedStage],
+  ["CAN", "Canada", "CONCACAF", classifiedOrigin, classifiedStage],
+  ["CUW", "Curacao", "CONCACAF", classifiedOrigin, classifiedStage],
+  ["HAI", "Haiti", "CONCACAF", classifiedOrigin, classifiedStage],
+  ["MEX", "Mexico", "CONCACAF", classifiedOrigin, classifiedStage],
+  ["PAN", "Panama", "CONCACAF", classifiedOrigin, classifiedStage],
+  ["USA", "United States", "CONCACAF", classifiedOrigin, classifiedStage],
+  ["ARG", "Argentina", "CONMEBOL", classifiedOrigin, classifiedStage],
+  ["BRA", "Brazil", "CONMEBOL", classifiedOrigin, classifiedStage],
+  ["COL", "Colombia", "CONMEBOL", classifiedOrigin, classifiedStage],
+  ["ECU", "Ecuador", "CONMEBOL", classifiedOrigin, classifiedStage],
+  ["PAR", "Paraguay", "CONMEBOL", classifiedOrigin, classifiedStage],
+  ["URU", "Uruguay", "CONMEBOL", classifiedOrigin, classifiedStage],
+  ["NZL", "New Zealand", "OFC", classifiedOrigin, classifiedStage],
+  ["AUT", "Austria", "UEFA", classifiedOrigin, classifiedStage],
+  ["BEL", "Belgium", "UEFA", classifiedOrigin, classifiedStage],
+  ["BIH", "Bosnia and Herzegovina", "UEFA", classifiedOrigin, classifiedStage],
+  ["CRO", "Croatia", "UEFA", classifiedOrigin, classifiedStage],
+  ["CZE", "Czech Republic", "UEFA", classifiedOrigin, classifiedStage],
+  ["ENG", "England", "UEFA", classifiedOrigin, classifiedStage],
+  ["FRA", "France", "UEFA", classifiedOrigin, classifiedStage],
+  ["GER", "Germany", "UEFA", classifiedOrigin, classifiedStage],
+  ["NED", "Netherlands", "UEFA", classifiedOrigin, classifiedStage],
+  ["NOR", "Norway", "UEFA", classifiedOrigin, classifiedStage],
+  ["POR", "Portugal", "UEFA", classifiedOrigin, classifiedStage],
+  ["SCO", "Scotland", "UEFA", classifiedOrigin, classifiedStage],
+  ["ESP", "Spain", "UEFA", classifiedOrigin, classifiedStage],
+  ["SWE", "Sweden", "UEFA", classifiedOrigin, classifiedStage],
+  ["SUI", "Switzerland", "UEFA", classifiedOrigin, classifiedStage],
+  ["TUR", "Turkey", "UEFA", classifiedOrigin, classifiedStage],
+
+  // Additional teams
+  ["JAM", "Jamaica", "CONCACAF", additionalOrigin, "Inter-confederation play-off final"],
+  ["NCL", "New Caledonia", "OFC", additionalOrigin, "Inter-confederation play-off semi-final"],
+  ["BOL", "Bolivia", "CONMEBOL", additionalOrigin, "Inter-confederation play-off final"],
+  ["SUR", "Suriname", "CONCACAF", additionalOrigin, "Inter-confederation play-off semi-final"],
+  ["ITA", "Italy", "UEFA", additionalOrigin, "UEFA second round, Path A final"],
+  ["WAL", "Wales", "UEFA", additionalOrigin, "UEFA second round, Path A semi-final"],
+  ["NIR", "Northern Ireland", "UEFA", additionalOrigin, "UEFA second round, Path A semi-final"],
+  ["POL", "Poland", "UEFA", additionalOrigin, "UEFA second round, Path B final"],
+  ["UKR", "Ukraine", "UEFA", additionalOrigin, "UEFA second round, Path B semi-final"],
+  ["ALB", "Albania", "UEFA", additionalOrigin, "UEFA second round, Path B semi-final"],
+  ["KVX", "Kosovo", "UEFA", additionalOrigin, "UEFA second round, Path C final"],
+  ["SVK", "Slovakia", "UEFA", additionalOrigin, "UEFA second round, Path C semi-final"],
+  ["ROU", "Romania", "UEFA", additionalOrigin, "UEFA second round, Path C semi-final"],
+  ["DEN", "Denmark", "UEFA", additionalOrigin, "UEFA second round, Path D final"],
+  ["IRL", "Republic of Ireland", "UEFA", additionalOrigin, "UEFA second round, Path D semi-final"],
+  ["MKD", "North Macedonia", "UEFA", additionalOrigin, "UEFA second round, Path D semi-final"],
+].map(([codigo, nombre, confederacion, origenSeleccion, etapaClasificacion]) => ({
+  _id: uuidV5(`equipo:${codigo}`),
+  codigo,
+  nombre,
+  confederacion,
+  origenSeleccion,
+  etapaClasificacion,
   participaFixture2030: true,
-  actualizadoEn: loadedAt,
 }));
 
 if (teams.length !== 64) {
@@ -175,7 +122,6 @@ const players = teams.flatMap((team, teamIndex) =>
       convocado: true,
       disponible: true,
       datosSinteticos: true,
-      actualizadoEn: loadedAt,
     };
   }),
 );
