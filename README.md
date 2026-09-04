@@ -5,10 +5,10 @@ Repositorio del TPO de Ingenieria de Datos II para desarrollar la plataforma Fix
 ## Requisitos
 
 - Docker con Docker Compose.
-- Al menos 1 GB de espacio libre para la imagen y el volumen.
-- MongoDB Compass o `mongosh` son opcionales.
+- Espacio libre para las imagenes y los volumenes.
+- MongoDB Compass, `mongosh` y Neo4j Desktop son opcionales.
 
-No se necesita instalar Python, Node.js ni MongoDB en la computadora.
+No se necesita instalar Python, Node.js, MongoDB ni Neo4j en la computadora.
 
 ## Inicio y carga
 
@@ -18,21 +18,29 @@ No se necesita instalar Python, Node.js ni MongoDB en la computadora.
    cp .env.example .env
    ```
 
-2. Cambiar `MONGO_ROOT_PASSWORD` en `.env`.
+2. Cambiar `MONGO_ROOT_PASSWORD` y `NEO4J_PASSWORD` en `.env`.
 
-3. Iniciar MongoDB:
+3. Iniciar las bases de datos:
 
    ```bash
-   docker compose up -d
+   make up
+   ```
+
+   Tambien se puede iniciar una sola base:
+
+   ```bash
+   make mongodb
+   make neo4j
+   make up neo4j
    ```
 
 4. Comprobar el estado:
 
    ```bash
-   docker compose ps
+   make status
    ```
 
-   El servicio esta listo cuando su estado muestra `healthy`.
+   Cada servicio esta listo cuando su estado muestra `healthy`.
 
 5. Configurar las validaciones, cargar los datos y verificar su integridad:
 
@@ -64,6 +72,8 @@ Ejecutar cada archivo desde la raiz del repositorio:
 
 ## Conexion
 
+### MongoDB
+
 MongoDB escucha solamente en `localhost`. La URI para MongoDB Compass es:
 
 ```text
@@ -81,6 +91,29 @@ docker compose exec mongodb mongosh \
   --password
 ```
 
+### Neo4j
+
+Neo4j Browser queda disponible en:
+
+```text
+http://localhost:7474
+```
+
+La conexion Bolt para aplicaciones y clientes externos es:
+
+```text
+neo4j://localhost:7687
+```
+
+El usuario es `neo4j`. La contrasena se define con `NEO4J_PASSWORD` en `.env`. Si la variable no existe, el entorno local usa `fixture2030`. Para abrir `cypher-shell` y escribir la contrasena de forma interactiva:
+
+```bash
+docker compose exec neo4j cypher-shell \
+  --username neo4j
+```
+
+Los archivos que se usen con `LOAD CSV` se guardan en `neo4j/import/`.
+
 ## Reinicio y detencion
 
 Reiniciar el servicio sin perder datos:
@@ -92,15 +125,29 @@ docker compose restart mongodb
 Detener y retirar el contenedor sin eliminar el volumen:
 
 ```bash
-docker compose down
+make down
 ```
 
-No usar `docker compose down -v` salvo que se quiera borrar toda la informacion local.
+Para detener una sola base sin eliminar sus datos:
+
+```bash
+make down neo4j
+make down mongodb
+```
+
+El target `volumes` equivale a `docker compose down -v`. Elimina de forma permanente los datos de los servicios seleccionados:
+
+```bash
+make down neo4j volumes
+```
+
+No agregar `volumes` salvo que se quiera borrar la informacion local de la base seleccionada. `make down volumes` elimina los volumenes de todas las bases.
 
 ## Estructura
 
 ```text
 .
+|-- Makefile
 |-- compose.yaml
 |-- data/
 |   `-- load-data.js
@@ -111,6 +158,8 @@ No usar `docker compose down -v` salvo que se quiera borrar toda la informacion 
 |   `-- 01-create-collections.js
 |-- lib/
 |   `-- uuid.js
+|-- neo4j/
+|   `-- import/
 |-- queries/
 |   |-- 00-validate.js
 |   |-- 01-read.js
