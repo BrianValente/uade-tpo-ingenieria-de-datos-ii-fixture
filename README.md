@@ -49,6 +49,14 @@ No se necesita instalar Python, Node.js, MongoDB ni Neo4j en la computadora.
 
 La carga usa UUID v5 determinísticos y operaciones `upsert`. Se puede ejecutar varias veces. Cada ejecucion conserva 64 equipos participantes y 1.536 jugadores asociados sin crear duplicados.
 
+6. Cargar y verificar el modulo Neo4j:
+
+   ```bash
+   make load-neo4j
+   ```
+
+La carga de Neo4j reutiliza los UUID del modulo documental y agrega una muestra sintetica de partidos, sedes y eventos. Consultar [las instrucciones del Hito 5](neo4j/README.md) para repetir la carga y ejecutar las consultas.
+
 ## Consultas y operaciones
 
 Ejecutar cada archivo desde la raiz del repositorio:
@@ -104,7 +112,7 @@ La conexion Bolt para aplicaciones y clientes externos es:
 neo4j://localhost:7687
 ```
 
-El usuario es `neo4j`. La contrasena se define con `NEO4J_PASSWORD` en `.env`. Si la variable no existe, el entorno local usa `fixture2030`. Para abrir `cypher-shell` y escribir la contrasena de forma interactiva:
+El usuario es `neo4j`. La contrasena se debe definir con `NEO4J_PASSWORD` en `.env`. Para abrir `cypher-shell` y escribir la contrasena de forma interactiva:
 
 ```bash
 docker compose exec neo4j cypher-shell \
@@ -158,7 +166,10 @@ No agregar `volumes` salvo que se quiera borrar la informacion local de la base 
 |-- lib/
 |   `-- uuid.js
 |-- neo4j/
-|   `-- import/
+|   |-- docs/
+|   |-- import/
+|   |-- queries/
+|   `-- README.md
 |-- queries/
 |   |-- 00-validate.js
 |   |-- 01-read.js
@@ -177,6 +188,7 @@ No agregar `volumes` salvo que se quiera borrar la informacion local de la base 
 
 - Los nombres y datos deportivos de los jugadores son sinteticos. No representan personas reales.
 - Los 64 equipos forman un conjunto academico para Fixture 2030. No son una lista oficial del Mundial 2030.
+- Los partidos, sedes y eventos de Neo4j son una muestra sintetica. No representan el fixture oficial.
 - MongoDB no aplica integridad referencial entre colecciones. `05-verify.js` comprueba la relacion despues de cada carga.
 - La carga actualiza los documentos canonicos, pero no elimina documentos ajenos al dataset. Esta conducta evita borrar datos agregados por el usuario.
 - La prueba de rendimiento usa un volumen academico de 1.536 jugadores. No demuestra el cumplimiento de los objetivos distribuidos del escenario completo.
@@ -185,3 +197,4 @@ No agregar `volumes` salvo que se quiera borrar la informacion local de la base 
 
 - [Decisiones documentales](docs/Grupo_5_Hito_4_Decisiones_Documentales_Fixture2030.md)
 - [Evidencia de ejecucion](docs/evidencia.md)
+- [Modulo de grafos del Hito 5](neo4j/README.md)
