@@ -1,2 +1,4 @@
 .env
 .DS_Store
+neo4j/import/equipos.csv
+neo4j/import/jugadores.csv
