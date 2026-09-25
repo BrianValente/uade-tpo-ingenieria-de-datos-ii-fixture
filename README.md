@@ -8,7 +8,7 @@ Repositorio del TPO de Ingenieria de Datos II para desarrollar la plataforma Fix
 - Espacio libre para las imagenes y los volumenes.
 - MongoDB Compass, `mongosh` y Neo4j Desktop son opcionales.
 
-No se necesita instalar Python, Node.js, MongoDB ni Neo4j en la computadora.
+No se necesita instalar Node.js, MongoDB, Neo4j ni Cassandra en la computadora. La carga masiva del Hito 6 requiere Python 3.9 o posterior.
 
 ## Inicio y carga
 
@@ -31,6 +31,7 @@ No se necesita instalar Python, Node.js, MongoDB ni Neo4j en la computadora.
    ```bash
    make up mongodb
    make up neo4j
+   make up cassandra
    ```
 
 4. Comprobar el estado:
@@ -56,6 +57,14 @@ La carga usa UUID v5 determinísticos y operaciones `upsert`. Se puede ejecutar 
    ```
 
 La carga de Neo4j reutiliza los UUID del modulo documental y agrega una muestra sintetica de partidos, sedes y eventos. Consultar [las instrucciones del Hito 5](neo4j/README.md) para repetir la carga y ejecutar las consultas.
+
+7. Cargar y verificar el modulo Cassandra:
+
+   ```bash
+   make load-cassandra
+   ```
+
+La carga usa una muestra idempotente. Consultar [las instrucciones del Hito 6](cassandra/README.md) para generar mas de un millon de comentarios y ejecutar la medicion.
 
 ## Consultas y operaciones
 
@@ -121,6 +130,17 @@ docker compose exec neo4j cypher-shell \
 
 Los archivos que se usen con `LOAD CSV` se guardan en `neo4j/import/`.
 
+### Cassandra
+
+Cassandra escucha solamente en `localhost:9042` de forma predeterminada. Para comprobar el nodo y abrir el cliente:
+
+```bash
+docker compose exec cassandra nodetool status
+docker compose exec cassandra cqlsh
+```
+
+Los datos persisten en `~/docker/data/cassandra`.
+
 ## Reinicio y detencion
 
 Reiniciar el servicio sin perder datos:
@@ -140,6 +160,7 @@ Para detener una sola base sin eliminar sus datos:
 ```bash
 make down neo4j
 make down mongodb
+make down cassandra
 ```
 
 El target `volumes` equivale a `docker compose down -v`. Elimina de forma permanente los datos de los servicios seleccionados:
@@ -170,6 +191,11 @@ No agregar `volumes` salvo que se quiera borrar la informacion local de la base 
 |   |-- import/
 |   |-- queries/
 |   `-- README.md
+|-- cassandra/
+|   |-- data/
+|   |-- docs/
+|   |-- scripts/
+|   `-- README.md
 |-- queries/
 |   |-- 00-validate.js
 |   |-- 01-read.js
@@ -192,9 +218,11 @@ No agregar `volumes` salvo que se quiera borrar la informacion local de la base 
 - MongoDB no aplica integridad referencial entre colecciones. `05-verify.js` comprueba la relacion despues de cada carga.
 - La carga actualiza los documentos canonicos, pero no elimina documentos ajenos al dataset. Esta conducta evita borrar datos agregados por el usuario.
 - La prueba de rendimiento usa un volumen academico de 1.536 jugadores. No demuestra el cumplimiento de los objetivos distribuidos del escenario completo.
+- Cassandra usa un nodo local. No demuestra replicacion, alta disponibilidad ni distribucion fisica entre nodos.
 
 ## Documentacion
 
 - [Decisiones documentales](docs/Grupo_5_Hito_4_Decisiones_Documentales_Fixture2030.md)
 - [Evidencia de ejecucion](docs/evidencia.md)
 - [Modulo de grafos del Hito 5](neo4j/README.md)
+- [Modulo de comentarios del Hito 6](cassandra/README.md)

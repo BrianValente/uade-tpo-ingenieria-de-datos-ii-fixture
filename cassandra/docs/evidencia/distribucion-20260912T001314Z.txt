@@ -1,0 +1,9 @@
+Fecha UTC de la carga: 2026-09-12T00:13:27Z
+Comentarios analizados: 1000016
+Particiones principales: 46080
+Filas por particion: minimo 5, maximo 44, promedio 21.70
+Filas por partido: minimo 31250, maximo 31251
+Filas por grupo: minimo 62160, maximo 62875
+Estados: pendiente 20001, visible 980015
+
+Fuente: cassandra/data/generated/comentarios_por_partido.csv generado durante la prueba.

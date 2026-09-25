@@ -1,0 +1,142 @@
+Fecha UTC: 2026-09-12T00:13:10Z
+Contexto Docker: desktop-linux
+CPU disponibles: 11
+Memoria Docker: 8216719360 bytes
+Datacenter: datacenter1
+=======================
+Status=Up/Down
+|/ State=Normal/Leaving/Joining/Moving
+--  Address     Load        Tokens  Owns (effective)  Host ID                               Rack
+UN  172.19.0.4  114.78 KiB  16      100.0%            00b9c0dc-e59b-4071-ac1a-58adb6b02248  rack1
+
+
+ partido_id | bucket_minuto                   | grupo | creado_en                       | comentario_id                        | contenido                     | estado  | likes | respuestas | usuario_id                           | usuario_nombre
+------------+---------------------------------+-------+---------------------------------+--------------------------------------+-------------------------------+---------+-------+------------+--------------------------------------+----------------
+ F2030-DEMO | 2030-06-13 20:02:00.000000+0000 |    13 | 2030-06-13 20:02:15.000000+0000 | dddddddd-dddd-dddd-dddd-dddddddddddd | Comentario temporal para CRUD | visible |     0 |          0 | cccccccc-cccc-cccc-cccc-cccccccccccc |          Lucia
+
+(1 rows)
+
+ partido_id | creado_en                       | comentario_id                        | likes
+------------+---------------------------------+--------------------------------------+-------
+ F2030-DEMO | 2030-06-13 20:02:15.000000+0000 | dddddddd-dddd-dddd-dddd-dddddddddddd |     1
+
+(1 rows)
+
+ partido_id | creado_en | comentario_id
+------------+-----------+---------------
+
+
+(0 rows)
+
+ creado_en                       | comentario_id                        | usuario_nombre | contenido              | estado  | likes
+---------------------------------+--------------------------------------+----------------+------------------------+---------+-------
+ 2030-06-13 20:01:02.000000+0000 | 11111111-1111-1111-1111-111111111111 |          Sofia | Gran inicio de partido | visible |     4
+
+(1 rows)
+
+ creado_en                       | comentario_id                        | usuario_nombre | contenido
+---------------------------------+--------------------------------------+----------------+-------------------
+ 2030-06-13 20:01:08.000000+0000 | 22222222-2222-2222-2222-222222222222 |          Mateo | Que buena atajada
+
+(1 rows)
+
+ creado_en                       | comentario_id                        | partido_id | contenido              | estado    | likes
+---------------------------------+--------------------------------------+------------+------------------------+-----------+-------
+ 2030-06-13 20:01:11.000000+0000 | 33333333-3333-3333-3333-333333333333 | F2030-DEMO | Se viene el primer gol | pendiente |     0
+ 2030-06-13 20:01:02.000000+0000 | 11111111-1111-1111-1111-111111111111 | F2030-DEMO | Gran inicio de partido |   visible |     4
+
+(2 rows)
+[cqlsh 6.2.0 | Cassandra 5.0.9 | CQL spec 3.4.7 | Native protocol v5]
+
+CREATE KEYSPACE fixture2030_comentarios WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'}  AND durable_writes = true;
+
+CREATE TABLE fixture2030_comentarios.comentarios_por_partido (
+    partido_id text,
+    bucket_minuto timestamp,
+    grupo tinyint,
+    creado_en timestamp,
+    comentario_id uuid,
+    contenido text,
+    estado text,
+    likes int,
+    respuestas int,
+    usuario_id uuid,
+    usuario_nombre text,
+    PRIMARY KEY ((partido_id, bucket_minuto, grupo), creado_en, comentario_id)
+) WITH CLUSTERING ORDER BY (creado_en DESC, comentario_id ASC)
+    AND additional_write_policy = '99p'
+    AND allow_auto_snapshot = true
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
+    AND cdc = false
+    AND comment = 'Comentarios por partido, minuto y grupo de distribucion'
+    AND compaction = {'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
+    AND compression = {'chunk_length_in_kb': '16', 'class': 'org.apache.cassandra.io.compress.LZ4Compressor'}
+    AND memtable = 'default'
+    AND crc_check_chance = 1.0
+    AND default_time_to_live = 0
+    AND extensions = {}
+    AND gc_grace_seconds = 864000
+    AND incremental_backups = true
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair = 'BLOCKING'
+    AND speculative_retry = '99p';
+
+CREATE TABLE fixture2030_comentarios.comentarios_por_usuario (
+    usuario_id uuid,
+    bucket_mes date,
+    creado_en timestamp,
+    comentario_id uuid,
+    contenido text,
+    estado text,
+    likes int,
+    partido_id text,
+    respuestas int,
+    usuario_nombre text,
+    PRIMARY KEY ((usuario_id, bucket_mes), creado_en, comentario_id)
+) WITH CLUSTERING ORDER BY (creado_en DESC, comentario_id ASC)
+    AND additional_write_policy = '99p'
+    AND allow_auto_snapshot = true
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
+    AND cdc = false
+    AND comment = 'Historial mensual de comentarios por usuario'
+    AND compaction = {'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
+    AND compression = {'chunk_length_in_kb': '16', 'class': 'org.apache.cassandra.io.compress.LZ4Compressor'}
+    AND memtable = 'default'
+    AND crc_check_chance = 1.0
+    AND default_time_to_live = 0
+    AND extensions = {}
+    AND gc_grace_seconds = 864000
+    AND incremental_backups = true
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair = 'BLOCKING'
+    AND speculative_retry = '99p';
+
+ comentarios_grupo_1
+---------------------
+                   1
+
+(1 rows)
+
+ comentarios_grupo_2
+---------------------
+                   1
+
+(1 rows)
+
+ comentarios_grupo_3
+---------------------
+                   1
+
+(1 rows)
+
+ comentarios_usuario
+---------------------
+                   2
+
+(1 rows)
