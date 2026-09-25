@@ -52,6 +52,21 @@ services:
       retries: 12
       start_period: 30s
 
+  cassandra:
+    image: cassandra:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${CASSANDRA_PORT:-9042}:9042"
+    volumes:
+      - "${HOME}/docker/data/cassandra:/var/lib/cassandra"
+      - ./cassandra:/workspace/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE CLUSTER' >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 60s
+
 volumes:
   mongodb_data:
   neo4j_data:
