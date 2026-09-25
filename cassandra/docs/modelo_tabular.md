@@ -30,6 +30,10 @@ PRIMARY KEY ((usuario_id, bucket_mes), creado_en, comentario_id)
 
 El mes evita que el historial de un usuario crezca en una sola partición. La tabla repite el contenido necesario para responder sin consultar la tabla principal. Este diseño ocupa más espacio y exige mantener ambas vistas.
 
+Para esta tabla suponemos hasta 100 comentarios diarios por usuario habitual. Un mes de 31 días produce 3.100 filas, cerca de 0,93 MB si usamos la estimación simple de 300 bytes útiles por fila. Las escrituras se distribuyen por `usuario_id`, por lo que usuarios distintos no concentran la misma partición.
+
+Un usuario automatizado podría superar el supuesto. Como escenario excepcional, 10.000 comentarios diarios producirían 310.000 filas y cerca de 93 MB útiles en un mes. El bucket mensual deja de ser conveniente si ese comportamiento se vuelve frecuente. En ese caso deberíamos aplicar límites de publicación o cambiar a un bucket diario. El bucket diario reduce cada partición, pero obliga a consultar hasta 31 particiones para recuperar un mes. El control de publicación corresponde a la futura API y no se implementa en este hito.
+
 ## Escritura y coherencia entre vistas
 
 Cada alta escribe una fila en `comentarios_por_partido` y otra en `comentarios_por_usuario`. La muestra y el generador crean ambas filas. No usamos un batch como acelerador porque las filas suelen pertenecer a particiones distintas.

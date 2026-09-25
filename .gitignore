@@ -2,5 +2,4 @@
 .DS_Store
 neo4j/import/equipos.csv
 neo4j/import/jugadores.csv
-cassandra/data/generated/*.csv
-cassandra/data/generated/*.json
+cassandra/data/generated/

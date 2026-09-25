@@ -42,3 +42,26 @@ La prueba superó el objetivo de 10.000 escrituras por segundo en este ambiente.
 El dataset produjo 46.080 particiones principales. Cada partición tuvo entre 5 y 44 filas, con un promedio de 21,70. Cada partido recibió 31.250 o 31.251 comentarios. Cada grupo recibió entre 62.160 y 62.875 comentarios. Esta distribución comprueba el generador, pero no reproduce un pico de un millón de comentarios sobre un solo partido.
 
 La salida completa está en [`evidencia/carga-20260912T001314Z.txt`](evidencia/carga-20260912T001314Z.txt).
+
+## Prueba focalizada de un partido caliente
+
+El 25 de septiembre de 2026 repetimos la medición con un millón de comentarios concentrados en `F2030-HOT`. Los timestamps sintéticos cubren 100 segundos, equivalentes a 10.000 comentarios por segundo en el escenario modelado. `COPY` carga el archivo tan rápido como puede; no espera entre escrituras para reproducir el ritmo temporal.
+
+| Medición | Resultado observado |
+| --- | ---: |
+| Comentarios del partido | 1.000.000 |
+| Ventana temporal modelada | 100 s |
+| Particiones principales | 32 |
+| Filas mínimas por partición | 24.661 |
+| Filas máximas por partición | 37.696 |
+| Filas promedio por partición | 31.250 |
+| Filas importadas | 1.000.000 |
+| Filas omitidas | 0 |
+| Tiempo informado por `COPY` | 15,306 s |
+| Tasa promedio informada por `COPY` | 65.335 filas/s |
+
+El máximo de 37.696 filas queda cerca de la estimación de 37.500 para un minuto y un reparto uniforme entre 16 grupos. Esto valida el límite de filas del diseño con datos sintéticos. No demuestra distribución física entre nodos porque el laboratorio conserva un solo nodo.
+
+La evidencia está en [`evidencia/focal-20260925T194707Z.txt`](evidencia/focal-20260925T194707Z.txt) y sus parámetros están en [`evidencia/metadata-focal-20260925T194707Z.json`](evidencia/metadata-focal-20260925T194707Z.json).
+
+La repetición de la carga general también conservó automáticamente su metadata en [`evidencia/metadata-carga-20260925T194812Z.json`](evidencia/metadata-carga-20260925T194812Z.json).

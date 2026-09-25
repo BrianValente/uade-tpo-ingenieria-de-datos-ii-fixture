@@ -4,10 +4,12 @@ set -eu
 CANTIDAD="${CANTIDAD:-1000016}"
 MARCA="$(date -u +%Y%m%dT%H%M%SZ)"
 EVIDENCIA="cassandra/docs/evidencia/carga-$MARCA.txt"
+METADATA="cassandra/docs/evidencia/metadata-carga-$MARCA.json"
 ERROR_PARTIDO="cassandra/data/generated/errores-partido-$MARCA.csv"
 ERROR_USUARIO="cassandra/data/generated/errores-usuario-$MARCA.csv"
 
 python3 cassandra/scripts/generar_carga.py --cantidad "$CANTIDAD"
+cp cassandra/data/generated/metadata.json "$METADATA"
 docker compose up -d --wait cassandra
 ./scripts/run-cql.sh cassandra/scripts/00_esquema.cql
 
@@ -42,3 +44,4 @@ if [ -s "$ERROR_PARTIDO" ] || [ -s "$ERROR_USUARIO" ]; then
 fi
 
 printf 'Evidencia guardada en %s\n' "$EVIDENCIA"
+printf 'Metadata guardada en %s\n' "$METADATA"

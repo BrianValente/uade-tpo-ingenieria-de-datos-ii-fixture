@@ -1,4 +1,4 @@
-.PHONY: help up mongodb neo4j cassandra status down volumes logs-mongodb logs-neo4j logs-cassandra load-neo4j verify-neo4j queries-neo4j load-cassandra verify-cassandra queries-cassandra benchmark-cassandra
+.PHONY: help up mongodb neo4j cassandra status down volumes logs-mongodb logs-neo4j logs-cassandra load-neo4j verify-neo4j queries-neo4j load-cassandra verify-cassandra queries-cassandra benchmark-cassandra benchmark-cassandra-hotspot
 
 SELECTED_ENGINES := $(filter mongodb neo4j cassandra,$(MAKECMDGOALS))
 UP_ENGINES := $(if $(SELECTED_ENGINES),$(SELECTED_ENGINES),mongodb neo4j cassandra)
@@ -21,6 +21,7 @@ help:
 		'make verify-cassandra     Verifica el modulo de comentarios' \
 		'make queries-cassandra    Ejecuta las consultas de comentarios' \
 		'make benchmark-cassandra  Genera y carga mas de 1M de comentarios' \
+		'make benchmark-cassandra-hotspot Prueba un partido con 10.000 comentarios/s' \
 		'make down                 Detiene todos los servicios' \
 		'make down neo4j           Detiene solo Neo4j' \
 		'make down neo4j volumes   Detiene Neo4j y borra sus datos'
@@ -69,3 +70,6 @@ queries-cassandra:
 
 benchmark-cassandra:
 	./cassandra/scripts/carga_o_prueba.sh
+
+benchmark-cassandra-hotspot:
+	./cassandra/scripts/prueba_partido_caliente.sh

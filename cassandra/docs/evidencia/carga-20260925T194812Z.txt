@@ -1,0 +1,230 @@
+Fecha UTC: 2026-09-25T19:48:28Z
+Contexto Docker: desktop-linux
+Version Docker: 29.6.1
+CPU disponibles: 11
+Memoria Docker: 8216719360 bytes
+Sistema: Darwin Brians-MacBook-Pro.local 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:06:24 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6030 arm64
+Comentarios generados: 1000016
+Filas fisicas esperadas: 2000032
+[cqlsh 6.2.0 | Cassandra 5.0.9 | CQL spec 3.4.7 | Native protocol v5]
+Datacenter: datacenter1
+=======================
+Status=Up/Down
+|/ State=Normal/Leaving/Joining/Moving
+--  Address     Load        Tokens  Owns (effective)  Host ID                               Rack
+UN  172.18.0.2  160.98 MiB  16      100.0%            00b9c0dc-e59b-4071-ac1a-58adb6b02248  rack1
+
+Using 4 child processes
+
+Starting copy of fixture2030_comentarios.comentarios_por_partido with columns [partido_id, bucket_minuto, grupo, creado_en, comentario_id, usuario_id, usuario_nombre, contenido, estado, likes, respuestas].
+Processed: 5000 rows; Rate:   16943 rows/s; Avg. rate:   16941 rows/s
+
+Processed: 20000 rows; Rate:   31240 rows/s; Avg. rate:   32024 rows/s
+
+Processed: 25000 rows; Rate:   22696 rows/s; Avg. rate:   25568 rows/s
+
+Processed: 55000 rows; Rate:   70805 rows/s; Avg. rate:   44712 rows/s
+
+Processed: 60000 rows; Rate:   42665 rows/s; Avg. rate:   38112 rows/s
+
+Processed: 80000 rows; Rate:   55466 rows/s; Avg. rate:   42843 rows/s
+
+Processed: 100000 rows; Rate:   61426 rows/s; Avg. rate:   46209 rows/s
+
+Processed: 110000 rows; Rate:   47245 rows/s; Avg. rate:   44597 rows/s
+
+Processed: 120000 rows; Rate:   41814 rows/s; Avg. rate:   43774 rows/s
+
+Processed: 145000 rows; Rate:   70255 rows/s; Avg. rate:   48419 rows/s
+
+Processed: 160000 rows; Rate:   56702 rows/s; Avg. rate:   47871 rows/s
+
+Processed: 185000 rows; Rate:   67432 rows/s; Avg. rate:   50517 rows/s
+
+Processed: 200000 rows; Rate:   60160 rows/s; Avg. rate:   50687 rows/s
+
+Processed: 215000 rows; Rate:   57629 rows/s; Avg. rate:   50972 rows/s
+
+Processed: 225000 rows; Rate:   46363 rows/s; Avg. rate:   49967 rows/s
+
+Processed: 230000 rows; Rate:   29923 rows/s; Avg. rate:   47191 rows/s
+
+Processed: 255000 rows; Rate:   55394 rows/s; Avg. rate:   49200 rows/s
+
+Processed: 275000 rows; Rate:   65489 rows/s; Avg. rate:   50482 rows/s
+
+Processed: 300000 rows; Rate:   75049 rows/s; Avg. rate:   52237 rows/s
+
+Processed: 335000 rows; Rate:   99320 rows/s; Avg. rate:   55591 rows/s
+
+Processed: 355000 rows; Rate:   83839 rows/s; Avg. rate:   56182 rows/s
+
+Processed: 380000 rows; Rate:   86904 rows/s; Avg. rate:   57605 rows/s
+
+Processed: 405000 rows; Rate:   86064 rows/s; Avg. rate:   58781 rows/s
+
+Processed: 415000 rows; Rate:   61637 rows/s; Avg. rate:   57971 rows/s
+
+Processed: 440000 rows; Rate:   73329 rows/s; Avg. rate:   59038 rows/s
+
+Processed: 465000 rows; Rate:   79998 rows/s; Avg. rate:   60068 rows/s
+
+Processed: 495000 rows; Rate:   98108 rows/s; Avg. rate:   61880 rows/s
+
+Processed: 520000 rows; Rate:   97020 rows/s; Avg. rate:   62954 rows/s
+
+Processed: 545000 rows; Rate:   87185 rows/s; Avg. rate:   63496 rows/s
+
+Processed: 570000 rows; Rate:   92433 rows/s; Avg. rate:   64486 rows/s
+
+Processed: 580000 rows; Rate:   60477 rows/s; Avg. rate:   63114 rows/s
+
+Processed: 600000 rows; Rate:   62598 rows/s; Avg. rate:   63166 rows/s
+
+Processed: 605000 rows; Rate:   39032 rows/s; Avg. rate:   61596 rows/s
+
+Processed: 620000 rows; Rate:   46907 rows/s; Avg. rate:   61411 rows/s
+
+Processed: 645000 rows; Rate:   66869 rows/s; Avg. rate:   62116 rows/s
+
+Processed: 670000 rows; Rate:   83346 rows/s; Avg. rate:   63004 rows/s
+
+Processed: 695000 rows; Rate:   88689 rows/s; Avg. rate:   63761 rows/s
+
+Processed: 720000 rows; Rate:   94126 rows/s; Avg. rate:   64567 rows/s
+
+Processed: 745000 rows; Rate:   90459 rows/s; Avg. rate:   65127 rows/s
+
+Processed: 770000 rows; Rate:   88947 rows/s; Avg. rate:   65671 rows/s
+
+Processed: 775000 rows; Rate:   51990 rows/s; Avg. rate:   64274 rows/s
+
+Processed: 820000 rows; Rate:  113859 rows/s; Avg. rate:   66592 rows/s
+
+Processed: 850000 rows; Rate:  111824 rows/s; Avg. rate:   67530 rows/s
+
+Processed: 885000 rows; Rate:  122131 rows/s; Avg. rate:   68864 rows/s
+
+Processed: 905000 rows; Rate:   92176 rows/s; Avg. rate:   68702 rows/s
+
+Processed: 930000 rows; Rate:   95807 rows/s; Avg. rate:   69278 rows/s
+
+Processed: 940000 rows; Rate:   67357 rows/s; Avg. rate:   68707 rows/s
+
+Processed: 975000 rows; Rate:   93008 rows/s; Avg. rate:   69761 rows/s
+
+Processed: 1000016 rows; Rate:   84103 rows/s; Avg. rate:   69888 rows/s
+
+Processed: 1000016 rows; Rate:   42051 rows/s; Avg. rate:   69393 rows/s
+
+
+1000016 rows imported from 1 files in 0 day, 0 hour, 0 minute, and 14.411 seconds (0 skipped).
+Using 4 child processes
+
+Starting copy of fixture2030_comentarios.comentarios_por_usuario with columns [usuario_id, bucket_mes, creado_en, comentario_id, partido_id, usuario_nombre, contenido, estado, likes, respuestas].
+Processed: 5000 rows; Rate:   15014 rows/s; Avg. rate:   15012 rows/s
+
+Processed: 20000 rows; Rate:   36438 rows/s; Avg. rate:   33768 rows/s
+
+Processed: 40000 rows; Rate:   55233 rows/s; Avg. rate:   46380 rows/s
+
+Processed: 45000 rows; Rate:   32647 rows/s; Avg. rate:   33103 rows/s
+
+Processed: 60000 rows; Rate:   38711 rows/s; Avg. rate:   35411 rows/s
+
+Processed: 80000 rows; Rate:   54654 rows/s; Avg. rate:   40451 rows/s
+
+Processed: 100000 rows; Rate:   58474 rows/s; Avg. rate:   43502 rows/s
+
+Processed: 120000 rows; Rate:   65456 rows/s; Avg. rate:   46605 rows/s
+
+Processed: 140000 rows; Rate:   65371 rows/s; Avg. rate:   48591 rows/s
+
+Processed: 160000 rows; Rate:   70452 rows/s; Avg. rate:   50859 rows/s
+
+Processed: 165000 rows; Rate:   44343 rows/s; Avg. rate:   48243 rows/s
+
+Processed: 200000 rows; Rate:   75299 rows/s; Avg. rate:   53339 rows/s
+
+Processed: 230000 rows; Rate:   96022 rows/s; Avg. rate:   57406 rows/s
+
+Processed: 240000 rows; Rate:   65796 rows/s; Avg. rate:   55974 rows/s
+
+Processed: 265000 rows; Rate:   76793 rows/s; Avg. rate:   57956 rows/s
+
+Processed: 285000 rows; Rate:   74237 rows/s; Avg. rate:   58745 rows/s
+
+Processed: 320000 rows; Rate:  104289 rows/s; Avg. rate:   62598 rows/s
+
+Processed: 350000 rows; Rate:  106390 rows/s; Avg. rate:   64953 rows/s
+
+Processed: 375000 rows; Rate:   89002 rows/s; Avg. rate:   65358 rows/s
+
+Processed: 395000 rows; Rate:   74291 rows/s; Avg. rate:   65039 rows/s
+
+Processed: 420000 rows; Rate:   85270 rows/s; Avg. rate:   66319 rows/s
+
+Processed: 455000 rows; Rate:  102088 rows/s; Avg. rate:   68654 rows/s
+
+Processed: 495000 rows; Rate:  111661 rows/s; Avg. rate:   71148 rows/s
+
+Processed: 520000 rows; Rate:   91749 rows/s; Avg. rate:   71181 rows/s
+
+Processed: 545000 rows; Rate:   93743 rows/s; Avg. rate:   72028 rows/s
+
+Processed: 575000 rows; Rate:   96955 rows/s; Avg. rate:   73100 rows/s
+
+Processed: 615000 rows; Rate:  120482 rows/s; Avg. rate:   75518 rows/s
+
+Processed: 635000 rows; Rate:   94510 rows/s; Avg. rate:   75277 rows/s
+
+Processed: 655000 rows; Rate:   82272 rows/s; Avg. rate:   75105 rows/s
+
+Processed: 665000 rows; Rate:   56260 rows/s; Avg. rate:   73467 rows/s
+
+Processed: 670000 rows; Rate:   37750 rows/s; Avg. rate:   71953 rows/s
+
+Processed: 675000 rows; Rate:   26253 rows/s; Avg. rate:   69945 rows/s
+
+Processed: 695000 rows; Rate:   52555 rows/s; Avg. rate:   70173 rows/s
+
+Processed: 720000 rows; Rate:   75524 rows/s; Avg. rate:   70881 rows/s
+
+Processed: 740000 rows; Rate:   68159 rows/s; Avg. rate:   70564 rows/s
+
+Processed: 775000 rows; Rate:   97588 rows/s; Avg. rate:   72010 rows/s
+
+Processed: 795000 rows; Rate:   77778 rows/s; Avg. rate:   71573 rows/s
+
+Processed: 805000 rows; Rate:   57746 rows/s; Avg. rate:   70784 rows/s
+
+Processed: 815000 rows; Rate:   43546 rows/s; Avg. rate:   69579 rows/s
+
+Processed: 820000 rows; Rate:   31689 rows/s; Avg. rate:   68530 rows/s
+
+Processed: 840000 rows; Rate:   55615 rows/s; Avg. rate:   68757 rows/s
+
+Processed: 860000 rows; Rate:   65077 rows/s; Avg. rate:   68881 rows/s
+
+Processed: 880000 rows; Rate:   69822 rows/s; Avg. rate:   69001 rows/s
+
+Processed: 905000 rows; Rate:   71261 rows/s; Avg. rate:   69098 rows/s
+
+Processed: 925000 rows; Rate:   65006 rows/s; Avg. rate:   68836 rows/s
+
+Processed: 950000 rows; Rate:   80730 rows/s; Avg. rate:   69358 rows/s
+
+Processed: 965000 rows; Rate:   69943 rows/s; Avg. rate:   69173 rows/s
+
+Processed: 995016 rows; Rate:   80808 rows/s; Avg. rate:   69689 rows/s
+
+Processed: 1000016 rows; Rate:   48367 rows/s; Avg. rate:   68532 rows/s
+
+Processed: 1000016 rows; Rate:   24183 rows/s; Avg. rate:   68059 rows/s
+
+
+1000016 rows imported from 1 files in 0 day, 0 hour, 0 minute, and 14.694 seconds (0 skipped).
+Duracion total de las dos cargas: 31 s
+Comentarios solicitados por segundo: 32258
+Escrituras fisicas solicitadas por segundo: 64517
+Limitacion: COPY incluye conversion CSV, cliente local y dos vistas por comentario.

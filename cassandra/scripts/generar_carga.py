@@ -17,6 +17,7 @@ def argumentos():
     parser.add_argument("--partidos", type=int, default=32)
     parser.add_argument("--usuarios", type=int, default=100_000)
     parser.add_argument("--duracion-segundos", type=int, default=5_400)
+    parser.add_argument("--partido-id", help="Usa un unico partido con este identificador")
     parser.add_argument("--salida", type=Path, default=Path("cassandra/data/generated"))
     return parser.parse_args()
 
@@ -52,7 +53,7 @@ def main():
         por_usuario.writeheader()
 
         for indice in range(args.cantidad):
-            partido_id = f"F2030-{indice % args.partidos + 1:03d}"
+            partido_id = args.partido_id or f"F2030-{indice % args.partidos + 1:03d}"
             usuario_numero = indice % args.usuarios + 1
             usuario_id = uuid.uuid5(NAMESPACE, f"usuario:{usuario_numero}")
             comentario_id = uuid.uuid5(NAMESPACE, f"comentario:{indice}")
@@ -90,6 +91,7 @@ def main():
         "cantidad_comentarios": args.cantidad,
         "cantidad_filas": args.cantidad * 2,
         "partidos": args.partidos,
+        "partido_id_fijo": args.partido_id,
         "usuarios": args.usuarios,
         "grupos_por_minuto": 16,
         "duracion_segundos": args.duracion_segundos,

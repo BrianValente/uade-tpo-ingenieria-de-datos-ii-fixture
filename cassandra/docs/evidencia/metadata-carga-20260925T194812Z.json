@@ -1,0 +1,26 @@
+{
+  "cantidad_comentarios": 1000016,
+  "cantidad_filas": 2000032,
+  "partidos": 32,
+  "partido_id_fijo": null,
+  "usuarios": 100000,
+  "grupos_por_minuto": 16,
+  "duracion_segundos": 5400,
+  "inicio_utc": "2030-06-13T20:00:00+00:00",
+  "particiones_principales": 46080,
+  "filas_por_particion_min": 5,
+  "filas_por_particion_max": 44,
+  "filas_por_particion_promedio": 21.7,
+  "filas_por_partido_min": 31250,
+  "filas_por_partido_max": 31251,
+  "filas_por_grupo_min": 62160,
+  "filas_por_grupo_max": 62875,
+  "filas_por_estado": {
+    "pendiente": 20001,
+    "visible": 980015
+  },
+  "archivos": [
+    "cassandra/data/generated/comentarios_por_partido.csv",
+    "cassandra/data/generated/comentarios_por_usuario.csv"
+  ]
+}

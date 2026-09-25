@@ -66,6 +66,14 @@ La tasa informada es una medición local. Incluye la conversión de CSV, el clie
 
 Repetir la misma carga hace upsert sobre las mismas claves. Ejecutar luego una carga más pequeña no elimina las filas anteriores. El proceso evita borrados implícitos para no destruir datos del entorno local.
 
+Para reproducir el escenario focalizado de un partido con 10.000 comentarios por segundo durante 100 segundos:
+
+```bash
+make benchmark-cassandra-hotspot
+```
+
+Esta prueba carga solamente la tabla principal con el partido sintético `F2030-HOT`. Cada prueba conserva una copia fechada de su metadata en `cassandra/docs/evidencia/`.
+
 Para registrar el esquema, la muestra, el CRUD y las consultas en un archivo fechado:
 
 ```bash
