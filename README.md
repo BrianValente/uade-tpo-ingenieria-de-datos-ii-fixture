@@ -68,6 +68,16 @@ La carga usa una muestra idempotente. Consultar [las instrucciones del Hito 6](c
 
 ## Consultas y operaciones
 
+### Inicio del Hito 7
+
+El ambiente Redis y la inspección inicial están disponibles. El diseño de sesiones y caché está pendiente. Consultar [el avance del Hito 7](redis/README.md).
+
+```bash
+make up redis
+make inspect-redis
+make metrics-redis
+```
+
 Ejecutar cada archivo desde la raiz del repositorio:
 
 ```bash

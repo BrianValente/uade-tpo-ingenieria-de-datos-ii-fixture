@@ -1,0 +1,5 @@
+# Metricas globales. No equivalen a resultados de la cache del modulo.
+INFO stats
+INFO memory
+INFO keyspace
+DBSIZE

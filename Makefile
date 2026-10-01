@@ -1,15 +1,18 @@
 .PHONY: help up mongodb neo4j cassandra status down volumes logs-mongodb logs-neo4j logs-cassandra load-neo4j verify-neo4j queries-neo4j load-cassandra verify-cassandra queries-cassandra benchmark-cassandra benchmark-cassandra-hotspot
 
-SELECTED_ENGINES := $(filter mongodb neo4j cassandra,$(MAKECMDGOALS))
-UP_ENGINES := $(if $(SELECTED_ENGINES),$(SELECTED_ENGINES),mongodb neo4j cassandra)
+SELECTED_ENGINES := $(filter mongodb neo4j cassandra redis,$(MAKECMDGOALS))
+UP_ENGINES := $(if $(SELECTED_ENGINES),$(SELECTED_ENGINES),mongodb neo4j cassandra redis)
 DOWN_VOLUMES := $(if $(filter volumes,$(MAKECMDGOALS)),--volumes,)
 
 help:
 	@printf '%s\n' \
-		'make up                   Inicia MongoDB, Neo4j y Cassandra' \
+		'make up                   Inicia MongoDB, Neo4j, Cassandra y Redis' \
 		'make up mongodb            Inicia solo MongoDB' \
 		'make up neo4j             Inicia solo Neo4j' \
 		'make up cassandra         Inicia solo Cassandra' \
+		'make up redis             Inicia solo Redis' \
+		'make inspect-redis        Consulta disponibilidad y configuracion' \
+		'make metrics-redis        Consulta metricas de Redis' \
 		'make status               Muestra el estado de los servicios' \
 		'make logs-mongodb         Sigue los logs de MongoDB' \
 		'make logs-neo4j           Sigue los logs de Neo4j' \
@@ -29,7 +32,7 @@ help:
 up:
 	docker compose up -d $(UP_ENGINES)
 
-mongodb neo4j cassandra:
+mongodb neo4j cassandra redis:
 	$(if $(filter up down,$(MAKECMDGOALS)),@:,$(error Use 'make up $@' o 'make down $@'))
 
 status:
@@ -73,3 +76,11 @@ benchmark-cassandra:
 
 benchmark-cassandra-hotspot:
 	./cassandra/scripts/prueba_partido_caliente.sh
+
+.PHONY: redis inspect-redis metrics-redis
+
+inspect-redis:
+	bash scripts/run-redis.sh redis/scripts/inicializacion.redis
+
+metrics-redis:
+	bash scripts/run-redis.sh redis/scripts/metricas.redis
