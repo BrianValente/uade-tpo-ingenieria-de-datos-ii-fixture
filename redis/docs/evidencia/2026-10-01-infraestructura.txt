@@ -1,0 +1,68 @@
+Extractos de salida observada; no es el log completo.
+Fecha: 2026-10-01. Contexto Docker: desktop-linux.
+
+Comandos: docker compose up -d --wait redis; make inspect-redis
+Container fixture2030-redis-1 Healthy
+PONG
+redis_version:8.10.2
+redis_mode:standalone
+os:Linux 6.12.76-linuxkit aarch64
+arch_bits:64
+aof_enabled:1
+aof_last_write_status:ok
+maxmemory-policy
+noeviction
+appendonly
+yes
+appendfsync
+everysec
+maxmemory
+0
+save
+60 1
+
+Comando: make metrics-redis (antes de crear la clave de prueba)
+expired_keys:0
+evicted_keys:0
+keyspace_hits:0
+keyspace_misses:0
+used_memory:1478720
+DBSIZE: 0
+Hora UTC al finalizar estas comprobaciones: 2026-10-01T17:45:07Z
+
+Comando: docker inspect fixture2030-redis-1 (solo montajes)
+bind ~/docker/data/redis -> /data
+Nota: se normalizo el directorio personal a ~.
+
+Comando: docker image inspect redis:latest (solo RepoDigests)
+["redis@sha256:6f81e8915c60b065a524e6967e0ad1c639ba6efa84d669f823683ea04d9150ee"]
+
+SET fixture2030:lab:infra:20261001T174507Z prueba-persistencia EX 120 NX
+OK
+TTL fixture2030:lab:infra:20261001T174507Z
+120
+docker compose restart redis
+docker compose up -d --wait redis
+Container fixture2030-redis-1 Healthy
+GET fixture2030:lab:infra:20261001T174507Z
+prueba-persistencia
+TTL fixture2030:lab:infra:20261001T174507Z
+114
+INFO persistence
+aof_enabled:1
+aof_last_write_status:ok
+aof_current_size:226
+Hora UTC: 2026-10-01T17:45:40Z
+
+Comprobacion posterior al vencimiento:
+EXISTS fixture2030:lab:infra:20261001T174507Z
+0
+TTL fixture2030:lab:infra:20261001T174507Z
+-2
+INFO stats
+expired_keys:1
+expired_keys_active:1
+evicted_keys:0
+keyspace_hits:2
+keyspace_misses:2
+Hora UTC: 2026-10-01T17:48:26Z

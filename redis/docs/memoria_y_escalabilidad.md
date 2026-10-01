@@ -2,7 +2,7 @@
 
 **Estado: límite y política pendientes de decisión y configuración.**
 
-El Compose inicial no fija `maxmemory`. Debemos observar la configuración con `CONFIG GET` y elegir un límite antes de la prueba del módulo. Esta configuración inicial no cumple todavía RF10.
+El Compose inicial no fija `maxmemory`. El 1 de octubre de 2026 observamos `maxmemory=0` y `maxmemory-policy=noeviction` mediante `CONFIG GET`. Debemos elegir un límite antes de la prueba del módulo. La política observada es el valor inicial del servidor, no una decisión de diseño del grupo. Esta configuración inicial no cumple todavía RF10.
 
 | Alternativa | Beneficio | Costo que debemos evaluar |
 | --- | --- | --- |
