@@ -13,6 +13,8 @@ help:
 		'make up redis             Inicia solo Redis' \
 		'make inspect-redis        Consulta disponibilidad y configuracion' \
 		'make metrics-redis        Consulta metricas de Redis' \
+		'make load-redis           Carga la muestra sintetica del Hito 7' \
+		'make verify-redis         Prueba el modulo y memoria en contenedor aislado' \
 		'make status               Muestra el estado de los servicios' \
 		'make logs-mongodb         Sigue los logs de MongoDB' \
 		'make logs-neo4j           Sigue los logs de Neo4j' \
@@ -77,10 +79,16 @@ benchmark-cassandra:
 benchmark-cassandra-hotspot:
 	./cassandra/scripts/prueba_partido_caliente.sh
 
-.PHONY: redis inspect-redis metrics-redis
+.PHONY: redis inspect-redis metrics-redis load-redis verify-redis
 
 inspect-redis:
 	bash scripts/run-redis.sh redis/scripts/inicializacion.redis
 
 metrics-redis:
 	bash scripts/run-redis.sh redis/scripts/metricas.redis
+
+load-redis:
+	redis/.venv/bin/python redis/scripts/carga_muestra.py
+
+verify-redis:
+	redis/.venv/bin/python redis/scripts/pruebas.py --memoria

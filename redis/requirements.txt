@@ -1,0 +1,2 @@
+# Cliente Python; la imagen del servidor sigue siendo redis:latest.
+redis==6.4.0

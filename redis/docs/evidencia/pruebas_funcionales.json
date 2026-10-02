@@ -1,0 +1,193 @@
+{
+  "fecha_utc": "2026-10-02T00:32:48.952886+00:00",
+  "namespace": "fixture2030:h7:pruebas-a57f0911e6bf4d3ba4587e146aeae475",
+  "pruebas": [
+    {
+      "nombre": "disponibilidad_y_configuracion",
+      "estado": "OK",
+      "resultado": {
+        "appendfsync": "everysec",
+        "maxmemory-policy": "noeviction",
+        "maxmemory": "268435456",
+        "appendonly": "yes",
+        "save": "60 1"
+      }
+    },
+    {
+      "nombre": "carga_reproducible",
+      "estado": "OK",
+      "resultado": {
+        "namespace": "fixture2030:h7:pruebas-a57f0911e6bf4d3ba4587e146aeae475-carga",
+        "usuarios_sinteticos": 10,
+        "sesiones": 20,
+        "copias_cache": 4,
+        "ranking": [
+          [
+            "4fe7c544-b1ce-5020-afae-7429c4c02d50",
+            6.0
+          ],
+          [
+            "1e303ca6-0e0b-5a71-8c23-4db91efc59af",
+            2.0
+          ],
+          [
+            "de994bed-4f78-5ac3-bbe7-32e0dc0a2b76",
+            1.0
+          ],
+          [
+            "db4c77cd-208d-5ca6-a6eb-2912ae2fea7d",
+            1.0
+          ]
+        ],
+        "claves": 25,
+        "fuente": "simulada_en_memoria",
+        "ttl_sesion_segundos": 1800,
+        "ttl_cache_segundos": 300,
+        "ttl_ranking_segundos": 1630
+      }
+    },
+    {
+      "nombre": "sesiones_creacion_lectura_renovacion_y_cierre",
+      "estado": "OK",
+      "resultado": {
+        "ttl_prueba_segundos": 4,
+        "pttl_antes_lectura": 2892,
+        "pttl_despues_lectura": 2890,
+        "pttl_renovado": 3999,
+        "multiples_dispositivos": true,
+        "cierre_no_recrea": true,
+        "estado_bloqueado_rechazado": true
+      }
+    },
+    {
+      "nombre": "expiracion_nativa",
+      "estado": "OK",
+      "resultado": {
+        "ttl_prueba_segundos": 2,
+        "ttl_final": -2
+      }
+    },
+    {
+      "nombre": "cierre_concurrente",
+      "estado": "OK",
+      "resultado": {
+        "repeticiones": 20,
+        "renovaciones_por_cierre": 20,
+        "sesiones_recreadas": 0
+      }
+    },
+    {
+      "nombre": "cache_hit_miss_invalidacion_y_expiracion",
+      "estado": "OK",
+      "resultado": {
+        "ttl_prueba_segundos": 2,
+        "version_tras_actualizar": 2,
+        "hits_modulo": 1,
+        "misses_modulo": 3
+      }
+    },
+    {
+      "nombre": "cache_concurrente_local",
+      "estado": "OK",
+      "resultado": {
+        "version_final": 2,
+        "alcance": "un_proceso_fuente_compartida"
+      }
+    },
+    {
+      "nombre": "invalidacion_fallida",
+      "estado": "OK",
+      "resultado": {
+        "tipo": "fallo_simulado",
+        "version_respuesta": 2,
+        "cache_omitida": true
+      }
+    },
+    {
+      "nombre": "redis_no_disponible",
+      "estado": "OK",
+      "resultado": {
+        "tipo": "conexion_real_rechazada",
+        "sesion_no_autorizada": true,
+        "cache_responde_fuente": true
+      }
+    },
+    {
+      "nombre": "ranking_ventana_fija",
+      "estado": "OK",
+      "resultado": {
+        "ventana_acelerada_segundos": 3,
+        "ttl_final": -2
+      }
+    },
+    {
+      "nombre": "contador_concurrente_y_medicion",
+      "estado": "OK",
+      "resultado": {
+        "clientes": 8,
+        "operaciones_por_cliente": 100,
+        "esperado": 800,
+        "observado": 800,
+        "segundos": 0.16971950000151992,
+        "operaciones_por_segundo": 4713.659891720372,
+        "claves": [
+          "fixture2030:h7:pruebas-a57f0911e6bf4d3ba4587e146aeae475-contador:consultas:hora:497472"
+        ],
+        "nota": "Incluye TIME y Lua por consulta; cliente Python, hilos y red local.",
+        "memoria_antes_bytes": 2002872,
+        "memoria_despues_bytes": 2095712,
+        "deltas_stats_instancia": {
+          "keyspace_hits": 1,
+          "keyspace_misses": 0,
+          "expired_keys": 0,
+          "evicted_keys": 0
+        }
+      }
+    },
+    {
+      "nombre": "presion_memoria_noeviction",
+      "estado": "OK",
+      "resultado": {
+        "tipo": "real_contenedor_aislado",
+        "maxmemory_carga_bytes": 2097152,
+        "maxmemory_presion_sostenida_bytes": 1048576,
+        "escrituras_relleno": 285,
+        "error_oom": true,
+        "sesion_previa_conservada": true,
+        "creacion_y_renovacion_rechazadas": true,
+        "cache_responde_fuente": true,
+        "evicted_keys": 0
+      }
+    }
+  ],
+  "entorno": {
+    "redis_version": "8.10.2",
+    "redis_mode": "standalone",
+    "python": "3.14.3",
+    "redis_py": "6.4.0",
+    "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "host_cpus_logicas": 11,
+    "docker_context": "desktop-linux",
+    "docker_recursos": "11 CPUs; 8216719360 bytes RAM",
+    "imagen_digest": [
+      "redis@sha256:6f81e8915c60b065a524e6967e0ad1c639ba6efa84d669f823683ea04d9150ee"
+    ],
+    "config": {
+      "appendfsync": "everysec",
+      "maxmemory-policy": "noeviction",
+      "maxmemory": "268435456",
+      "appendonly": "yes",
+      "save": "60 1"
+    },
+    "host_ram_bytes": 19327352832
+  },
+  "estado": "OK",
+  "limites": [
+    "Nodo local; no prueba millones de usuarios, disponibilidad regional ni failover.",
+    "TTL acelerados solo para pruebas; las sesiones normales usan 1800 s y la cache 300 s.",
+    "Fuente simulada; coherencia de cache limitada a un proceso con fuente compartida.",
+    "Deltas INFO de toda la instancia, no tasa de hit del modulo.",
+    "La medicion incluye red, Python, TIME y Lua; no es redis-benchmark.",
+    "No se prueba durabilidad ante caida abrupta ni perdida de respuestas de escritura."
+  ]
+}

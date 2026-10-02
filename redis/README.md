@@ -1,57 +1,102 @@
 # Hito 7 — Caché de usuarios y sesiones
 
-**Estado: inicio del módulo. El diseño funcional está pendiente.**
+**Grupo 5:** Brian Valente, Tomás Bravo y Julián Curi.
 
-Este avance prepara el ambiente y la inspección. Los patrones, TTL, invalidación y política de memoria requieren una decisión del grupo antes de implementar sesiones y caché.
+Implementamos sesiones en Redis, caché de fichas de equipos y un contador/ranking de consultas por hora. MongoDB sigue siendo la fuente de verdad de las fichas. Para esta muestra usamos una fuente simulada en memoria; no conectamos ni modificamos MongoDB.
 
-## Ambiente local
+## Inicio
 
-Desde la raíz del repositorio, con Docker iniciado y `.env` configurado según el README general:
+Requisitos: Docker con Compose y Python 3.9 o posterior. Ejecutar desde la raíz del repositorio, con `.env` configurado según el README general:
 
 ```bash
-docker compose up -d redis
+docker compose up -d --wait redis
 docker compose ps redis
 make inspect-redis
+python3 -m venv redis/.venv
+redis/.venv/bin/python -m pip install -r redis/requirements.txt
+```
+
+El servicio usa `redis:latest`, escucha en `127.0.0.1:6379` y monta `~/docker/data/redis` en `/data`. Configuramos AOF, `appendfsync everysec`, snapshots `save 60 1`, `maxmemory 256mb` y `noeviction`. El límite es para el laboratorio, no para millones de usuarios. Si cambia el puerto, usar el mismo `REDIS_PORT` en Compose y en los scripts Python. Estos no leen `.env` automáticamente; se puede ejecutar `REDIS_PORT=6380 redis/.venv/bin/python ...`.
+
+Para abrir el cliente:
+
+```bash
 docker compose exec redis redis-cli
+```
+
+## Carga y operaciones
+
+```bash
+redis/.venv/bin/python redis/scripts/carga_muestra.py
+redis/.venv/bin/python redis/scripts/sesiones.py
+redis/.venv/bin/python redis/scripts/cache.py
+redis/.venv/bin/python redis/scripts/concurrencia.py
 make metrics-redis
 ```
 
-El servicio usa `redis:latest`, escucha en `127.0.0.1:6379` y monta `~/docker/data/redis` en `/data`. Se puede cambiar el puerto con `REDIS_PORT`. El montaje conserva los archivos entre recreaciones del contenedor.
+- **Carga:** 10 usuarios sintéticos, 20 sesiones, 4 fichas y un ranking. Todas las claves Redis tienen vencimiento. La carga registra 6 consultas a ARG, 2 a BRA, 1 a ESP y 1 a MAR.
+- **Sesiones:** creación, consulta, renovación por request autenticado y cierre de una sesión sin afectar el otro dispositivo.
+- **Caché:** miss, hit, actualización de fuente simulada, invalidación y recuperación del dato nuevo.
+- **Concurrencia:** 8 clientes con 100 incrementos cada uno, comparación contra 800 y medición del tiempo local. No ejecutar esta medición en los últimos 20 segundos de una hora: el ranking vence al terminarla.
+- **Métricas:** `INFO stats`, `INFO memory`, `INFO keyspace` y `DBSIZE`.
 
-Activamos AOF y snapshots como en la Clase 8. `appendfsync everysec` no garantiza conservar cada escritura ante una caída abrupta. Este montaje no sustituye un backup.
+Cada demostración genera un namespace nuevo y lo imprime. El contenido y la distribución son reproducibles; las ejecuciones no sobrescriben los datos de otras muestras. Los identificadores de sesión son sintéticos, no tokens reales. La autenticación de credenciales queda fuera de este módulo.
 
-Para ejecutar un archivo de comandos:
+Para inspeccionar un namespace, reemplazar el sufijo por el impreso y continuar con el cursor hasta que vuelva a cero:
 
-```bash
-bash scripts/run-redis.sh redis/scripts/inicializacion.redis
-bash scripts/run-redis.sh redis/scripts/metricas.redis
+```text
+SCAN 0 MATCH fixture2030:h7:muestra-SUFIJO:* COUNT 100
 ```
 
-El ejecutor omite comentarios que empiezan con `#` y líneas vacías. Cada línea debe contener un comando completo. `redis-cli -e` informa fallos mediante su código de salida; el ejecutor no ofrece una transacción para todo el archivo.
+No usamos `KEYS`, `FLUSHDB` ni `FLUSHALL`.
 
-Para detener, iniciar o reiniciar sin borrar el directorio montado:
+## Pruebas
+
+```bash
+redis/.venv/bin/python redis/scripts/pruebas.py --memoria
+```
+
+Para guardar evidencia, elegir un nombre nuevo:
+
+```bash
+redis/.venv/bin/python redis/scripts/pruebas.py --memoria \
+  --salida redis/docs/evidencia/mi_ejecucion.json
+```
+
+Las pruebas tienen aserciones y terminan con error si un control falla. Verifican sesiones, ausencia de recreación tras cierre o vencimiento, hit/miss, invalidación, vencimiento de caché, ranking fijo, concurrencia y respuesta ante Redis inaccesible. Usan TTL de 2 a 4 segundos solo para acelerar las pruebas; no cambian los 1800 y 300 segundos del módulo normal.
+
+`--memoria` crea un contenedor aislado, sin volumen persistente, con 2 MiB de `maxmemory`. Lo llena con datos sintéticos hasta obtener OOM. Luego reduce solo ese límite a 1 MiB para mantener la memoria existente por encima del umbral y comprobar el rechazo de sesiones y la recuperación de fuente para caché. Un OOM aislado no garantiza que siga faltando memoria después de liberar buffers. Retira solo ese contenedor al terminar. La instancia principal conserva sus 256 MiB. El fallo de invalidación se simula explícitamente; el fallo de conexión y la presión de memoria son reales.
+
+## Decisiones
+
+- [Patrones de acceso](docs/patrones_de_acceso.md).
+- [Modelo clave/valor](docs/modelo_clave_valor.md).
+- [Ciclo de vida e invalidación](docs/ciclo_de_vida_e_invalidacion.md).
+- [Memoria y escalabilidad](docs/memoria_y_escalabilidad.md).
+- [Pruebas y evidencia](docs/evidencia/README.md).
+
+## Reinicio y detención
 
 ```bash
 docker compose stop redis
-docker compose up -d redis
+docker compose up -d --wait redis
 docker compose restart redis
 ```
 
-## Diseño y desarrollo pendientes
+El montaje conserva los archivos entre recreaciones del contenedor. AOF con sincronización cada segundo puede perder escrituras recientes ante una caída abrupta. No sustituye un backup. Un TTL conserva su fecha de vencimiento durante la parada; reiniciar no renueva sesiones.
 
-- [Patrones de acceso](docs/patrones_de_acceso.md): declarar primero las operaciones.
-- [Modelo clave/valor](docs/modelo_clave_valor.md): derivar las claves y atributos de esas operaciones.
-- [Ciclo de vida e invalidación](docs/ciclo_de_vida_e_invalidacion.md): decidir TTL y coherencia.
-- [Memoria y escalabilidad](docs/memoria_y_escalabilidad.md): elegir y configurar el límite y la política.
-- [Pruebas y evidencia](docs/evidencia/README.md): registrar solo resultados ejecutados.
+La limpieza de la muestra ocurre por TTL. Los scripts de cierre e invalidación borran solo claves sintéticas de su propia ejecución. No incluimos una limpieza global ni eliminación del directorio persistente.
 
-Faltan la carga reproducible, los flujos de sesiones y caché, la operación concurrente, el ranking si corresponde y las pruebas funcionales. No se incluyen scripts vacíos que aparenten implementar esos flujos.
+## Límites y fuentes
 
-El enunciado específico permite una muestra acotada. No exige los 100.000 usuarios ni las 20 operaciones de la versión anterior de la guía general. No solicita API, presentación, video ni ZIP.
+El nodo local no demuestra replicación, Sentinel, Redis Cluster ni capacidad para millones de usuarios. La fuente simulada y su lock permiten probar coherencia dentro de un proceso. No demuestran coherencia entre aplicaciones independientes ni entre Redis y MongoDB. Las mediciones incluyen el cliente Python y la red local.
 
-## Fuentes
+El PDF específico permite una muestra acotada y no exige los 100.000 usuarios ni las 20 operaciones de la guía general anterior. No solicita API, presentación, video ni ZIP.
 
-- `Hitos/Hito_7_Requisitos_Técnicos_Caché_de_Usuarios_y_Sesiones.pdf`, apartados 3 a 9.
-- `Clases/Clase_08.html`: entorno, persistencia, TTL, Cache-Aside y atomicidad.
+- Enunciado: `Hitos/Hito_7_Requisitos_Técnicos_Caché_de_Usuarios_y_Sesiones.pdf`.
+- Clase: `Clases/Clase_08.html`.
+- [Redis: scripting y atomicidad](https://redis.io/docs/latest/develop/programmability/eval-intro/).
+- [Redis: TTL](https://redis.io/docs/latest/commands/expire/).
+- [Redis: memoria](https://redis.io/docs/latest/develop/reference/eviction/).
 - [Redis: persistencia](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/).
-- [Redis: cliente redis-cli](https://redis.io/docs/latest/develop/tools/cli/).
+- [redis-py: scripts Lua](https://redis.readthedocs.io/en/stable/lua_scripting.html).

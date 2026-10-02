@@ -3,3 +3,5 @@
 neo4j/import/equipos.csv
 neo4j/import/jugadores.csv
 cassandra/data/generated/
+redis/.venv/
+__pycache__/

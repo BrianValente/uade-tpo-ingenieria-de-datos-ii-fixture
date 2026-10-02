@@ -1,20 +1,35 @@
 # Memoria y escalabilidad
 
-**Estado: límite y política pendientes de decisión y configuración.**
+## Política elegida
 
-El Compose inicial no fija `maxmemory`. El 1 de octubre de 2026 observamos `maxmemory=0` y `maxmemory-policy=noeviction` mediante `CONFIG GET`. Debemos elegir un límite antes de la prueba del módulo. La política observada es el valor inicial del servidor, no una decisión de diseño del grupo. Esta configuración inicial no cumple todavía RF10.
+Elegimos `maxmemory 256mb` y `maxmemory-policy noeviction` para el nodo local. Preferimos rechazar escrituras antes que eliminar sesiones vigentes por presión de memoria. La alternativa `allkeys-lru` o `allkeys-lfu` permite liberar espacio, pero puede expulsar sesiones además de copias de caché.
 
-| Alternativa | Beneficio | Costo que debemos evaluar |
+El límite de 256 MiB es un parámetro inicial del laboratorio acordado por el grupo. No estima la capacidad necesaria para millones de usuarios. Debemos revisar uso por clave y cantidad de sesiones antes de aumentar la carga.
+
+| Dato | Vencimiento por TTL | Presión de memoria con noeviction |
 | --- | --- | --- |
-| `noeviction` con límite | Evita eliminar sesiones por presión de memoria | Las escrituras que requieren memoria pueden fallar; definir respuesta del consumidor |
-| `allkeys-lru` o `allkeys-lfu` con límite | Libera espacio para nuevos datos | Puede eliminar sesiones vigentes junto con copias de caché |
+| Sesión | Ausencia; pedir login | Una creación o renovación puede fallar; devolver error, sin autorizar |
+| Caché | Miss; reconstruir desde fuente | Una carga puede fallar; responder desde fuente sin guardar copia |
+| Contador/ranking | Se descarta al terminar la hora | Un incremento puede fallar; informar error, no afirmar que se contó |
 
-Las políticas `volatile-*` no protegen automáticamente las sesiones: estas también tienen TTL. La elección debe explicar el efecto sobre sesiones, caché y actividad temporal.
+Las lecturas nativas de datos existentes pueden continuar con presión de memoria. Una request autenticada también necesita renovar, por lo que puede fallar aunque su sesión siga almacenada. Las políticas `volatile-*` no protegerían automáticamente las sesiones: estas también tienen TTL.
 
-TTL significa vencimiento por una regla temporal. Evicción significa eliminación por presión de memoria. La prueba debe observar `expired_keys`, `evicted_keys`, `used_memory` y errores de escritura según la política elegida.
+TTL y evicción son distintos. TTL determina cuándo un dato deja de ser válido; evicción descarta datos por falta de memoria. Observamos `expired_keys`, `evicted_keys`, `used_memory`, `maxmemory` y errores OOM. Con `noeviction` esperamos cero expulsiones por memoria.
 
-Este ambiente tiene un nodo. AOF y snapshots ayudan a recuperar datos locales; no brindan alta disponibilidad. Las réplicas copian datos y pueden quedar atrasadas. Sentinel coordina la recuperación ante fallas en una topología con réplicas. Redis Cluster reparte claves y requiere considerar el slot en operaciones con varias claves.
+`maxmemory` no es un límite absoluto del consumo total del contenedor. Redis tiene sobrecostos y buffers; un script puede cruzar el umbral durante su ejecución. Dejamos margen entre ese límite y los recursos de Docker. AOF y snapshots también consumen memoria y disco.
 
-El diseño distribuido del Hito 3 sigue siendo una propuesta. Este laboratorio no demuestra replicación regional, failover, 99,99 % de disponibilidad ni capacidad para millones de sesiones.
+## Persistencia local
+
+Usamos AOF con sincronización cada segundo y snapshots `save 60 1`, como en la Clase 8. Montamos `~/docker/data/redis` en `/data`. La prueba inicial conservó valor y vencimiento de una clave tras un reinicio normal. No demuestra recuperación sin pérdida ante una caída abrupta. Una sesión cuyo TTL venció durante la parada no debe recuperar acceso al reiniciar.
+
+## Escala y disponibilidad
+
+Este ambiente usa un nodo: es un punto único de falla y tiene límites de RAM y escritura. No demuestra los objetivos distribuidos del Hito 3.
+
+- **Réplicas:** copian datos y pueden ayudar con lecturas o recuperación; pueden estar atrasadas.
+- **Sentinel:** monitorea una topología con réplicas y coordina el cambio de primary ante fallos.
+- **Redis Cluster:** reparte claves entre slots. Las operaciones sobre varias claves deben considerar su ubicación.
+
+Como paso futuro, revisaríamos memoria por sesión, distribución de carga y topología según el límite medido. No configuramos esas topologías en este hito. El ranking local no conserva historial ni reemplaza estadísticas en InfluxDB.
 
 Fuente: [Redis: políticas de memoria](https://redis.io/docs/latest/develop/reference/eviction/).
