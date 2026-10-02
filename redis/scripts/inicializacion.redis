@@ -1,0 +1,5 @@
+# Inicio: inspeccion sin modificar datos ni configuracion del servidor.
+PING
+INFO server
+INFO persistence
+CONFIG GET maxmemory maxmemory-policy appendonly appendfsync save

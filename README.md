@@ -8,7 +8,7 @@ Repositorio del TPO de Ingenieria de Datos II para desarrollar la plataforma Fix
 - Espacio libre para las imagenes y los volumenes.
 - MongoDB Compass, `mongosh` y Neo4j Desktop son opcionales.
 
-No se necesita instalar Node.js, MongoDB, Neo4j ni Cassandra en la computadora. La carga masiva del Hito 6 requiere Python 3.9 o posterior.
+No se necesita instalar Node.js, MongoDB, Neo4j, Cassandra ni Redis en la computadora. La carga masiva del Hito 6 y el modulo del Hito 7 requieren Python 3.9 o posterior. El Hito 7 instala redis-py en su entorno virtual; consultar `redis/README.md`.
 
 ## Inicio y carga
 
@@ -32,6 +32,7 @@ No se necesita instalar Node.js, MongoDB, Neo4j ni Cassandra en la computadora. 
    make up mongodb
    make up neo4j
    make up cassandra
+   make up redis
    ```
 
 4. Comprobar el estado:
@@ -67,6 +68,16 @@ La carga de Neo4j reutiliza los UUID del modulo documental y agrega una muestra 
 La carga usa una muestra idempotente. Consultar [las instrucciones del Hito 6](cassandra/README.md) para generar mas de un millon de comentarios y ejecutar la medicion.
 
 ## Consultas y operaciones
+
+### Inicio del Hito 7
+
+El módulo Redis administra sesiones con 30 minutos de inactividad, caché de fichas de equipos y ranking de consultas por hora. Consultar [las instrucciones y pruebas del Hito 7](redis/README.md).
+
+```bash
+make up redis
+make inspect-redis
+make metrics-redis
+```
 
 Ejecutar cada archivo desde la raiz del repositorio:
 
@@ -226,3 +237,4 @@ No agregar `volumes` salvo que se quiera borrar la informacion local de la base 
 - [Evidencia de ejecucion](docs/evidencia.md)
 - [Modulo de grafos del Hito 5](neo4j/README.md)
 - [Modulo de comentarios del Hito 6](cassandra/README.md)
+- [Módulo de sesiones y caché del Hito 7](redis/README.md)

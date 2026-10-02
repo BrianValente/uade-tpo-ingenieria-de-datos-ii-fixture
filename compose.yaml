@@ -67,6 +67,21 @@ services:
       retries: 30
       start_period: 60s
 
+  redis:
+    image: redis:latest
+    restart: unless-stopped
+    command: redis-server --appendonly yes --appendfsync everysec --save 60 1 --loglevel notice --maxmemory 256mb --maxmemory-policy noeviction
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - "${HOME}/docker/data/redis:/data"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
 volumes:
   mongodb_data:
   neo4j_data:
