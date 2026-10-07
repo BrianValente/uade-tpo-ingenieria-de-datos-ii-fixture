@@ -69,6 +69,20 @@ La carga usa una muestra idempotente. Consultar [las instrucciones del Hito 6](c
 
 ## Consultas y operaciones
 
+### Inicio del Hito 8
+
+El [laboratorio guiado de InfluxDB](influxdb/README.md) permite cargar doce puntos sintéticos, consultar ventanas y comparar agregaciones. Registra la retención de siete días para detalle y noventa días para resúmenes. El grupo debe completar la carga de mayor volumen y el almacenamiento de resúmenes.
+
+La imagen oficial `influxdb:latest` observada es 2.9.1 y no ejecuta los comandos de Core de la Clase 9. El laboratorio usa `influxdb:3-core` como excepción pendiente de aprobación docente.
+
+```bash
+make up influxdb
+python3 influxdb/scripts/inicializacion.py
+python3 influxdb/scripts/generacion_muestra.py
+python3 influxdb/scripts/carga_muestra.py
+python3 influxdb/scripts/validacion.py
+```
+
 ### Inicio del Hito 7
 
 El módulo Redis administra sesiones con 30 minutos de inactividad, caché de fichas de equipos y ranking de consultas por hora. Consultar [las instrucciones y pruebas del Hito 7](redis/README.md).

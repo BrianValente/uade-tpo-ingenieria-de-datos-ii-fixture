@@ -82,6 +82,29 @@ services:
       retries: 5
       start_period: 5s
 
+  influxdb:
+    # Excepcion del laboratorio: latest observado = 2.9.1. Ver influxdb/README.md.
+    image: influxdb:3-core
+    restart: unless-stopped
+    command:
+      - influxdb3
+      - serve
+      - --node-id=fixture2030-local
+      - --object-store=file
+      - --data-dir=/var/lib/influxdb3
+      - --http-bind=0.0.0.0:8181
+      - --disable-authz=health
+    ports:
+      - "127.0.0.1:8181:8181"
+    volumes:
+      - "${HOME}/docker/data/influxdb:/var/lib/influxdb3"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8181/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
 volumes:
   mongodb_data:
   neo4j_data:
