@@ -115,6 +115,12 @@ La carga verifica 64 series y 540 puntos por serie, con agregados esperados. Cad
 
 El archivo de 34.560 puntos se mantiene en memoria. Este código es un ejercicio de carga local, no un cargador de 10M puntos. Los ensayos tienen condiciones distintas de caché y no permiten atribuir toda diferencia de tiempo al tamaño de lote o a la concurrencia.
 
+### Cómo explicamos el objetivo de 10M+ puntos
+
+El modelo actual produciría 137.160 puntos para 127 partidos de 90 minutos, con dos equipos y una observación cada diez segundos. No alcanza por sí solo el volumen objetivo. Como escenario para evaluar, el seguimiento de 22 jugadores a un punto por segundo produciría 15.087.600 puntos del torneo.
+
+Esa segunda cuenta es una estimación con supuestos, no una funcionalidad implementada ni una prueba de capacidad. El repositorio contiene [la explicación, la cardinalidad estimada y el trabajo necesario para evaluar ese escenario](docs/cardinalidad_y_escalabilidad.md#relación-con-el-objetivo-de-10m-puntos).
+
 ## Guardar resúmenes
 
 ```bash
@@ -141,7 +147,7 @@ Los errores HTTP y una corrección conflictiva se prueban con mocks y se registr
 ## Trabajo que debe completar el grupo
 
 1. Justificar las necesidades de consulta, la frecuencia y la retención. Identificar fuente y consumidor de cada medida.
-2. Explicar cómo se alcanza el objetivo de 10M+ puntos del torneo. El experimento de 34.560 puntos no lo demuestra. No agregar dimensiones artificiales para inflar el volumen.
+2. Evaluar y justificar el escenario propuesto para 10M+ puntos y decidir si incorporamos otra fuente de observaciones. La explicación está en el repositorio; el modelo de seguimiento y su carga no están implementados.
 3. Definir el tratamiento de correcciones ya resumidas y su versionado. El ejercicio actual espera datos faltantes, pero rechaza cambios detectados en resúmenes existentes.
 4. Pedir a otro integrante que ejecute el README y registre su experiencia.
 

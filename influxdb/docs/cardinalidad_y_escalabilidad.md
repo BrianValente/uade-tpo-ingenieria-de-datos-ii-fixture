@@ -31,4 +31,61 @@ El generador ordena puntos por partido, equipo y timestamp; no simula múltiples
 
 Los resultados se registran en los archivos `carga-*.json`. Los lotes y el archivo se mantienen en memoria; no se afirma que el mismo código cargue 10M puntos con memoria acotada. La segunda carga repite los mismos puntos, con caché y estado previos: no es una comparación controlada.
 
-Con el mismo modelo para 127 partidos, 90 minutos y diez segundos, la cuenta da `127 × 2 × 540 = 137.160` puntos. Esto no alcanza 10M+. El grupo debe explicar qué fuentes y frecuencia adicionales justificarían ese objetivo o analizar la diferencia con el escenario. No se inventaron partidos, tags por punto ni datos para aparentar ese volumen.
+## Relación con el objetivo de 10M+ puntos
+
+El enunciado fija un objetivo de volumen del torneo. Para explicarlo, distinguimos tres cosas: el volumen ejecutado en el laboratorio, el volumen que produciría nuestro modelo actual y un escenario de mayor frecuencia que todavía debemos evaluar.
+
+### Volumen del modelo implementado
+
+Registramos un punto por equipo cada diez segundos. Cada punto contiene posesión, tiros acumulados y pases por intervalo. Tener tres fields no convierte esa observación en tres puntos.
+
+En un partido de 90 minutos, cada equipo genera `90 × 60 / 10 = 540` puntos. Para los 127 partidos del caso académico:
+
+```text
+127 partidos × 2 equipos × 540 observaciones = 137.160 puntos
+```
+
+Por lo tanto, **nuestro modelo de estadísticas por equipo no genera por sí solo 10M+ puntos**. La prueba local usa los 32 partidos existentes y procesa 34.560 puntos. Es una validación de ese subconjunto, no una medición del volumen objetivo.
+
+### Escenario propuesto: seguimiento temporal de jugadores
+
+Una fuente de seguimiento podría informar cada segundo la posición y la velocidad de los jugadores activos. Esto permitiría responder preguntas distintas de las estadísticas por equipo: cómo cambió la velocidad de un jugador o qué zonas ocupó durante un intervalo.
+
+Para estimar su volumen, usamos estos **supuestos**, no requisitos del profesor ni datos observados:
+
+- 127 partidos, según el caso académico.
+- 90 minutos de observaciones por partido; excluimos entretiempo, tiempo adicional y prórroga de esta cuenta.
+- 22 jugadores observados en cada instante.
+- Un punto por jugador por segundo.
+- Una sola fuente de seguimiento y sin puntos adicionales por reenvíos.
+
+La cuenta es:
+
+```text
+90 minutos × 60 segundos = 5.400 segundos por partido
+22 jugadores × 5.400 observaciones = 118.800 puntos por partido
+127 partidos × 118.800 puntos = 15.087.600 puntos del torneo
+```
+
+Si incorporáramos esa fuente junto con las estadísticas por equipo, el volumen estimado sería `15.087.600 + 137.160 = 15.224.760` puntos. Esta estimación explica cómo una necesidad de observación más frecuente puede superar 10M+ sin inventar partidos ni multiplicar puntos por la cantidad de fields.
+
+El seguimiento sería otro conjunto de observaciones. Partido y jugador serían candidatos a tags porque permiten recuperar la evolución de un jugador en un partido. Posición y velocidad serían valores observados. El timestamp identificaría el instante de captura. Antes de incorporar ese modelo, debemos confirmar las consultas, la fuente y la utilidad de medir cada segundo.
+
+En el supuesto simplificado de 22 identidades fijas por partido, habría `127 × 22 = 2.794` combinaciones de partido y jugador. No habría una serie por cada uno de los 15 millones de puntos. Si modelamos sustituciones, debemos contar todos los jugadores distintos observados por partido: esa cantidad de series puede aumentar, aunque sigamos observando 22 jugadores por instante.
+
+### Alcance de la estimación y trabajo necesario
+
+**El seguimiento de jugadores es una propuesta para evaluar. No está implementado, no tiene una fuente conectada y no fue probado en el laboratorio.** No lo presentamos como una decisión ya adoptada ni como evidencia de cumplimiento.
+
+Si elegimos ese escenario, debemos ampliar el trabajo con estos pasos:
+
+1. Justificar las preguntas que necesitan seguimiento y por qué un segundo es suficiente.
+2. Reutilizar los identificadores de jugadores y partidos del TPO, y definir tipos, precisión y tratamiento de datos faltantes.
+3. Generar un subconjunto reproducible con esa distribución. Si es sintético, declararlo.
+4. Generar y cargar por lotes con memoria acotada, en lugar de mantener 15 millones de líneas en memoria.
+5. Medir carga y consultas por partido, jugador y ventana. Registrar errores, reintentos y cantidad de identidades realmente almacenadas.
+6. Definir resúmenes y conservación según el significado de posición y velocidad; no copiar automáticamente la agregación de posesión o de contadores.
+
+Las mediciones de 34.560 puntos corresponden al modelo implementado. La cuenta de 15.087.600 es una **estimación de volumen**. No demuestra latencia, capacidad del servidor ni tiempo de carga para ese escenario. El README y las evidencias del repositorio deben conservar esa diferencia.
+
+Fuente del objetivo y del alcance local: Hito 8, descripción general y apartados 5.3, 5.4 y 5.5. La frecuencia y la cantidad de jugadores de este ejemplo son supuestos de análisis.
