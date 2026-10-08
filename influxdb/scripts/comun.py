@@ -14,6 +14,14 @@ TOKEN_FILE = LOCAL / "admin-token"
 HOST = "http://127.0.0.1:8181"
 DATABASE = "fixture2030_h8_lab_detalle"
 HISTORY = "fixture2030_h8_lab_resumen"
+TEST_DATABASE = "fixture2030_h8_prueba_detalle"
+TEST_HISTORY = "fixture2030_h8_prueba_resumen"
+
+
+class HTTPRequestError(RuntimeError):
+    def __init__(self, status, path):
+        self.status = status
+        super().__init__(f"HTTP {status} en {path}; el lote no se da por valido.")
 
 
 def token():
@@ -34,7 +42,10 @@ def cli(*args, authenticated=True):
     result = subprocess.run(command + list(args), cwd=ROOT, input=secret,
                             text=True, capture_output=True, timeout=60)
     if result.returncode:
-        raise RuntimeError("El CLI fallo. Revisar disponibilidad y autorizacion local.")
+        detail = result.stderr.strip()
+        if secret:
+            detail = detail.replace(secret.strip(), "[token oculto]")
+        raise RuntimeError("El CLI fallo: " + detail[:1000])
     return result.stdout
 
 
@@ -49,12 +60,12 @@ def request(path, payload, query_string="", plain=False):
             return json.loads(content) if content else None
     except HTTPError as error:
         # No reproducir respuestas que puedan incluir datos de autorizacion.
-        raise RuntimeError(f"HTTP {error.code} en {path}; el lote no se da por valido.") from None
+        raise HTTPRequestError(error.code, path) from None
 
 
-def query(sql, params=None):
+def query(sql, params=None, database=DATABASE):
     rows = request("/api/v3/query_sql", {
-        "db": DATABASE, "q": sql, "format": "json", "params": params or {}})
+        "db": database, "q": sql, "format": "json", "params": params or {}})
     if not isinstance(rows, list):
         raise RuntimeError("La consulta no devolvio una lista de filas.")
     return rows

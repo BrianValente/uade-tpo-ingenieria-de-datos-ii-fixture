@@ -1,6 +1,6 @@
 # Evidencia del laboratorio
 
-Estado: demostración didáctica con datos sintéticos. No es una prueba de capacidad del objetivo de 10M+ puntos.
+Esta página conserva la evidencia inicial de doce puntos. El [avance de carga y resúmenes](avance.md) registra el experimento posterior de 34.560 puntos y los casos. Ninguno demuestra capacidad para 10M+ puntos.
 
 - `imagen.md`: diferencia observada entre la etiqueta requerida y la versión de Core del material.
 - `laboratorio.json`: reporte exportado por `validacion.py --evidencia`, con versión, digest, recursos Docker, tipos, retención y consultas.
@@ -41,4 +41,4 @@ La repetición del lote tomó 0,8133 segundos para una solicitud de escritura HT
 
 Estos tiempos corresponden a esta demostración. No permiten afirmar capacidad de carga masiva, percentil 95, rendimiento sostenido ni cumplimiento del objetivo de 10M+ puntos.
 
-La retención configurada fue comprobada; la expiración por antigüedad no fue probada. La base histórica está creada, pero todavía no recibe resúmenes.
+En esta primera ejecución se comprobó la configuración, pero no el filtro de vencimiento, y la base histórica aún no recibía resúmenes. El avance posterior registra ambos casos y conserva sus reportes separados.

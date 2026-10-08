@@ -13,7 +13,7 @@ Tabla: `estadisticas_equipo`, dentro de `fixture2030_h8_lab_detalle`. Una observ
 
 Los enteros terminan en `i` en line protocol. `posesion_pct` siempre se escribe como flotante. Una línea contiene un punto con tres fields, no tres puntos.
 
-La identidad del punto incluye tabla, combinación de tags y timestamp. Repetir la misma muestra escribe las mismas identidades. Debemos comprobar este comportamiento antes de definir reintentos para la carga masiva.
+La identidad del punto incluye tabla, combinación de tags y timestamp. Repetir un punto con los mismos valores conserva el conteo observado. No usamos esa propiedad para sobrescribir valores distintos: la documentación de Core indica que la versión conservada no es determinista.
 
 ## Coherencia con el TPO
 
@@ -25,4 +25,10 @@ Los timestamps pertenecen al laboratorio actual, no a la fecha de 2030. El gener
 
 Comparar el uso de `sede_id` como tag con mantener la sede en el grafo. ¿Qué consulta nueva justificaría repetirla en cada punto? Explicar el costo y el beneficio antes de agregarla.
 
-La propuesta de resúmenes todavía no tiene tabla implementada. Debemos definir sus fields, tipos, timestamp y tratamiento de ventanas incompletas.
+## Tabla de resúmenes implementada
+
+`estadisticas_minuto` conserva los tags `partido_id` y `equipo_id`. Su timestamp es el inicio UTC del minuto. Los fields son `posesion_promedio` (flotante), `tiros_final` (entero), `pases` (entero), `muestras` (entero) y `source_hash` (texto).
+
+`source_hash` verifica si el resumen corresponde a las mismas observaciones. Es un field, no un tag: no crea una serie por contenido. Se guardan solo minutos con seis timestamps exactos, separados por diez segundos. El contador se toma de la última lectura temporal, no se suma.
+
+La muestra usa dos bases y el experimento otras dos, para no mezclar ventanas y conteos. Es una separación de laboratorio, no una propuesta de crear una base por partido.

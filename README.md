@@ -71,9 +71,9 @@ La carga usa una muestra idempotente. Consultar [las instrucciones del Hito 6](c
 
 ### Inicio del Hito 8
 
-El [laboratorio guiado de InfluxDB](influxdb/README.md) permite cargar doce puntos sintéticos, consultar ventanas y comparar agregaciones. Registra la retención de siete días para detalle y noventa días para resúmenes. El grupo debe completar la carga de mayor volumen y el almacenamiento de resúmenes.
+El [laboratorio guiado de InfluxDB](influxdb/README.md) incluye una muestra de doce puntos y una prueba de 34.560 puntos para 32 partidos. Guarda resúmenes de minutos completos, con retención de siete días para detalle y noventa días para resúmenes. El grupo debe completar su justificación y el análisis del objetivo de 10M+ puntos.
 
-La imagen oficial `influxdb:latest` observada es 2.9.1 y no ejecuta los comandos de Core de la Clase 9. El laboratorio usa `influxdb:3-core` como excepción pendiente de aprobación docente.
+El laboratorio usa `influxdb:3-core`, la imagen que utilizó el docente según la confirmación de Brian. Conservamos la evidencia de que `latest` descargó 2.9.1 y no ejecutó los comandos de Core.
 
 ```bash
 make up influxdb

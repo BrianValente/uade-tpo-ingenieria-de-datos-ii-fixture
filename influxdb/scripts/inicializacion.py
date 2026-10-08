@@ -6,7 +6,7 @@ import time
 from urllib.error import URLError
 from urllib.request import urlopen
 
-from comun import DATABASE, HISTORY, HOST, LOCAL, TOKEN_FILE, cli
+from comun import DATABASE, HISTORY, HOST, LOCAL, TEST_DATABASE, TEST_HISTORY, TOKEN_FILE, cli
 
 
 def main():
@@ -40,7 +40,8 @@ def main():
     print("Bases existentes:", databases.strip())
     names = {value for row in json.loads(databases) for value in row.values()
              if isinstance(value, str)}
-    for name, retention in [(DATABASE, "7d"), (HISTORY, "90d")]:
+    for name, retention in [(DATABASE, "7d"), (HISTORY, "90d"),
+                            (TEST_DATABASE, "7d"), (TEST_HISTORY, "90d")]:
         if name not in names:
             print(cli("create", "database", "--retention-period", retention, name).strip())
     print("Autorizacion guardada localmente. No copiar el archivo a GitHub o Notion.")

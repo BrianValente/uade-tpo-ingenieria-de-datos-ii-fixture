@@ -73,9 +73,8 @@ def main():
               "retenciones_observadas": retention, "consultas": results,
               "ventana_sin_datos": [],
               "limitaciones": ["No mide capacidad de carga masiva ni SLA.",
-                               "No almacena resúmenes ni automatiza downsampling.",
-                               "La expiracion por antiguedad no fue probada.",
-                               "La etiqueta 3-core requiere aprobacion docente frente al requisito latest."]}
+                               "Este reporte valida el detalle; los resumenes y casos tienen reportes separados.",
+                               "No mide el borrado fisico de puntos vencidos."]}
     save_json(LOCAL / "validacion.json", report)
     if args.evidencia:
         save_json(MODULE / "docs/evidencia/laboratorio.json", report)

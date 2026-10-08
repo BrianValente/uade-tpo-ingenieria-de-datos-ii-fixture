@@ -15,10 +15,20 @@ No usamos un identificador único por punto como tag. El tiempo ocupa su columna
 
 El enunciado específico del Hito 8 fija el objetivo en 10M+ puntos **del torneo**. La guía general y el Hito 2 mencionan puntos por partido. Usamos el enunciado específico como alcance de este trabajo; la diferencia debe quedar explícita en la entrega.
 
-## Carga y medición pendientes
+## Primera demostración de doce puntos
 
 La muestra usa un lote de doce puntos, concurrencia uno y ningún reintento automático. La generación, la carga y la validación están en scripts separados. `accept_partial=false` evita dar por válido un lote parcialmente aceptado por errores de formato.
 
 El reporte de la demostración mide con `perf_counter` una escritura HTTP y una consulta. No mide la capacidad del servidor. El tiempo incluye la comunicación con la API y la lectura de la respuesta. No se extrapola a puntos por segundo ni a SLA.
 
-Para la carga de mayor volumen debemos definir tamaño de lote, concurrencia, orden temporal, reintentos, validación de distribución y límites de memoria. Antes de aumentar los datos, describir el experimento y su resultado esperado. No cargar diez millones de puntos sin acordar el volumen de prueba.
+Antes de ampliar la carga por encima del experimento acordado, debemos revisar lotes, concurrencia, distribución, errores y memoria. No cargar diez millones de puntos sin definir primero el experimento y acordar el volumen.
+
+## Experimento acordado y ejecutado
+
+Brian eligió 32 partidos existentes, 90 minutos por partido y captura cada diez segundos. El volumen se deriva de `32 × 2 × 540 = 34.560` puntos. Hay 64 series del detalle y 5.760 puntos resumidos (`32 × 2 × 90`). La tabla de resúmenes también tiene 64 combinaciones de tags.
+
+El generador ordena puntos por partido, equipo y timestamp; no simula múltiples fuentes concurrentes en tiempo real. El cargador prueba lotes de 1.000 con concurrencia uno y de 2.000 con concurrencia dos. Verifica 540 puntos por serie y sus agregados, y registra reintentos. La validación de errores de red y autorización utiliza mocks; en las cargas medidas no se observaron reintentos.
+
+Los resultados se registran en los archivos `carga-*.json`. Los lotes y el archivo se mantienen en memoria; no se afirma que el mismo código cargue 10M puntos con memoria acotada. La segunda carga repite los mismos puntos, con caché y estado previos: no es una comparación controlada.
+
+Con el mismo modelo para 127 partidos, 90 minutos y diez segundos, la cuenta da `127 × 2 × 540 = 137.160` puntos. Esto no alcanza 10M+. El grupo debe explicar qué fuentes y frecuencia adicionales justificarían ese objetivo o analizar la diferencia con el escenario. No se inventaron partidos, tags por punto ni datos para aparentar ese volumen.

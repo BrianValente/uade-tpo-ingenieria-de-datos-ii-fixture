@@ -30,7 +30,7 @@ Resultado:
 InfluxDB v2.9.1 (git: d4fa1941fd) build_date: 2026-05-11T20:48:40Z
 ```
 
-Brian autorizó usar la imagen oficial `influxdb:3-core` como excepción documentada para estudiar el contenido de la Clase 9. No hay aprobación del docente registrada.
+Inicialmente Brian autorizó usar la imagen oficial `influxdb:3-core` para estudiar el contenido de la Clase 9. Luego confirmó que el docente utilizó esa misma imagen. Registramos su confirmación como fuente de la elección y mantenemos la evidencia técnica observada.
 
 ```text
 Imagen: influxdb:3-core
@@ -38,8 +38,8 @@ Digest: influxdb@sha256:624d69bca6bf6fb174aca5a974e1d96e5c5486994e6ae35bc9b4fe02
 Version: influxdb3 InfluxDB 3 Core, 3.12.0, revision 3ba97c65f1ee4e1f127a8266517d4d2083b7ea39
 ```
 
-## Consulta al docente
+## Confirmación del entorno de clase
 
-El enunciado exige `influxdb:latest` y la Clase 9 utiliza `influxdb3` y SQL de Core. La imagen descargada trae 2.9.1 y no puede ejecutar ese comando. ¿Podemos usar `influxdb:3-core` y registrar su versión y digest para este hito?
+Brian informó: «el profe uso la imagen influxdb:3-core asi que estamos ok». Seguimos esa aclaración para el entorno de trabajo. No se revisó una grabación ni se verificó directamente una ejecución del docente.
 
-Hasta resolver la consulta, el laboratorio tiene una excepción al requisito de imagen y no se presenta como entrega final conforme.
+La diferencia con la etiqueta `latest` del PDF queda documentada y ya no se trata como una consulta pendiente. El reporte histórico `laboratorio.json` conserva el estado anterior, cuando aún no teníamos esta aclaración.
