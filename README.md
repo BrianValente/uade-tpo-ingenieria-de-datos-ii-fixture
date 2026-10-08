@@ -69,6 +69,20 @@ La carga usa una muestra idempotente. Consultar [las instrucciones del Hito 6](c
 
 ## Consultas y operaciones
 
+### Inicio del Hito 8
+
+El [laboratorio guiado de InfluxDB](influxdb/README.md) incluye una muestra de doce puntos y una prueba de 34.560 puntos para 32 partidos. Guarda resúmenes de minutos completos, con retención de siete días para detalle y noventa días para resúmenes. El grupo debe completar su justificación y el análisis del objetivo de 10M+ puntos.
+
+El laboratorio usa `influxdb:3-core`, la imagen que utilizó el docente según la confirmación de Brian. Conservamos la evidencia de que `latest` descargó 2.9.1 y no ejecutó los comandos de Core.
+
+```bash
+make up influxdb
+python3 influxdb/scripts/inicializacion.py
+python3 influxdb/scripts/generacion_muestra.py
+python3 influxdb/scripts/carga_muestra.py
+python3 influxdb/scripts/validacion.py
+```
+
 ### Inicio del Hito 7
 
 El módulo Redis administra sesiones con 30 minutos de inactividad, caché de fichas de equipos y ranking de consultas por hora. Consultar [las instrucciones y pruebas del Hito 7](redis/README.md).

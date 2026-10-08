@@ -1,0 +1,41 @@
+{
+  "fecha_utc": "2026-10-08T00:13:30.815773+00:00",
+  "resultado": "PASS",
+  "base_detalle": "fixture2030_h8_lab_detalle",
+  "base_historica": "fixture2030_h8_lab_resumen",
+  "ventana": {
+    "inicio": "2026-10-07T17:51:00+00:00",
+    "fin": "2026-10-07T17:52:00+00:00"
+  },
+  "completos": 2,
+  "escritos": 0,
+  "ya_existentes": 2,
+  "incompletos": [],
+  "distribucion_historica": [
+    {
+      "partido_id": "F2030-001",
+      "equipo_id": "1e303ca6-0e0b-5a71-8c23-4db91efc59af",
+      "minutos": 1,
+      "pases": 12,
+      "muestras": 6,
+      "posesion_promedio": 45.0
+    },
+    {
+      "partido_id": "F2030-001",
+      "equipo_id": "4fe7c544-b1ce-5020-afae-7429c4c02d50",
+      "minutos": 1,
+      "pases": 18,
+      "muestras": 6,
+      "posesion_promedio": 55.0
+    }
+  ],
+  "retenciones": {
+    "fixture2030_h8_lab_detalle": "7.0000d",
+    "fixture2030_h8_lab_resumen": "90.0000d"
+  },
+  "limites": [
+    "Ejecucion manual; no hay planificador automatico.",
+    "No actualiza resumenes ya escritos con otra fuente; requiere versionado.",
+    "Un minuto totalmente ausente no aparece; la prueba valida el conteo esperado."
+  ]
+}

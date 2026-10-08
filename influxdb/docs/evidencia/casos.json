@@ -1,0 +1,63 @@
+{
+  "fecha_utc": "2026-10-08T00:13:35.191994+00:00",
+  "resultado": "PASS",
+  "bases": [
+    "fixture2030_h8_lab_detalle",
+    "fixture2030_h8_lab_resumen"
+  ],
+  "minuto_aislado_s": 1791395280,
+  "incompleto": {
+    "completos": 0,
+    "escritos": 0,
+    "ya_existentes": 0,
+    "incompletos": [
+      {
+        "partido_id": "F2030-001",
+        "equipo_id": "4fe7c544-b1ce-5020-afae-7429c4c02d50",
+        "minuto_s": 1791395280,
+        "muestras": 5
+      }
+    ]
+  },
+  "dato_tardio": {
+    "completos": 1,
+    "escritos": 1,
+    "ya_existentes": 0,
+    "incompletos": []
+  },
+  "repeticion": {
+    "completos": 1,
+    "escritos": 0,
+    "ya_existentes": 1,
+    "incompletos": []
+  },
+  "resumen_observado": [
+    {
+      "posesion_promedio": 55.0,
+      "tiros_final": 2,
+      "pases": 18,
+      "muestras": 6
+    }
+  ],
+  "filtro_retencion_real": {
+    "periodo_dias": 7,
+    "timestamp_antiguo_s": 1790727214,
+    "timestamp_reciente_s": 1791418414,
+    "consulta_antigua": [],
+    "consulta_reciente": [
+      {
+        "valor": 2
+      }
+    ]
+  },
+  "simulaciones": {
+    "error_503": "un reintento",
+    "error_401": "sin reintentos",
+    "correccion_conflictiva": "rechazada antes de escribir"
+  },
+  "limites": [
+    "Prueba puntos ya fuera de retencion; no espera siete dias ni mide liberacion fisica de disco.",
+    "Los errores HTTP y la correccion son simulaciones con mocks.",
+    "Las bases de prueba quedan conservadas; no se ejecuta limpieza destructiva."
+  ]
+}

@@ -5,3 +5,5 @@ neo4j/import/jugadores.csv
 cassandra/data/generated/
 redis/.venv/
 __pycache__/
+influxdb/.local/
+influxdb/data/generated/

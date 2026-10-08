@@ -1,0 +1,559 @@
+{
+  "fecha_utc": "2026-10-07T23:48:28.268298+00:00",
+  "resultado": "PASS",
+  "base": "fixture2030_h8_prueba_detalle",
+  "version": "influxdb3 InfluxDB 3 Core, 3.12.0, revision 3ba97c65f1ee4e1f127a8266517d4d2083b7ea39",
+  "docker": {
+    "cpu": 11,
+    "memoria_bytes": 8216719360,
+    "version": "29.6.1",
+    "arquitectura": "aarch64"
+  },
+  "manifest_sha256": "1f087561386d0f33d447316fd3d5901f3d3427f77f517eec069ed397e7a07135",
+  "inicio_s": 1791406020,
+  "fin_exclusivo_s": 1791411420,
+  "puntos_enviados": 34560,
+  "puntos_verificados": 34560,
+  "series": 64,
+  "lote": 2000,
+  "concurrencia": 2,
+  "lotes": 18,
+  "reintentos_observados": 0,
+  "reintentos_maximos_por_lote": 2,
+  "carga_total_s": 8.924380917000235,
+  "puntos_enviados_por_segundo": 3872.537526291146,
+  "consulta_http_s": [
+    0.021020165993832052,
+    0.015513166996242944,
+    0.013519415995688178,
+    0.011998541995126288,
+    0.013774125000054482
+  ],
+  "consulta_mediana_s": 0.013774125000054482,
+  "sql": "SELECT partido_id, equipo_id, COUNT(*) AS puntos,\n                    AVG(posesion_pct) AS posesion_promedio,\n                    MAX(tiros_acumulados) AS tiros_final, SUM(pases_intervalo) AS pases\n             FROM estadisticas_equipo\n             WHERE time >= CAST($inicio AS TIMESTAMP) AND time < CAST($fin AS TIMESTAMP)\n             GROUP BY partido_id, equipo_id ORDER BY partido_id, equipo_id",
+  "parametros": {
+    "inicio": "2026-10-07T20:47:00+00:00",
+    "fin": "2026-10-07T22:17:00+00:00"
+  },
+  "distribucion": [
+    {
+      "partido_id": "F2030-001",
+      "equipo_id": "1e303ca6-0e0b-5a71-8c23-4db91efc59af",
+      "puntos": 540,
+      "posesion_promedio": 50.083333333333336,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-001",
+      "equipo_id": "4fe7c544-b1ce-5020-afae-7429c4c02d50",
+      "puntos": 540,
+      "posesion_promedio": 49.916666666666664,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-002",
+      "equipo_id": "2d383b19-d9ca-5ec5-a88f-97920d20d203",
+      "puntos": 540,
+      "posesion_promedio": 50.05555555555556,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-002",
+      "equipo_id": "d8bc9d77-0b90-5d68-a244-944d2f61f0b2",
+      "puntos": 540,
+      "posesion_promedio": 49.94444444444444,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-003",
+      "equipo_id": "71f1cea9-f8bb-5a16-9f93-d73165a96092",
+      "puntos": 540,
+      "posesion_promedio": 50.02777777777778,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-003",
+      "equipo_id": "f8dab008-f3d1-53a7-80fb-51e965cccb61",
+      "puntos": 540,
+      "posesion_promedio": 49.97222222222222,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-004",
+      "equipo_id": "365597ec-1387-5064-87ab-26bb9de02194",
+      "puntos": 540,
+      "posesion_promedio": 50.0,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-004",
+      "equipo_id": "fc981196-d500-5d89-9b14-46ed90780ca1",
+      "puntos": 540,
+      "posesion_promedio": 50.0,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-005",
+      "equipo_id": "351af44c-fa6c-5c3b-b27c-938f63b28e6f",
+      "puntos": 540,
+      "posesion_promedio": 50.02777777777778,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-005",
+      "equipo_id": "85942e83-e3e6-56ff-ad45-967ca0f3398f",
+      "puntos": 540,
+      "posesion_promedio": 49.97222222222222,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-006",
+      "equipo_id": "1290e93a-4aae-5e83-91b6-e8702c5c8dd8",
+      "puntos": 540,
+      "posesion_promedio": 50.05555555555556,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-006",
+      "equipo_id": "ee4a02c8-12d4-5714-8307-9d11fb86c8b8",
+      "puntos": 540,
+      "posesion_promedio": 49.94444444444444,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-007",
+      "equipo_id": "52ed8e09-4a27-5565-874c-771ceefbdd2a",
+      "puntos": 540,
+      "posesion_promedio": 50.083333333333336,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-007",
+      "equipo_id": "7b4aef79-f1c0-5a82-8d82-49ccb3e32954",
+      "puntos": 540,
+      "posesion_promedio": 49.916666666666664,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-008",
+      "equipo_id": "7af88c35-05ef-565e-a90f-b942f03cddb5",
+      "puntos": 540,
+      "posesion_promedio": 50.07222222222222,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-008",
+      "equipo_id": "a8c43c91-0f55-529b-9878-fca3f6189890",
+      "puntos": 540,
+      "posesion_promedio": 49.92777777777778,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-009",
+      "equipo_id": "08398396-5eb9-5a9a-8f42-4cfc2bbb44e5",
+      "puntos": 540,
+      "posesion_promedio": 50.06111111111111,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-009",
+      "equipo_id": "de994bed-4f78-5ac3-bbe7-32e0dc0a2b76",
+      "puntos": 540,
+      "posesion_promedio": 49.93888888888889,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-010",
+      "equipo_id": "1e153054-56d6-5a68-93ac-55cc731ec1bc",
+      "puntos": 540,
+      "posesion_promedio": 50.05,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-010",
+      "equipo_id": "918d57e5-1da2-59be-8553-4b053770f208",
+      "puntos": 540,
+      "posesion_promedio": 49.95,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-011",
+      "equipo_id": "b7bfc964-f472-55be-8959-485cc1b55e49",
+      "puntos": 540,
+      "posesion_promedio": 50.03888888888889,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-011",
+      "equipo_id": "f8ae08b7-8b93-544a-b741-689d3ec6d742",
+      "puntos": 540,
+      "posesion_promedio": 49.96111111111111,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-012",
+      "equipo_id": "66fb67ad-a1a6-5750-8d38-fabee4248def",
+      "puntos": 540,
+      "posesion_promedio": 50.02777777777778,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-012",
+      "equipo_id": "b42bb356-ce0d-54a1-b157-dd5658d47383",
+      "puntos": 540,
+      "posesion_promedio": 49.97222222222222,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-013",
+      "equipo_id": "1ba8157a-96f1-5f62-be4f-5871e256749b",
+      "puntos": 540,
+      "posesion_promedio": 50.016666666666666,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-013",
+      "equipo_id": "f187946d-97d6-5def-80be-da95e38e9054",
+      "puntos": 540,
+      "posesion_promedio": 49.983333333333334,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-014",
+      "equipo_id": "39d4944f-07eb-5d27-a84b-8a29489905f0",
+      "puntos": 540,
+      "posesion_promedio": 50.00555555555555,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-014",
+      "equipo_id": "cf7d600d-4155-5969-ba20-e5936aaab571",
+      "puntos": 540,
+      "posesion_promedio": 49.99444444444445,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-015",
+      "equipo_id": "05fd9f07-9325-5efc-bf42-6ba339a71e8a",
+      "puntos": 540,
+      "posesion_promedio": 50.00555555555555,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-015",
+      "equipo_id": "150c2709-3d01-5470-a25e-06aa1919d9bb",
+      "puntos": 540,
+      "posesion_promedio": 49.99444444444445,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-016",
+      "equipo_id": "9fd4c652-b29c-502e-97a9-e973d506b52a",
+      "puntos": 540,
+      "posesion_promedio": 50.016666666666666,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-016",
+      "equipo_id": "fbb9ddce-f3f1-5e90-af41-e68938e2d84a",
+      "puntos": 540,
+      "posesion_promedio": 49.983333333333334,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-017",
+      "equipo_id": "8b7243df-a623-5dad-b1b1-fe2793e16369",
+      "puntos": 540,
+      "posesion_promedio": 49.97222222222222,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-017",
+      "equipo_id": "c775a6f8-176b-5df6-a67d-546a5d1d322b",
+      "puntos": 540,
+      "posesion_promedio": 50.02777777777778,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-018",
+      "equipo_id": "27d5760e-3cd7-5683-830e-626b22316241",
+      "puntos": 540,
+      "posesion_promedio": 50.03888888888889,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-018",
+      "equipo_id": "4d886260-51c0-5970-89ce-41f8d29baa0b",
+      "puntos": 540,
+      "posesion_promedio": 49.96111111111111,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-019",
+      "equipo_id": "b89e083b-d050-547e-a992-4acdf8302bc7",
+      "puntos": 540,
+      "posesion_promedio": 49.95,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-019",
+      "equipo_id": "d028ea46-c5c8-5167-95db-365b1db1236e",
+      "puntos": 540,
+      "posesion_promedio": 50.05,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-020",
+      "equipo_id": "1fa7b27e-e0f2-528d-bee6-f22c6cc4b24a",
+      "puntos": 540,
+      "posesion_promedio": 49.93888888888889,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-020",
+      "equipo_id": "757d80d4-8f5d-53bc-96d3-3df41763bcda",
+      "puntos": 540,
+      "posesion_promedio": 50.06111111111111,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-021",
+      "equipo_id": "7fbdc1dc-3454-5ba0-be59-d6040ce4e0d8",
+      "puntos": 540,
+      "posesion_promedio": 50.07222222222222,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-021",
+      "equipo_id": "ae7cd256-67b9-5610-998d-6ad6fd3dd77c",
+      "puntos": 540,
+      "posesion_promedio": 49.92777777777778,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-022",
+      "equipo_id": "42d26e89-5c01-5394-a7e1-73d8927fb949",
+      "puntos": 540,
+      "posesion_promedio": 50.083333333333336,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-022",
+      "equipo_id": "8bf3a10b-5e23-540a-8866-180ea6c8354d",
+      "puntos": 540,
+      "posesion_promedio": 49.916666666666664,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-023",
+      "equipo_id": "cb37ce4b-701d-5ac6-a6c8-39bed4457b7b",
+      "puntos": 540,
+      "posesion_promedio": 50.05555555555556,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-023",
+      "equipo_id": "db4c77cd-208d-5ca6-a6eb-2912ae2fea7d",
+      "puntos": 540,
+      "posesion_promedio": 49.94444444444444,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-024",
+      "equipo_id": "5886c3f9-0e31-59b8-b415-9b69a8d53b63",
+      "puntos": 540,
+      "posesion_promedio": 50.02777777777778,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-024",
+      "equipo_id": "59d7f68a-066d-51ac-8469-c2a64b6b9471",
+      "puntos": 540,
+      "posesion_promedio": 49.97222222222222,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-025",
+      "equipo_id": "02f7333f-8c87-5717-aa0f-5c49b0758de0",
+      "puntos": 540,
+      "posesion_promedio": 50.0,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-025",
+      "equipo_id": "2d0de201-125d-550d-9212-e771a885af01",
+      "puntos": 540,
+      "posesion_promedio": 50.0,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-026",
+      "equipo_id": "255529a7-27b0-582e-90aa-3edbc2f4d58a",
+      "puntos": 540,
+      "posesion_promedio": 50.02777777777778,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-026",
+      "equipo_id": "b8fa19b1-2927-5d51-a19a-c03ddbe3c4c4",
+      "puntos": 540,
+      "posesion_promedio": 49.97222222222222,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-027",
+      "equipo_id": "3aaf9e70-ae00-5622-ba5d-c84b59594737",
+      "puntos": 540,
+      "posesion_promedio": 50.05555555555556,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-027",
+      "equipo_id": "67433bc9-2582-5e1e-be2a-e754f0acd0ea",
+      "puntos": 540,
+      "posesion_promedio": 49.94444444444444,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-028",
+      "equipo_id": "548646d0-af86-5f84-8448-d2b2e6b2aeeb",
+      "puntos": 540,
+      "posesion_promedio": 49.916666666666664,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-028",
+      "equipo_id": "f7ce44ba-9ac4-53a4-9807-7583ee46f121",
+      "puntos": 540,
+      "posesion_promedio": 50.083333333333336,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-029",
+      "equipo_id": "6173d631-5d44-52ba-b82a-42c16b1d5448",
+      "puntos": 540,
+      "posesion_promedio": 50.07222222222222,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-029",
+      "equipo_id": "cec681ba-c7fc-5b77-822c-ec1284f60bb6",
+      "puntos": 540,
+      "posesion_promedio": 49.92777777777778,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-030",
+      "equipo_id": "18bc0299-d6f0-566c-a371-5e039556fa38",
+      "puntos": 540,
+      "posesion_promedio": 50.06111111111111,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-030",
+      "equipo_id": "54012c19-5a6f-5c7d-a100-e6a331b2d0c4",
+      "puntos": 540,
+      "posesion_promedio": 49.93888888888889,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-031",
+      "equipo_id": "e7b5f35e-a0ad-51aa-a0b6-2a6573b610d2",
+      "puntos": 540,
+      "posesion_promedio": 50.05,
+      "tiros_final": 14,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-031",
+      "equipo_id": "ecedc9bb-75c8-59c6-8877-6edf4aa10c10",
+      "puntos": 540,
+      "posesion_promedio": 49.95,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-032",
+      "equipo_id": "2fd48918-c6f5-5726-9985-883551b2c770",
+      "puntos": 540,
+      "posesion_promedio": 49.96111111111111,
+      "tiros_final": 10,
+      "pases": 2160
+    },
+    {
+      "partido_id": "F2030-032",
+      "equipo_id": "ef826059-d58d-509a-8efe-7e13edaf9793",
+      "puntos": 540,
+      "posesion_promedio": 50.03888888888889,
+      "tiros_final": 14,
+      "pases": 2160
+    }
+  ],
+  "metodo": "perf_counter; carga HTTP con lotes en memoria y respuestas completas; cinco consultas consecutivas",
+  "limites": [
+    "Prueba sintetica local, no 10M+ ni SLA.",
+    "El archivo pequeno se carga en memoria; no es un cargador masivo de 10M.",
+    "Una recarga usa las mismas identidades y puede tener cache caliente.",
+    "No prueba correcciones conflictivas sobre puntos ya escritos."
+  ]
+}
