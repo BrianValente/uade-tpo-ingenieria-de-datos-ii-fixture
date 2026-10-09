@@ -5,16 +5,25 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 "$repo_root/iris/scripts/cargar.sh"
 
+set +e
 output="$({
   docker compose --project-directory "$repo_root" exec -T iris \
     iris session IRIS -U USER <<'OBJECTSCRIPT'
 Set sc = ##class(Fixture.Demo).Ejecutar()
 If $System.Status.IsError(sc) Do $System.Status.DisplayError(sc)
+If $System.Status.IsError(sc) Write "DEMO_STATUS=ERROR", !
+If '$System.Status.IsError(sc) Write "DEMO_STATUS=OK", !
 Halt
 OBJECTSCRIPT
 } 2>&1)"
+command_status=$?
+set -e
 
 printf '%s\n' "$output"
+
+if (( command_status != 0 )); then
+  exit "$command_status"
+fi
 
 partido_id=""
 while IFS= read -r line; do
@@ -23,7 +32,7 @@ while IFS= read -r line; do
   esac
 done <<< "$output"
 
-if [[ -z "$partido_id" ]] || [[ "$output" != *"OK: demostracion completa"* ]]; then
+if [[ -z "$partido_id" ]] || [[ "$output" == *"DEMO_STATUS=ERROR"* ]] || [[ "$output" != *"DEMO_STATUS=OK"* ]]; then
   printf '%s\n' "La demostracion no termino correctamente." >&2
   exit 1
 fi
@@ -44,18 +53,27 @@ if [[ "$iris_ready" != true ]]; then
   exit 1
 fi
 
+set +e
 persistence_output="$({
   docker compose --project-directory "$repo_root" exec -T iris \
     iris session IRIS -U USER <<OBJECTSCRIPT
 Set sc = ##class(Fixture.Demo).VerificarPersistencia("$partido_id")
 If \$System.Status.IsError(sc) Do \$System.Status.DisplayError(sc)
+If \$System.Status.IsError(sc) Write "PERSISTENCE_STATUS=ERROR", !
+If '\$System.Status.IsError(sc) Write "PERSISTENCE_STATUS=OK", !
 Halt
 OBJECTSCRIPT
 } 2>&1)"
+command_status=$?
+set -e
 
 printf '%s\n' "$persistence_output"
 
-if [[ "$persistence_output" != *"OK: persistencia durable despues del reinicio"* ]]; then
+if (( command_status != 0 )); then
+  exit "$command_status"
+fi
+
+if [[ "$persistence_output" == *"PERSISTENCE_STATUS=ERROR"* ]] || [[ "$persistence_output" != *"PERSISTENCE_STATUS=OK"* ]]; then
   printf '%s\n' "La comprobacion de persistencia durable fallo." >&2
   exit 1
 fi

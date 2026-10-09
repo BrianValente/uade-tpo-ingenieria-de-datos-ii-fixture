@@ -18,11 +18,18 @@ La ejecucion comprobo:
 
 - compilacion sin errores;
 - rechazo de propiedades obligatorias ausentes;
+- rollback completo ante un hijo invalido;
 - rechazo de la transicion `Programado -> Finalizado`;
+- rechazo del cierre con eventos nuevos sin guardar;
 - guardado del partido y sus objetos relacionados con una sola invocacion de `%Save()`;
-- navegacion desde el partido hacia arbitro y eventos;
-- proyeccion SQL del partido, sus eventos y las subclases de `Persona`;
+- navegacion desde el partido hacia arbitro y eventos mediante `GetNext()`;
+- comprobacion de referencias inversas;
+- proyeccion SQL del partido, sus eventos y las subclases de `Persona`, con cantidades esperadas;
+- rechazo de escrituras SQL directas;
 - rechazo de eventos posteriores a la finalizacion;
+- rechazo de cambios en eventos persistidos;
+- rechazo de la eliminacion directa de un evento persistido;
+- eliminacion en cascada de un evento al borrar su partido temporal;
 - recuperacion del partido despues de reiniciar el contenedor.
 
-El partido de la ejecucion registrada fue `F2030-IRIS-0004`, con ID persistente `3`. IRIS recupero dos eventos y el estado `Finalizado` despues del reinicio. Esta demostracion valida el comportamiento funcional en una instancia local. No es una prueba de rendimiento ni de alta disponibilidad.
+El partido de la ejecucion registrada fue `F2030-IRIS-0011`, con ID persistente `17`. IRIS recupero dos eventos, sus referencias inversas y el estado `Finalizado` despues del reinicio. Esta demostracion valida el comportamiento funcional en una instancia local. No es una prueba de rendimiento, concurrencia ni alta disponibilidad.

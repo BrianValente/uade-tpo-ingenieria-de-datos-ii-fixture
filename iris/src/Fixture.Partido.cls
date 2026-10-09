@@ -23,6 +23,12 @@ Relationship Eventos As Fixture.Evento [ Cardinality = children, Inverse = Parti
 
 Index CodigoUnico On Codigo [ Unique ];
 
+Trigger SoloLecturaSQL [ Event = INSERT/UPDATE/DELETE, Foreach = ROW, Time = BEFORE ]
+{
+    Set %ok = 0
+    Set %msg = "La proyeccion SQL del modulo Fixture es de solo lectura"
+}
+
 Method CambiarEstado(nuevoEstado As %String) As %Status
 {
     If (..Estado = "Programado") && (nuevoEstado = "EnJuego") {
@@ -31,6 +37,18 @@ Method CambiarEstado(nuevoEstado As %String) As %Status
     }
 
     If (..Estado = "EnJuego") && (nuevoEstado = "Finalizado") {
+        Set clave = ""
+        Set hayEventosNuevos = 0
+        For {
+            Set evento = ..Eventos.GetNext(.clave)
+            Quit:clave=""
+            If evento.%Id() = "" Set hayEventosNuevos = 1
+        }
+
+        If hayEventosNuevos {
+            Quit $$$ERROR($$$GeneralError, "Debe guardar los eventos nuevos antes de finalizar el partido")
+        }
+
         Set ..Estado = nuevoEstado
         Quit $$$OK
     }
@@ -48,9 +66,9 @@ Method CantidadEventos() As %Integer
     Quit ..Eventos.Count()
 }
 
-Method ObtenerEvento(indice As %Integer) As Fixture.Evento
+Method ObtenerSiguienteEvento(ByRef clave As %String) As Fixture.Evento
 {
-    Quit ..Eventos.GetAt(indice)
+    Quit ..Eventos.GetNext(.clave)
 }
 
 Method RegistrarEvento(codigo As %String, tipo As %String, minuto As %Integer, detalle As %String = "") As %Status
@@ -88,6 +106,19 @@ Method %OnBeforeSave(insert As %Boolean) As %Status
     }
 
     Quit $$$OK
+}
+
+ClassMethod %OnDelete(oid As %ObjectIdentity) As %Status [ Private, ServerOnly = 1 ]
+{
+    Set id = $$$oidPrimary(oid)
+    Set ^||Fixture2030DeletePartido(id) = 1
+    Quit $$$OK
+}
+
+ClassMethod %OnDeleteFinally(oid As %ObjectIdentity, status As %Status) [ ServerOnly = 1 ]
+{
+    Set id = $$$oidPrimary(oid)
+    Kill ^||Fixture2030DeletePartido(id)
 }
 
 }
