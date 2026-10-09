@@ -1,0 +1,98 @@
+Entorno observado
+=================
+Fecha: 2026-10-09
+Docker Engine: 29.6.1
+Docker Compose: 5.3.0
+Imagen: intersystems/iris-community:latest-cd
+IRIS: Community 2026.2, build 221U, ARM64
+Estado del contenedor: healthy
+Namespace: USER
+
+Compilacion
+===========
+Clases importadas y compiladas:
+- Fixture.Persona
+- Fixture.Arbitro
+- Fixture.Tecnico
+- Fixture.Partido
+- Fixture.Evento
+- Fixture.Demo
+
+Resultado: Load finished successfully.
+Marcador: COMPILE_STATUS=OK
+
+Demostracion funcional
+======================
+OK: guardado sin propiedades obligatorias rechazado
+ERROR #5659: propiedades requeridas ausentes
+
+OK: rollback completo ante un hijo invalido
+ERROR #5001: El minuto debe estar entre 0 y 130
+
+OK: transicion Programado -> Finalizado rechazada
+ERROR #5001: Transicion de estado ilegal: Programado -> Finalizado
+
+OK: cierre con eventos nuevos rechazado
+ERROR #5001: Debe guardar los eventos nuevos antes de finalizar el partido
+
+OK: guardado del agregado con una sola invocacion de %Save()
+PARTIDO_ID=17
+PARTIDO_CODIGO=F2030-IRIS-0011
+ARBITRO_ID=49
+TECNICO_LOCAL_ID=50
+TECNICO_VISITANTE_ID=51
+
+NAVEGACION: F2030-IRIS-0011 | estado=EnJuego | eventos=2
+ARBITRO: Arbitro de prueba 0011 | licencia=FIFA-ARB-0011
+EVENTO: EVT-IRIS-0011-01 | Gol | minuto=18
+EVENTO: EVT-IRIS-0011-02 | TarjetaAmarilla | minuto=63
+
+SQL PARTIDO: proyeccion del objeto principal
+ID  Codigo            FechaHora            Estado   EquipoLocalCodigo  EquipoVisitanteCodigo  ArbitroPrincipal  TecnicoLocal  TecnicoVisitante
+17  F2030-IRIS-0011  2030-06-13 16:00:00  EnJuego  ARG                BRA                     49                 50            51
+1 fila
+
+SQL EVENTOS: proyeccion de los hijos
+ID      Codigo                Tipo              Minuto  Detalle                              Partido
+17||20  EVT-IRIS-0011-01     Gol               18      Gol del equipo local                 17
+17||21  EVT-IRIS-0011-02     TarjetaAmarilla   63      Amonestacion del equipo visitante    17
+2 filas
+
+SQL ARBITRO: proyeccion de la herencia Persona -> Arbitro
+ID  Codigo     Nombre                    Nacionalidad  Licencia        Categoria
+49  ARB-0011   Arbitro de prueba 0011    Uruguay       FIFA-ARB-0011   Internacional
+1 fila
+
+SQL TECNICOS: proyeccion de la herencia Persona -> Tecnico
+ID  Codigo        Nombre                     Nacionalidad  Licencia      SeleccionCodigo
+50  TEC-ARG-0011  Tecnico local 0011         Argentina     LIC-ARG-0011  ARG
+51  TEC-BRA-0011  Tecnico visitante 0011     Brasil        LIC-BRA-0011  BRA
+2 filas
+
+OK: escrituras SQL directas rechazadas
+
+OK: evento posterior a Finalizado rechazado
+ERROR #5001: Solo un partido EnJuego puede recibir eventos
+
+OK: modificacion de evento persistido rechazada
+ERROR #5001: Los eventos persistidos son inalterables
+
+OK: eliminacion directa de evento rechazada
+ERROR #5001: Los eventos persistidos no se eliminan de forma directa
+
+OK: eliminacion del partido borra sus eventos en cascada
+
+OK: demostracion completa
+Marcador: DEMO_STATUS=OK
+
+Persistencia despues del reinicio
+=================================
+OK: persistencia durable despues del reinicio
+PERSISTIDO: F2030-IRIS-0011 | estado=Finalizado | eventos=2
+Marcador: PERSISTENCE_STATUS=OK
+
+Limitacion
+==========
+La prueba usa una instancia local y un agregado pequeno. No prueba concurrencia,
+rendimiento, replicacion, alta disponibilidad ni cumplimiento de los objetivos
+distribuidos del caso.

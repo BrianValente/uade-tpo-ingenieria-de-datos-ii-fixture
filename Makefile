@@ -1,17 +1,18 @@
-.PHONY: help up mongodb neo4j cassandra status down volumes logs-mongodb logs-neo4j logs-cassandra load-neo4j verify-neo4j queries-neo4j load-cassandra verify-cassandra queries-cassandra benchmark-cassandra benchmark-cassandra-hotspot
+.PHONY: help up mongodb neo4j cassandra redis influxdb iris status down volumes logs-mongodb logs-neo4j logs-cassandra logs-iris load-neo4j verify-neo4j queries-neo4j load-cassandra verify-cassandra queries-cassandra benchmark-cassandra benchmark-cassandra-hotspot load-iris verify-iris
 
-SELECTED_ENGINES := $(filter mongodb neo4j cassandra redis influxdb,$(MAKECMDGOALS))
-UP_ENGINES := $(if $(SELECTED_ENGINES),$(SELECTED_ENGINES),mongodb neo4j cassandra redis influxdb)
+SELECTED_ENGINES := $(filter mongodb neo4j cassandra redis influxdb iris,$(MAKECMDGOALS))
+UP_ENGINES := $(if $(SELECTED_ENGINES),$(SELECTED_ENGINES),mongodb neo4j cassandra redis influxdb iris)
 DOWN_VOLUMES := $(if $(filter volumes,$(MAKECMDGOALS)),--volumes,)
 
 help:
 	@printf '%s\n' \
-		'make up                   Inicia MongoDB, Neo4j, Cassandra, Redis e InfluxDB' \
+		'make up                   Inicia todos los motores del proyecto' \
 		'make up mongodb            Inicia solo MongoDB' \
 		'make up neo4j             Inicia solo Neo4j' \
 		'make up cassandra         Inicia solo Cassandra' \
 		'make up redis             Inicia solo Redis' \
 		'make up influxdb          Inicia solo InfluxDB' \
+		'make up iris              Inicia solo InterSystems IRIS' \
 		'make inspect-redis        Consulta disponibilidad y configuracion' \
 		'make metrics-redis        Consulta metricas de Redis' \
 		'make load-redis           Carga la muestra sintetica del Hito 7' \
@@ -28,6 +29,8 @@ help:
 		'make queries-cassandra    Ejecuta las consultas de comentarios' \
 		'make benchmark-cassandra  Genera y carga mas de 1M de comentarios' \
 		'make benchmark-cassandra-hotspot Prueba un partido con 10.000 comentarios/s' \
+		'make load-iris            Carga y compila las clases persistentes' \
+		'make verify-iris          Ejecuta la demostracion completa de IRIS' \
 		'make down                 Detiene todos los servicios' \
 		'make down neo4j           Detiene solo Neo4j' \
 		'make down neo4j volumes   Detiene Neo4j y borra sus datos'
@@ -35,7 +38,7 @@ help:
 up:
 	docker compose up -d $(UP_ENGINES)
 
-mongodb neo4j cassandra redis influxdb:
+mongodb neo4j cassandra redis influxdb iris:
 	$(if $(filter up down,$(MAKECMDGOALS)),@:,$(error Use 'make up $@' o 'make down $@'))
 
 status:
@@ -55,6 +58,9 @@ logs-neo4j:
 
 logs-cassandra:
 	docker compose logs --follow cassandra
+
+logs-iris:
+	docker compose logs --follow iris
 
 load-neo4j:
 	./scripts/load-neo4j.sh
@@ -95,3 +101,9 @@ load-redis:
 
 verify-redis:
 	redis/.venv/bin/python redis/scripts/pruebas.py --memoria
+
+load-iris:
+	./iris/scripts/cargar.sh
+
+verify-iris:
+	./iris/scripts/verificar.sh

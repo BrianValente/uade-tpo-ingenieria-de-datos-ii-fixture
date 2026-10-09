@@ -7,3 +7,6 @@ redis/.venv/
 __pycache__/
 influxdb/.local/
 influxdb/data/generated/
+iris/.local/
+iris/**/*.DAT
+iris/**/*.journal

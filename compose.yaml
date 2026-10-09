@@ -105,6 +105,24 @@ services:
       retries: 12
       start_period: 10s
 
+  iris:
+    image: intersystems/iris-community:latest-cd
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${IRIS_SUPERSERVER_PORT:-1972}:1972"
+      - "127.0.0.1:${IRIS_WEB_PORT:-52773}:52773"
+    environment:
+      ISC_DATA_DIRECTORY: /durable
+    volumes:
+      - "${HOME}/docker/data/iris:/durable"
+      - ./iris:/workspace/iris:ro
+    healthcheck:
+      test: ["CMD-SHELL", "iris qlist IRIS | grep -q running"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 60s
+
 volumes:
   mongodb_data:
   neo4j_data:
