@@ -8,7 +8,7 @@ Repositorio del TPO de Ingenieria de Datos II para desarrollar la plataforma Fix
 - Espacio libre para las imagenes y los volumenes.
 - MongoDB Compass, `mongosh` y Neo4j Desktop son opcionales.
 
-No se necesita instalar Node.js, MongoDB, Neo4j, Cassandra ni Redis en la computadora. La carga masiva del Hito 6 y el modulo del Hito 7 requieren Python 3.9 o posterior. El Hito 7 instala redis-py en su entorno virtual; consultar `redis/README.md`.
+No se necesita instalar Node.js ni los motores de base de datos en la computadora. La carga masiva del Hito 6 y el modulo del Hito 7 requieren Python 3.9 o posterior. El Hito 7 instala redis-py en su entorno virtual; consultar `redis/README.md`.
 
 ## Inicio y carga
 
@@ -33,6 +33,8 @@ No se necesita instalar Node.js, MongoDB, Neo4j, Cassandra ni Redis en la comput
    make up neo4j
    make up cassandra
    make up redis
+   make up influxdb
+   make up iris
    ```
 
 4. Comprobar el estado:
@@ -66,6 +68,15 @@ La carga de Neo4j reutiliza los UUID del modulo documental y agrega una muestra 
    ```
 
 La carga usa una muestra idempotente. Consultar [las instrucciones del Hito 6](cassandra/README.md) para generar mas de un millon de comentarios y ejecutar la medicion.
+
+8. Cargar y verificar el modulo de objetos persistentes:
+
+   ```bash
+   make up iris
+   make verify-iris
+   ```
+
+La prueba compila las clases, guarda un arbol de objetos con una sola invocacion, navega sus referencias, consulta la proyeccion SQL y comprueba la persistencia despues de reiniciar IRIS. Consultar [las instrucciones del Hito 9](iris/README.md).
 
 ## Consultas y operaciones
 
@@ -166,6 +177,16 @@ docker compose exec cassandra cqlsh
 
 Los datos persisten en `~/docker/data/cassandra`.
 
+### InterSystems IRIS
+
+IRIS publica el superserver en `127.0.0.1:1972` y el Management Portal en:
+
+```text
+http://localhost:52773/csp/sys/UtilHome.csp
+```
+
+Los datos y la configuracion durable persisten en `~/docker/data/iris`.
+
 ## Reinicio y detencion
 
 Reiniciar el servicio sin perder datos:
@@ -221,6 +242,11 @@ No agregar `volumes` salvo que se quiera borrar la informacion local de la base 
 |   |-- docs/
 |   |-- scripts/
 |   `-- README.md
+|-- iris/
+|   |-- docs/
+|   |-- scripts/
+|   |-- src/
+|   `-- README.md
 |-- queries/
 |   |-- 00-validate.js
 |   |-- 01-read.js
@@ -244,6 +270,7 @@ No agregar `volumes` salvo que se quiera borrar la informacion local de la base 
 - La carga actualiza los documentos canonicos, pero no elimina documentos ajenos al dataset. Esta conducta evita borrar datos agregados por el usuario.
 - La prueba de rendimiento usa un volumen academico de 1.536 jugadores. No demuestra el cumplimiento de los objetivos distribuidos del escenario completo.
 - Cassandra usa un nodo local. No demuestra replicacion, alta disponibilidad ni distribucion fisica entre nodos.
+- IRIS usa una instancia local. La demostracion valida reglas, relaciones y persistencia, no rendimiento distribuido.
 
 ## Documentacion
 
@@ -252,3 +279,4 @@ No agregar `volumes` salvo que se quiera borrar la informacion local de la base 
 - [Modulo de grafos del Hito 5](neo4j/README.md)
 - [Modulo de comentarios del Hito 6](cassandra/README.md)
 - [Módulo de sesiones y caché del Hito 7](redis/README.md)
+- [Modulo de entidades complejas del Hito 9](iris/README.md)

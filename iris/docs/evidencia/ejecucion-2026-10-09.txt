@@ -1,0 +1,78 @@
+Entorno observado
+=================
+Fecha: 2026-10-09
+Docker Engine: 29.6.1
+Docker Compose: 5.3.0
+Imagen: intersystems/iris-community:latest-cd
+IRIS: Community 2026.2, build 221U, ARM64
+Estado del contenedor: healthy
+Namespace: USER
+
+Compilacion
+===========
+Clases importadas y compiladas:
+- Fixture.Persona
+- Fixture.Arbitro
+- Fixture.Tecnico
+- Fixture.Partido
+- Fixture.Evento
+- Fixture.Demo
+
+Resultado: Load finished successfully.
+
+Demostracion funcional
+======================
+OK: guardado sin propiedades obligatorias rechazado
+ERROR #5659: propiedades requeridas ausentes
+
+OK: transicion Programado -> Finalizado rechazada
+ERROR #5001: Transicion de estado ilegal: Programado -> Finalizado
+
+OK: guardado del agregado con una sola invocacion de %Save()
+PARTIDO_ID=3
+PARTIDO_CODIGO=F2030-IRIS-0004
+ARBITRO_ID=7
+TECNICO_LOCAL_ID=8
+TECNICO_VISITANTE_ID=9
+
+NAVEGACION: F2030-IRIS-0004 | estado=EnJuego | eventos=2
+ARBITRO: Arbitro de prueba 0004 | licencia=FIFA-ARB-0004
+EVENTO: EVT-IRIS-0004-01 | Gol | minuto=18
+EVENTO: EVT-IRIS-0004-02 | TarjetaAmarilla | minuto=63
+
+SQL PARTIDO: proyeccion del objeto principal
+ID  Codigo            FechaHora            Estado   EquipoLocalCodigo  EquipoVisitanteCodigo  ArbitroPrincipal  TecnicoLocal  TecnicoVisitante
+3   F2030-IRIS-0004  2030-06-13 16:00:00  EnJuego  ARG                BRA                     7                  8             9
+1 fila
+
+SQL EVENTOS: proyeccion de los hijos
+ID    Codigo                Tipo               Minuto  Detalle                                Partido
+3||5  EVT-IRIS-0004-01     Gol                18      Gol del equipo local                   3
+3||6  EVT-IRIS-0004-02     TarjetaAmarilla    63      Amonestacion del equipo visitante      3
+2 filas
+
+SQL ARBITRO: proyeccion de la herencia Persona -> Arbitro
+ID  Codigo     Nombre                    Nacionalidad  Licencia        Categoria
+7   ARB-0004   Arbitro de prueba 0004    Uruguay       FIFA-ARB-0004   Internacional
+1 fila
+
+SQL TECNICOS: proyeccion de la herencia Persona -> Tecnico
+ID  Codigo        Nombre                     Nacionalidad  Licencia      SeleccionCodigo
+8   TEC-ARG-0004  Tecnico local 0004         Argentina     LIC-ARG-0004  ARG
+9   TEC-BRA-0004  Tecnico visitante 0004     Brasil        LIC-BRA-0004  BRA
+2 filas
+
+OK: evento posterior a Finalizado rechazado
+ERROR #5001: Solo un partido EnJuego puede recibir eventos
+
+OK: demostracion completa
+
+Persistencia despues del reinicio
+=================================
+OK: persistencia durable despues del reinicio
+PERSISTIDO: F2030-IRIS-0004 | estado=Finalizado | eventos=2
+
+Limitacion
+==========
+La prueba usa una instancia local y un agregado pequeno. No demuestra rendimiento,
+replicacion, alta disponibilidad ni cumplimiento de los objetivos distribuidos del caso.
