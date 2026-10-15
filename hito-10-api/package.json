@@ -1,0 +1,48 @@
+{
+  "name": "fixture2030-api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": "^24.0.0 || ^26.0.0"
+  },
+  "packageManager": "pnpm@10.34.7",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --import tsx --watch src/index.ts",
+    "start": "node --env-file-if-exists=.env dist/index.js",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier . ../.github/workflows/hito-10-api.yml --check",
+    "format:write": "prettier . ../.github/workflows/hito-10-api.yml --write",
+    "test": "pnpm test:unit",
+    "test:unit": "vitest run",
+    "openapi:export": "tsx scripts/export-openapi.ts",
+    "openapi:check": "tsx scripts/export-openapi.ts --check",
+    "validate": "pnpm lint && pnpm format && pnpm typecheck && pnpm test:unit && pnpm build && pnpm openapi:check"
+  },
+  "dependencies": {
+    "@fastify/swagger": "9.9.2",
+    "@fastify/swagger-ui": "6.1.2",
+    "fastify": "5.12.7",
+    "fastify-type-provider-zod": "7.0.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.2",
+    "eslint": "10.12.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.13.0",
+    "prettier": "3.9.10",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.2",
+    "vitest": "5.0.5"
+  }
+}

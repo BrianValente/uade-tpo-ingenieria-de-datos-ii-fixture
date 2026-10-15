@@ -1,0 +1,85 @@
+openapi: 3.0.3
+info:
+  title: Fixture 2030 API
+  version: 0.1.0
+  description: Base del Hito 10. El estado HTTP no comprueba la conectividad de
+    las bases NoSQL.
+components:
+  schemas:
+    ApiErrorInput:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        requestId:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      required:
+        - code
+        - message
+        - requestId
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        requestId:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      required:
+        - code
+        - message
+        - requestId
+      additionalProperties: false
+paths:
+  /health:
+    get:
+      operationId: getHttpHealth
+      summary: Comprueba que el proceso HTTP responde
+      tags:
+        - Sistema
+      description: No consulta bases ni demuestra que los adaptadores estén disponibles.
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+                  service:
+                    type: string
+                    enum:
+                      - fixture2030-api
+                required:
+                  - status
+                  - service
+                additionalProperties: false
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+servers:
+  - url: /
+    description: Servidor que publica esta documentación
+tags:
+  - name: Sistema
+    description: Estado del proceso HTTP.

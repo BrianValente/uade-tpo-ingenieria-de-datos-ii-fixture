@@ -10,3 +10,8 @@ influxdb/data/generated/
 iris/.local/
 iris/**/*.DAT
 iris/**/*.journal
+hito-10-api/node_modules/
+hito-10-api/dist/
+hito-10-api/coverage/
+hito-10-api/.env.*
+!hito-10-api/.env.example
