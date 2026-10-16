@@ -1,0 +1,2082 @@
+openapi: 3.0.3
+info:
+  title: Fixture 2030 API
+  version: 0.1.0
+  description: API integrada del Fixture 2030. Los ejemplos son ilustrativos de
+    laboratorio; no contienen credenciales ni tokens de sesión utilizables. Las
+    escrituras dependen del estado actual del recurso.
+components:
+  securitySchemes:
+    bearerSession:
+      type: http
+      scheme: bearer
+      description: Token opaco recibido al iniciar sesión. No es un JWT.
+  schemas:
+    ApiErrorInput:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        requestId:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      required:
+        - code
+        - message
+        - requestId
+    UserInput:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        username:
+          type: string
+        role:
+          type: string
+          enum:
+            - user
+            - admin
+      required:
+        - id
+        - username
+        - role
+      example:
+        id: 550e8400-e29b-41d4-a716-446655440000
+        username: fixture-user
+        role: user
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        requestId:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      required:
+        - code
+        - message
+        - requestId
+      additionalProperties: false
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        username:
+          type: string
+        role:
+          type: string
+          enum:
+            - user
+            - admin
+      required:
+        - id
+        - username
+        - role
+      additionalProperties: false
+      example:
+        id: 550e8400-e29b-41d4-a716-446655440000
+        username: fixture-user
+        role: user
+paths:
+  /auth/login:
+    post:
+      operationId: login
+      summary: Inicia una sesión de laboratorio
+      tags:
+        - Autenticación
+      description: Valida Argon2id contra MongoDB y crea una sesión Redis de 1800
+        segundos. Cada login crea otra sesión. El token se muestra solo en esta
+        respuesta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  pattern: ^[a-z][a-z0-9._-]{2,31}$
+                password:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+              required:
+                - username
+                - password
+              additionalProperties: false
+              description: El password del ejemplo es un marcador, no una credencial
+                utilizable.
+            example:
+              username: fixture-user
+              password: <usar API_SEED_USER_PASSWORD del .env local>
+        description: El password del ejemplo es un marcador, no una credencial utilizable.
+      responses:
+        "200":
+          description: Respuesta ilustrativa. El token de ejemplo no corresponde a una
+            sesión.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    pattern: ^[A-Za-z0-9_-]{43}$
+                  tokenType:
+                    type: string
+                    enum:
+                      - Bearer
+                  expiresIn:
+                    type: number
+                    enum:
+                      - 1800
+                  user:
+                    $ref: "#/components/schemas/User"
+                required:
+                  - accessToken
+                  - tokenType
+                  - expiresIn
+                  - user
+                additionalProperties: false
+                description: Respuesta ilustrativa. El token de ejemplo no corresponde a una
+                  sesión.
+              example:
+                accessToken: EJEMPLO_SIN_VALIDEZ________________________
+                tokenType: Bearer
+                expiresIn: 1800
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  username: fixture-user
+                  role: user
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /auth/session:
+    get:
+      operationId: getCurrentSession
+      summary: Consulta la sesión actual
+      tags:
+        - Autenticación
+      description: Lee un hash Redis con TTL positivo. No renueva el vencimiento. Una
+        sesión ausente o expirada produce 401; Redis inaccesible produce 503.
+      security:
+        - bearerSession: []
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+                  createdAt:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z))$
+                  lastActivity:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z))$
+                  ttlSeconds:
+                    type: integer
+                    minimum: 1
+                    maximum: 1800
+                required:
+                  - user
+                  - createdAt
+                  - lastActivity
+                  - ttlSeconds
+                additionalProperties: false
+              example:
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  username: fixture-user
+                  role: user
+                createdAt: 2030-06-13T20:00:00.000000Z
+                lastActivity: 2030-06-13T20:00:00.000000Z
+                ttlSeconds: 1770
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: logout
+      summary: Cierra la sesión actual
+      tags:
+        - Autenticación
+      description: "Elimina solo la sesión del token Bearer. Devuelve 204 aunque ya no
+        exista: repetir el cierre es idempotente. No confirma el cierre si Redis
+        falla."
+      security:
+        - bearerSession: []
+      responses:
+        "204":
+          description: Sesión cerrada o ya ausente.
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /equipos/{codigo}:
+    get:
+      tags:
+        - MongoDB
+      parameters:
+        - schema:
+            type: string
+            pattern: ^[A-Z]{3}$
+          example: ARG
+          in: path
+          name: codigo
+          required: true
+      security:
+        - bearerSession: []
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  code:
+                    type: string
+                    pattern: ^[A-Z]{3}$
+                    example: ARG
+                  name:
+                    type: string
+                  confederation:
+                    type: string
+                  selectionOrigin:
+                    type: string
+                  qualificationStage:
+                    type: string
+                  participates:
+                    type: boolean
+                  trainingBase:
+                    type: string
+                required:
+                  - id
+                  - code
+                  - name
+                  - confederation
+                  - selectionOrigin
+                  - qualificationStage
+                  - participates
+                additionalProperties: false
+              example:
+                id: 4fe7c544-b1ce-5020-afae-7429c4c02d50
+                code: ARG
+                name: Argentina
+                confederation: CONMEBOL
+                selectionOrigin: clasificado_2026
+                qualificationStage: Clasificación
+                participates: true
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /equipos/{codigo}/jugadores:
+    get:
+      tags:
+        - MongoDB
+      parameters:
+        - schema:
+            default: 1
+            type: integer
+            minimum: 1
+            maximum: 100000
+          in: query
+          name: page
+          required: false
+        - schema:
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 100
+          in: query
+          name: limit
+          required: false
+        - schema:
+            type: string
+            pattern: ^[A-Z]{3}$
+          example: ARG
+          in: path
+          name: codigo
+          required: true
+      security:
+        - bearerSession: []
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                        teamId:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                        teamCode:
+                          type: string
+                          pattern: ^[A-Z]{3}$
+                          example: ARG
+                        firstName:
+                          type: string
+                        lastName:
+                          type: string
+                        birthDate:
+                          type: string
+                        position:
+                          type: string
+                        number:
+                          type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        heightCm:
+                          type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        preferredFoot:
+                          type: string
+                        selected:
+                          type: boolean
+                        available:
+                          type: boolean
+                        synthetic:
+                          type: boolean
+                      required:
+                        - id
+                        - teamId
+                        - teamCode
+                        - firstName
+                        - lastName
+                        - birthDate
+                        - position
+                        - number
+                        - heightCm
+                        - preferredFoot
+                        - selected
+                        - available
+                        - synthetic
+                      additionalProperties: false
+                      example:
+                        id: 123e4567-e89b-42d3-a456-426614174000
+                        teamId: 4fe7c544-b1ce-5020-afae-7429c4c02d50
+                        teamCode: ARG
+                        firstName: Ana
+                        lastName: Pérez
+                        birthDate: 2000-01-01T00:00:00.000Z
+                        position: Delantero
+                        number: 9
+                        heightCm: 170
+                        preferredFoot: Derecho
+                        selected: true
+                        available: true
+                        synthetic: true
+                  total:
+                    type: integer
+                    minimum: -9007199254740991
+                    maximum: 9007199254740991
+                  page:
+                    type: integer
+                    minimum: -9007199254740991
+                    maximum: 9007199254740991
+                  limit:
+                    type: integer
+                    minimum: -9007199254740991
+                    maximum: 9007199254740991
+                required:
+                  - items
+                  - total
+                  - page
+                  - limit
+                additionalProperties: false
+              example:
+                items:
+                  - id: 123e4567-e89b-42d3-a456-426614174000
+                    teamId: 4fe7c544-b1ce-5020-afae-7429c4c02d50
+                    teamCode: ARG
+                    firstName: Ana
+                    lastName: Pérez
+                    birthDate: 2000-01-01T00:00:00.000Z
+                    position: Delantero
+                    number: 9
+                    heightCm: 170
+                    preferredFoot: Derecho
+                    selected: true
+                    available: true
+                    synthetic: true
+                total: 24
+                page: 1
+                limit: 1
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /partidos/{id}:
+    get:
+      tags:
+        - Neo4j
+        - MongoDB
+      parameters:
+        - schema:
+            type: string
+            pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-001
+          in: path
+          name: id
+          required: true
+      security:
+        - bearerSession: []
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    pattern: ^F2030-[A-Z0-9-]{1,40}$
+                    example: F2030-001
+                  date:
+                    type: string
+                  time:
+                    type: string
+                  phase:
+                    type: string
+                  homeCode:
+                    type: string
+                    pattern: ^[A-Z]{3}$
+                    example: ARG
+                  awayCode:
+                    type: string
+                    pattern: ^[A-Z]{3}$
+                    example: ARG
+                  venue:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      city:
+                        type: string
+                      country:
+                        type: string
+                      region:
+                        type: string
+                    required:
+                      - id
+                      - name
+                      - city
+                      - country
+                      - region
+                    additionalProperties: false
+                  home:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                      code:
+                        type: string
+                        pattern: ^[A-Z]{3}$
+                        example: ARG
+                      name:
+                        type: string
+                      confederation:
+                        type: string
+                      selectionOrigin:
+                        type: string
+                      qualificationStage:
+                        type: string
+                      participates:
+                        type: boolean
+                      trainingBase:
+                        type: string
+                    required:
+                      - id
+                      - code
+                      - name
+                      - confederation
+                      - selectionOrigin
+                      - qualificationStage
+                      - participates
+                    additionalProperties: false
+                    example:
+                      id: 4fe7c544-b1ce-5020-afae-7429c4c02d50
+                      code: ARG
+                      name: Argentina
+                      confederation: CONMEBOL
+                      selectionOrigin: clasificado_2026
+                      qualificationStage: Clasificación
+                      participates: true
+                  away:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                      code:
+                        type: string
+                        pattern: ^[A-Z]{3}$
+                        example: ARG
+                      name:
+                        type: string
+                      confederation:
+                        type: string
+                      selectionOrigin:
+                        type: string
+                      qualificationStage:
+                        type: string
+                      participates:
+                        type: boolean
+                      trainingBase:
+                        type: string
+                    required:
+                      - id
+                      - code
+                      - name
+                      - confederation
+                      - selectionOrigin
+                      - qualificationStage
+                      - participates
+                    additionalProperties: false
+                    example:
+                      id: 4fe7c544-b1ce-5020-afae-7429c4c02d50
+                      code: ARG
+                      name: Argentina
+                      confederation: CONMEBOL
+                      selectionOrigin: clasificado_2026
+                      qualificationStage: Clasificación
+                      participates: true
+                required:
+                  - id
+                  - date
+                  - time
+                  - phase
+                  - homeCode
+                  - awayCode
+                  - venue
+                  - home
+                  - away
+                additionalProperties: false
+              example:
+                id: F2030-001
+                date: 2030-06-13
+                time: 16:00:00Z
+                phase: Grupos
+                homeCode: ARG
+                awayCode: BRA
+                venue:
+                  id: MAD-01
+                  name: Estadio de laboratorio
+                  city: Madrid
+                  country: España
+                  region: Europa
+                home:
+                  id: 4fe7c544-b1ce-5020-afae-7429c4c02d50
+                  code: ARG
+                  name: Argentina
+                  confederation: CONMEBOL
+                  selectionOrigin: clasificado_2026
+                  qualificationStage: Clasificación
+                  participates: true
+                away:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  code: BRA
+                  name: Brasil
+                  confederation: CONMEBOL
+                  selectionOrigin: clasificado_2026
+                  qualificationStage: Clasificación
+                  participates: true
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /partidos/{id}/eventos:
+    get:
+      tags:
+        - Neo4j
+      parameters:
+        - schema:
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 100
+          in: query
+          name: limit
+          required: false
+        - schema:
+            type: string
+            pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-001
+          in: path
+          name: id
+          required: true
+      security:
+        - bearerSession: []
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        minute:
+                          type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        detail:
+                          type: string
+                        player:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            firstName:
+                              type: string
+                            lastName:
+                              type: string
+                            teamCode:
+                              type: string
+                              pattern: ^[A-Z]{3}$
+                              example: ARG
+                          required:
+                            - id
+                            - firstName
+                            - lastName
+                            - teamCode
+                          additionalProperties: false
+                      required:
+                        - id
+                        - type
+                        - minute
+                        - detail
+                        - player
+                      additionalProperties: false
+                  limit:
+                    type: integer
+                    minimum: -9007199254740991
+                    maximum: 9007199254740991
+                required:
+                  - items
+                  - limit
+                additionalProperties: false
+              example:
+                items:
+                  - id: EVT-001
+                    type: Gol
+                    minute: 18
+                    detail: Gol de laboratorio
+                    player:
+                      id: 123e4567-e89b-42d3-a456-426614174000
+                      firstName: Ana
+                      lastName: Pérez
+                      teamCode: ARG
+                limit: 20
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /partidos/{id}/comentarios:
+    get:
+      tags:
+        - Cassandra
+      parameters:
+        - schema:
+            type: string
+            format: date-time
+            pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z))$
+          example: 2030-06-13T20:01:00.000Z
+          in: query
+          name: minute
+          required: true
+        - schema:
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 100
+          in: query
+          name: limit
+          required: false
+        - schema:
+            type: string
+            minLength: 1
+            maxLength: 300
+            pattern: ^[A-Za-z0-9_-]+$
+          example: eyJjcmVhdGVkQXQiOiIyMDMwLTA2LTEzVDIwOjAxOjE1LjAwMFoiLCJpZCI6IjEyM2U0NTY3LWU4OWItNDJkMy1hNDU2LTQyNjYxNDE3NDAwMCJ9
+          in: query
+          name: cursor
+          required: false
+        - schema:
+            type: string
+            pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-001
+          in: path
+          name: id
+          required: true
+      security:
+        - bearerSession: []
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        matchId:
+                          type: string
+                          pattern: ^F2030-[A-Z0-9-]{1,40}$
+                          example: F2030-001
+                        createdAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z))$
+                        id:
+                          type: string
+                          pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                        userId:
+                          type: string
+                          pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                        username:
+                          type: string
+                        content:
+                          type: string
+                        state:
+                          type: string
+                        likes:
+                          type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        replies:
+                          type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                      required:
+                        - matchId
+                        - createdAt
+                        - id
+                        - userId
+                        - username
+                        - content
+                        - state
+                        - likes
+                        - replies
+                      additionalProperties: false
+                      example:
+                        matchId: F2030-001
+                        createdAt: 2030-06-13T20:01:15.000Z
+                        id: 123e4567-e89b-42d3-a456-426614174000
+                        userId: 550e8400-e29b-41d4-a716-446655440000
+                        username: fixture-user
+                        content: Buen partido del Fixture 2030.
+                        state: visible
+                        likes: 0
+                        replies: 0
+                  nextCursor:
+                    nullable: true
+                    type: string
+                required:
+                  - items
+                  - nextCursor
+                additionalProperties: false
+              example:
+                items:
+                  - matchId: F2030-001
+                    createdAt: 2030-06-13T20:01:15.000Z
+                    id: 123e4567-e89b-42d3-a456-426614174000
+                    userId: 550e8400-e29b-41d4-a716-446655440000
+                    username: fixture-user
+                    content: Buen partido del Fixture 2030.
+                    state: visible
+                    likes: 0
+                    replies: 0
+                nextCursor: null
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+        - Cassandra
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                commentId:
+                  type: string
+                  format: uuid
+                  pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                createdAt:
+                  type: string
+                  format: date-time
+                  pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z))$
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+              required:
+                - commentId
+                - createdAt
+                - content
+              additionalProperties: false
+            example:
+              commentId: 123e4567-e89b-42d3-a456-426614174000
+              createdAt: 2030-06-13T20:01:15.000Z
+              content: Buen partido del Fixture 2030.
+      parameters:
+        - schema:
+            type: string
+            pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-001
+          in: path
+          name: id
+          required: true
+      security:
+        - bearerSession: []
+      responses:
+        "201":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  commentId:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  createdAt:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z))$
+                  content:
+                    type: string
+                  matchId:
+                    type: string
+                    pattern: ^F2030-[A-Z0-9-]{1,40}$
+                    example: F2030-001
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                      username:
+                        type: string
+                    required:
+                      - id
+                      - username
+                    additionalProperties: false
+                  state:
+                    type: string
+                    enum:
+                      - visible
+                required:
+                  - commentId
+                  - createdAt
+                  - content
+                  - matchId
+                  - user
+                  - state
+                additionalProperties: false
+              example:
+                commentId: 123e4567-e89b-42d3-a456-426614174000
+                createdAt: 2030-06-13T20:01:15.000Z
+                content: Buen partido del Fixture 2030.
+                matchId: F2030-001
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  username: fixture-user
+                state: visible
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /partidos/{id}/estadisticas:
+    get:
+      tags:
+        - InfluxDB
+      parameters:
+        - schema:
+            type: string
+            format: date-time
+            pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z))$
+          example: 2030-06-13T20:00:00.000Z
+          in: query
+          name: start
+          required: true
+        - schema:
+            type: string
+            format: date-time
+            pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z))$
+          example: 2030-06-13T20:01:00.000Z
+          in: query
+          name: end
+          required: true
+        - schema:
+            type: string
+            pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-001
+          in: path
+          name: id
+          required: true
+      security:
+        - bearerSession: []
+      responses:
+        "200":
+          description: El intervalo puede ser válido y no tener puntos; en ese caso teams
+            está vacío. Los valores agregados de ejemplo son ilustrativos.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matchId:
+                    type: string
+                    pattern: ^F2030-[A-Z0-9-]{1,40}$
+                    example: F2030-001
+                  start:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z))$
+                  end:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z))$
+                  teams:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: {}
+                required:
+                  - matchId
+                  - start
+                  - end
+                  - teams
+                additionalProperties: false
+                description: El intervalo puede ser válido y no tener puntos; en ese caso teams
+                  está vacío. Los valores agregados de ejemplo son ilustrativos.
+              examples:
+                example1:
+                  value:
+                    matchId: F2030-001
+                    start: 2030-06-13T20:00:00.000Z
+                    end: 2030-06-13T20:01:00.000Z
+                    teams: []
+                example2:
+                  value:
+                    matchId: F2030-001
+                    start: 2030-06-13T20:00:00.000Z
+                    end: 2030-06-13T20:01:00.000Z
+                    teams:
+                      - equipo_id: 4fe7c544-b1ce-5020-afae-7429c4c02d50
+                        muestras: 6
+                        posesion_promedio: 52.5
+                        tiros_maximos: 3
+                        pases_intervalo: 120
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /partidos/{codigo}/detalle:
+    get:
+      tags:
+        - IRIS
+      parameters:
+        - schema:
+            type: string
+            pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-IRIS-0011
+          in: path
+          name: codigo
+          required: true
+      security:
+        - bearerSession: []
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    pattern: ^F2030-[A-Z0-9-]{1,40}$
+                    example: F2030-IRIS-0011
+                  dateTime:
+                    type: string
+                  homeCode:
+                    type: string
+                    pattern: ^[A-Z]{3}$
+                    example: ARG
+                  awayCode:
+                    type: string
+                    pattern: ^[A-Z]{3}$
+                    example: ARG
+                  state:
+                    type: string
+                  referee:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      name:
+                        type: string
+                      nationality:
+                        type: string
+                      license:
+                        type: string
+                      category:
+                        type: string
+                    required:
+                      - code
+                      - name
+                      - nationality
+                      - license
+                      - category
+                    additionalProperties: false
+                  homeCoach:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      name:
+                        type: string
+                      nationality:
+                        type: string
+                      license:
+                        type: string
+                      teamCode:
+                        type: string
+                        pattern: ^[A-Z]{3}$
+                        example: ARG
+                    required:
+                      - code
+                      - name
+                      - nationality
+                      - license
+                      - teamCode
+                    additionalProperties: false
+                  awayCoach:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      name:
+                        type: string
+                      nationality:
+                        type: string
+                      license:
+                        type: string
+                      teamCode:
+                        type: string
+                        pattern: ^[A-Z]{3}$
+                        example: ARG
+                    required:
+                      - code
+                      - name
+                      - nationality
+                      - license
+                      - teamCode
+                    additionalProperties: false
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                        type:
+                          type: string
+                        minute:
+                          type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        detail:
+                          type: string
+                      required:
+                        - code
+                        - type
+                        - minute
+                        - detail
+                      additionalProperties: false
+                required:
+                  - code
+                  - dateTime
+                  - homeCode
+                  - awayCode
+                  - state
+                  - referee
+                  - homeCoach
+                  - awayCoach
+                  - events
+                additionalProperties: false
+              example:
+                code: F2030-IRIS-0011
+                dateTime: 2030-06-13 16:00:00
+                homeCode: ARG
+                awayCode: BRA
+                state: EnJuego
+                referee:
+                  code: ARB-EJEMPLO
+                  name: Árbitro de laboratorio
+                  nationality: Uruguay
+                  license: LIC-A-EJEMPLO
+                  category: Internacional
+                homeCoach:
+                  code: TEC-ARG-EJEMPLO
+                  name: Técnico local
+                  nationality: Argentina
+                  license: LIC-L-EJEMPLO
+                  teamCode: ARG
+                awayCoach:
+                  code: TEC-BRA-EJEMPLO
+                  name: Técnico visitante
+                  nationality: Brasil
+                  license: LIC-V-EJEMPLO
+                  teamCode: BRA
+                events: []
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /partidos/{codigo}/estado:
+    patch:
+      tags:
+        - IRIS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                state:
+                  type: string
+                  enum:
+                    - EnJuego
+                    - Finalizado
+              required:
+                - state
+              additionalProperties: false
+            example:
+              state: EnJuego
+      parameters:
+        - schema:
+            type: string
+            pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-IRIS-0011
+          in: path
+          name: codigo
+          required: true
+      security:
+        - bearerSession: []
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    pattern: ^F2030-[A-Z0-9-]{1,40}$
+                    example: F2030-IRIS-0011
+                  dateTime:
+                    type: string
+                  homeCode:
+                    type: string
+                    pattern: ^[A-Z]{3}$
+                    example: ARG
+                  awayCode:
+                    type: string
+                    pattern: ^[A-Z]{3}$
+                    example: ARG
+                  state:
+                    type: string
+                  referee:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      name:
+                        type: string
+                      nationality:
+                        type: string
+                      license:
+                        type: string
+                      category:
+                        type: string
+                    required:
+                      - code
+                      - name
+                      - nationality
+                      - license
+                      - category
+                    additionalProperties: false
+                  homeCoach:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      name:
+                        type: string
+                      nationality:
+                        type: string
+                      license:
+                        type: string
+                      teamCode:
+                        type: string
+                        pattern: ^[A-Z]{3}$
+                        example: ARG
+                    required:
+                      - code
+                      - name
+                      - nationality
+                      - license
+                      - teamCode
+                    additionalProperties: false
+                  awayCoach:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      name:
+                        type: string
+                      nationality:
+                        type: string
+                      license:
+                        type: string
+                      teamCode:
+                        type: string
+                        pattern: ^[A-Z]{3}$
+                        example: ARG
+                    required:
+                      - code
+                      - name
+                      - nationality
+                      - license
+                      - teamCode
+                    additionalProperties: false
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                        type:
+                          type: string
+                        minute:
+                          type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        detail:
+                          type: string
+                      required:
+                        - code
+                        - type
+                        - minute
+                        - detail
+                      additionalProperties: false
+                required:
+                  - code
+                  - dateTime
+                  - homeCode
+                  - awayCode
+                  - state
+                  - referee
+                  - homeCoach
+                  - awayCoach
+                  - events
+                additionalProperties: false
+              example:
+                code: F2030-IRIS-0011
+                dateTime: 2030-06-13 16:00:00
+                homeCode: ARG
+                awayCode: BRA
+                state: EnJuego
+                referee:
+                  code: ARB-EJEMPLO
+                  name: Árbitro de laboratorio
+                  nationality: Uruguay
+                  license: LIC-A-EJEMPLO
+                  category: Internacional
+                homeCoach:
+                  code: TEC-ARG-EJEMPLO
+                  name: Técnico local
+                  nationality: Argentina
+                  license: LIC-L-EJEMPLO
+                  teamCode: ARG
+                awayCoach:
+                  code: TEC-BRA-EJEMPLO
+                  name: Técnico visitante
+                  nationality: Brasil
+                  license: LIC-V-EJEMPLO
+                  teamCode: BRA
+                events: []
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /partidos/{codigo}/eventos:
+    post:
+      tags:
+        - IRIS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  pattern: ^EVT-[A-Z0-9-]{1,40}$
+                type:
+                  type: string
+                  enum:
+                    - Gol
+                    - TarjetaAmarilla
+                    - TarjetaRoja
+                    - Cambio
+                minute:
+                  type: integer
+                  minimum: 0
+                  maximum: 130
+                detail:
+                  default: ""
+                  type: string
+                  maxLength: 250
+              required:
+                - code
+                - type
+                - minute
+              additionalProperties: false
+            example:
+              code: EVT-H10-EJEMPLO
+              type: Gol
+              minute: 10
+              detail: Gol de laboratorio
+      parameters:
+        - schema:
+            type: string
+            pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-IRIS-0011
+          in: path
+          name: codigo
+          required: true
+      security:
+        - bearerSession: []
+      responses:
+        "201":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    pattern: ^F2030-[A-Z0-9-]{1,40}$
+                    example: F2030-IRIS-0011
+                  dateTime:
+                    type: string
+                  homeCode:
+                    type: string
+                    pattern: ^[A-Z]{3}$
+                    example: ARG
+                  awayCode:
+                    type: string
+                    pattern: ^[A-Z]{3}$
+                    example: ARG
+                  state:
+                    type: string
+                  referee:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      name:
+                        type: string
+                      nationality:
+                        type: string
+                      license:
+                        type: string
+                      category:
+                        type: string
+                    required:
+                      - code
+                      - name
+                      - nationality
+                      - license
+                      - category
+                    additionalProperties: false
+                  homeCoach:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      name:
+                        type: string
+                      nationality:
+                        type: string
+                      license:
+                        type: string
+                      teamCode:
+                        type: string
+                        pattern: ^[A-Z]{3}$
+                        example: ARG
+                    required:
+                      - code
+                      - name
+                      - nationality
+                      - license
+                      - teamCode
+                    additionalProperties: false
+                  awayCoach:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      name:
+                        type: string
+                      nationality:
+                        type: string
+                      license:
+                        type: string
+                      teamCode:
+                        type: string
+                        pattern: ^[A-Z]{3}$
+                        example: ARG
+                    required:
+                      - code
+                      - name
+                      - nationality
+                      - license
+                      - teamCode
+                    additionalProperties: false
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                        type:
+                          type: string
+                        minute:
+                          type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        detail:
+                          type: string
+                      required:
+                        - code
+                        - type
+                        - minute
+                        - detail
+                      additionalProperties: false
+                required:
+                  - code
+                  - dateTime
+                  - homeCode
+                  - awayCode
+                  - state
+                  - referee
+                  - homeCoach
+                  - awayCoach
+                  - events
+                additionalProperties: false
+              example:
+                code: F2030-IRIS-0011
+                dateTime: 2030-06-13 16:00:00
+                homeCode: ARG
+                awayCode: BRA
+                state: EnJuego
+                referee:
+                  code: ARB-EJEMPLO
+                  name: Árbitro de laboratorio
+                  nationality: Uruguay
+                  license: LIC-A-EJEMPLO
+                  category: Internacional
+                homeCoach:
+                  code: TEC-ARG-EJEMPLO
+                  name: Técnico local
+                  nationality: Argentina
+                  license: LIC-L-EJEMPLO
+                  teamCode: ARG
+                awayCoach:
+                  code: TEC-BRA-EJEMPLO
+                  name: Técnico visitante
+                  nationality: Brasil
+                  license: LIC-V-EJEMPLO
+                  teamCode: BRA
+                events:
+                  - code: EVT-H10-EJEMPLO
+                    type: Gol
+                    minute: 10
+                    detail: Gol de laboratorio
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /health:
+    get:
+      operationId: getHttpHealth
+      summary: Comprueba que el proceso HTTP responde
+      tags:
+        - Sistema
+      description: No consulta bases ni demuestra que los adaptadores estén disponibles.
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+                  service:
+                    type: string
+                    enum:
+                      - fixture2030-api
+                required:
+                  - status
+                  - service
+                additionalProperties: false
+              example:
+                status: ok
+                service: fixture2030-api
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+servers:
+  - url: /
+    description: Servidor que publica esta documentación
+tags:
+  - name: Sistema
+    description: Estado del proceso HTTP.
+  - name: Autenticación
+    description: Cuentas de laboratorio en MongoDB y sesiones Redis.

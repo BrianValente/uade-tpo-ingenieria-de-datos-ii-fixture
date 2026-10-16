@@ -8,7 +8,7 @@ Repositorio del TPO de Ingenieria de Datos II para desarrollar la plataforma Fix
 - Espacio libre para las imagenes y los volumenes.
 - MongoDB Compass, `mongosh` y Neo4j Desktop son opcionales.
 
-No se necesita instalar Node.js ni los motores de base de datos en la computadora. La carga masiva del Hito 6 y el modulo del Hito 7 requieren Python 3.9 o posterior. El Hito 7 instala redis-py en su entorno virtual; consultar `redis/README.md`.
+Los motores se ejecutan en Docker. La carga masiva del Hito 6 y el modulo del Hito 7 requieren Python 3.9 o posterior. El Hito 7 instala redis-py en su entorno virtual; consultar `redis/README.md`. La API del Hito 10 requiere Node.js y pnpm; consultar `hito-10-api/README.md`.
 
 ## Inicio y carga
 
@@ -79,6 +79,23 @@ La carga usa una muestra idempotente. Consultar [las instrucciones del Hito 6](c
 La prueba compila las clases, guarda un arbol de objetos con una sola invocacion, navega sus referencias, consulta la proyeccion SQL y comprueba la persistencia despues de reiniciar IRIS. Consultar [las instrucciones del Hito 9](iris/README.md).
 
 ## Consultas y operaciones
+
+### Inicio del Hito 10
+
+La [base de la API REST](hito-10-api/README.md) usa Node.js, TypeScript,
+Fastify y Swagger UI. Incluye validación HTTP, errores comunes, pruebas
+unitarias y controles de calidad en GitHub Actions. Es una primera etapa:
+incluye login y seed con Argon2id y sesiones Redis, con integración real de ese
+flujo documentada. Los otros módulos de negocio están pendientes.
+
+```bash
+cd hito-10-api
+pnpm install --frozen-lockfile
+pnpm env:local
+pnpm dev:lab
+```
+
+Consultar los requisitos de Node.js y pnpm en el README de la API.
 
 ### Inicio del Hito 8
 

@@ -1,0 +1,51 @@
+name: Hito 10 - Calidad de la API
+
+on:
+  pull_request:
+    paths:
+      - "hito-10-api/**"
+      - ".github/workflows/hito-10-api.yml"
+      - ".gitignore"
+      - ".gitattributes"
+  push:
+    branches: [main]
+    paths:
+      - "hito-10-api/**"
+      - ".github/workflows/hito-10-api.yml"
+      - ".gitignore"
+      - ".gitattributes"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hito-10-api-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: ${{ matrix.check }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [lint, format, typecheck, "test:unit", build, "openapi:check"]
+    defaults:
+      run:
+        working-directory: hito-10-api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: hito-10-api/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: hito-10-api/.nvmrc
+          cache: pnpm
+          cache-dependency-path: hito-10-api/pnpm-lock.yaml
+      - name: Instalar dependencias del lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Ejecutar control
+        run: pnpm run "${{ matrix.check }}"
