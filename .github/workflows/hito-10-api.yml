@@ -6,12 +6,14 @@ on:
       - "hito-10-api/**"
       - ".github/workflows/hito-10-api.yml"
       - ".gitignore"
+      - ".gitattributes"
   push:
     branches: [main]
     paths:
       - "hito-10-api/**"
       - ".github/workflows/hito-10-api.yml"
       - ".gitignore"
+      - ".gitattributes"
   workflow_dispatch:
 
 permissions:

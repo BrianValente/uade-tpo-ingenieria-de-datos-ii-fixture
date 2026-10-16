@@ -26,6 +26,7 @@
     "test:unit": "vitest run",
     "test:integration": "node --env-file-if-exists=.env --import tsx scripts/run-integration.ts",
     "test:writes": "node --env-file-if-exists=.env --import tsx scripts/run-integration.ts tests/integration/writes.test.ts",
+    "measure:latency": "node --env-file-if-exists=.env --import tsx scripts/measure-latency.ts",
     "test:timeouts": "vitest run --config vitest.integration.config.ts tests/integration/timeouts.test.ts",
     "test:redis": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts tests/integration/redis-session.test.ts",
     "openapi:export": "tsx scripts/export-openapi.ts",

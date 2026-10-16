@@ -8,10 +8,20 @@ import type { AuthService } from '../../auth/application/auth.service.js'
 import { sessionHeadersSchema } from '../../auth/presentation/auth.schemas.js'
 import type { DataService } from '../application/data.service.js'
 import { commentCursorSchema } from '../application/data.service.js'
+import { dataExamples } from './data.examples.js'
 
-const code = z.string().regex(/^[A-Z]{3}$/)
-const matchId = z.string().regex(/^F2030-[A-Z0-9-]{1,40}$/)
-const irisCode = z.string().regex(/^F2030-[A-Z0-9-]{1,40}$/)
+const code = z
+  .string()
+  .regex(/^[A-Z]{3}$/)
+  .meta({ examples: ['ARG'] })
+const matchId = z
+  .string()
+  .regex(/^F2030-[A-Z0-9-]{1,40}$/)
+  .meta({ examples: ['F2030-001'] })
+const irisCode = z
+  .string()
+  .regex(/^F2030-[A-Z0-9-]{1,40}$/)
+  .meta({ examples: ['F2030-IRIS-0011'] })
 const uuid = z.uuid()
 const cqlUuid = z
   .string()
@@ -27,31 +37,35 @@ const authResponses = {
   500: errorSchema,
   503: errorSchema,
 }
-const teamSchema = z.object({
-  id: uuid,
-  code,
-  name: z.string(),
-  confederation: z.string(),
-  selectionOrigin: z.string(),
-  qualificationStage: z.string(),
-  participates: z.boolean(),
-  trainingBase: z.string().optional(),
-})
-const playerSchema = z.object({
-  id: uuid,
-  teamId: uuid,
-  teamCode: code,
-  firstName: z.string(),
-  lastName: z.string(),
-  birthDate: z.string(),
-  position: z.string(),
-  number: z.number().int(),
-  heightCm: z.number().int(),
-  preferredFoot: z.string(),
-  selected: z.boolean(),
-  available: z.boolean(),
-  synthetic: z.boolean(),
-})
+const teamSchema = z
+  .object({
+    id: uuid,
+    code,
+    name: z.string(),
+    confederation: z.string(),
+    selectionOrigin: z.string(),
+    qualificationStage: z.string(),
+    participates: z.boolean(),
+    trainingBase: z.string().optional(),
+  })
+  .meta({ examples: [dataExamples.team] })
+const playerSchema = z
+  .object({
+    id: uuid,
+    teamId: uuid,
+    teamCode: code,
+    firstName: z.string(),
+    lastName: z.string(),
+    birthDate: z.string(),
+    position: z.string(),
+    number: z.number().int(),
+    heightCm: z.number().int(),
+    preferredFoot: z.string(),
+    selected: z.boolean(),
+    available: z.boolean(),
+    synthetic: z.boolean(),
+  })
+  .meta({ examples: [dataExamples.player] })
 const eventSchema = z.object({
   id: z.string(),
   type: z.string(),
@@ -64,41 +78,45 @@ const eventSchema = z.object({
     teamCode: code,
   }),
 })
-const commentSchema = z.object({
-  matchId,
-  createdAt: z.iso.datetime(),
-  id: cqlUuid,
-  userId: cqlUuid,
-  username: z.string(),
-  content: z.string(),
-  state: z.string(),
-  likes: z.number().int(),
-  replies: z.number().int(),
-})
+const commentSchema = z
+  .object({
+    matchId,
+    createdAt: z.iso.datetime(),
+    id: cqlUuid,
+    userId: cqlUuid,
+    username: z.string(),
+    content: z.string(),
+    state: z.string(),
+    likes: z.number().int(),
+    replies: z.number().int(),
+  })
+  .meta({ examples: [dataExamples.comment] })
 const personSchema = z.object({
   code: z.string(),
   name: z.string(),
   nationality: z.string(),
   license: z.string(),
 })
-const irisMatchSchema = z.object({
-  code: irisCode,
-  dateTime: z.string(),
-  homeCode: code,
-  awayCode: code,
-  state: z.string(),
-  referee: personSchema.extend({ category: z.string() }),
-  homeCoach: personSchema.extend({ teamCode: code }),
-  awayCoach: personSchema.extend({ teamCode: code }),
-  events: z.array(
-    z.object({
-      code: z.string(),
-      type: z.string(),
-      minute: z.number().int(),
-      detail: z.string(),
-    }),
-  ),
-})
+const irisMatchSchema = z
+  .object({
+    code: irisCode,
+    dateTime: z.string(),
+    homeCode: code,
+    awayCode: code,
+    state: z.string(),
+    referee: personSchema.extend({ category: z.string() }),
+    homeCoach: personSchema.extend({ teamCode: code }),
+    awayCoach: personSchema.extend({ teamCode: code }),
+    events: z.array(
+      z.object({
+        code: z.string(),
+        type: z.string(),
+        minute: z.number().int(),
+        detail: z.string(),
+      }),
+    ),
+  })
+  .meta({ examples: [dataExamples.iris] })
 
 function token(authorization: string | undefined) {
   if (!authorization) throw new ApiError('UNAUTHENTICATED')
@@ -151,12 +169,14 @@ export async function registerDataRoutes(
             limit: limit.pipe(z.number().max(50)),
           }),
           response: {
-            200: z.object({
-              items: z.array(playerSchema),
-              total: z.number().int(),
-              page: z.number().int(),
-              limit: z.number().int(),
-            }),
+            200: z
+              .object({
+                items: z.array(playerSchema),
+                total: z.number().int(),
+                page: z.number().int(),
+                limit: z.number().int(),
+              })
+              .meta({ examples: [dataExamples.players] }),
             ...authResponses,
           },
         },
@@ -181,23 +201,25 @@ export async function registerDataRoutes(
           params: z.object({ id: matchId }),
           querystring: z.strictObject({}),
           response: {
-            200: z.object({
-              id: matchId,
-              date: z.string(),
-              time: z.string(),
-              phase: z.string(),
-              homeCode: code,
-              awayCode: code,
-              venue: z.object({
-                id: z.string(),
-                name: z.string(),
-                city: z.string(),
-                country: z.string(),
-                region: z.string(),
-              }),
-              home: teamSchema,
-              away: teamSchema,
-            }),
+            200: z
+              .object({
+                id: matchId,
+                date: z.string(),
+                time: z.string(),
+                phase: z.string(),
+                homeCode: code,
+                awayCode: code,
+                venue: z.object({
+                  id: z.string(),
+                  name: z.string(),
+                  city: z.string(),
+                  country: z.string(),
+                  region: z.string(),
+                }),
+                home: teamSchema,
+                away: teamSchema,
+              })
+              .meta({ examples: [dataExamples.match] }),
             ...authResponses,
           },
         },
@@ -217,10 +239,12 @@ export async function registerDataRoutes(
           params: z.object({ id: matchId }),
           querystring: z.strictObject({ limit }),
           response: {
-            200: z.object({
-              items: z.array(eventSchema),
-              limit: z.number().int(),
-            }),
+            200: z
+              .object({
+                items: z.array(eventSchema),
+                limit: z.number().int(),
+              })
+              .meta({ examples: [dataExamples.events] }),
             ...authResponses,
           },
         },
@@ -241,15 +265,21 @@ export async function registerDataRoutes(
           headers: sessionHeadersSchema,
           params: z.object({ id: matchId }),
           querystring: z.strictObject({
-            minute: z.iso.datetime(),
+            minute: z.iso
+              .datetime()
+              .meta({ examples: ['2030-06-13T20:01:00.000Z'] }),
             limit,
-            cursor: commentCursorSchema.optional(),
+            cursor: commentCursorSchema
+              .meta({ examples: [dataExamples.cursor] })
+              .optional(),
           }),
           response: {
-            200: z.object({
-              items: z.array(commentSchema),
-              nextCursor: z.string().nullable(),
-            }),
+            200: z
+              .object({
+                items: z.array(commentSchema),
+                nextCursor: z.string().nullable(),
+              })
+              .meta({ examples: [dataExamples.comments] }),
             ...authResponses,
           },
         },
@@ -274,20 +304,24 @@ export async function registerDataRoutes(
           headers: sessionHeadersSchema,
           params: z.object({ id: matchId }),
           querystring: z.strictObject({}),
-          body: z.strictObject({
-            commentId: uuid,
-            createdAt: z.iso.datetime(),
-            content: z.string().trim().min(1).max(500),
-          }),
-          response: {
-            201: z.object({
+          body: z
+            .strictObject({
               commentId: uuid,
               createdAt: z.iso.datetime(),
-              content: z.string(),
-              matchId,
-              user: z.object({ id: uuid, username: z.string() }),
-              state: z.literal('visible'),
-            }),
+              content: z.string().trim().min(1).max(500),
+            })
+            .meta({ examples: [dataExamples.commentBody] }),
+          response: {
+            201: z
+              .object({
+                commentId: uuid,
+                createdAt: z.iso.datetime(),
+                content: z.string(),
+                matchId,
+                user: z.object({ id: uuid, username: z.string() }),
+                state: z.literal('visible'),
+              })
+              .meta({ examples: [dataExamples.commentCreated] }),
             ...authResponses,
           },
         },
@@ -314,16 +348,29 @@ export async function registerDataRoutes(
           headers: sessionHeadersSchema,
           params: z.object({ id: matchId }),
           querystring: z.strictObject({
-            start: z.iso.datetime(),
-            end: z.iso.datetime(),
+            start: z.iso
+              .datetime()
+              .meta({ examples: [dataExamples.statistics.start] }),
+            end: z.iso
+              .datetime()
+              .meta({ examples: [dataExamples.statistics.end] }),
           }),
           response: {
-            200: z.object({
-              matchId,
-              start: z.iso.datetime(),
-              end: z.iso.datetime(),
-              teams: z.array(z.record(z.string(), z.unknown())),
-            }),
+            200: z
+              .object({
+                matchId,
+                start: z.iso.datetime(),
+                end: z.iso.datetime(),
+                teams: z.array(z.record(z.string(), z.unknown())),
+              })
+              .meta({
+                examples: [
+                  dataExamples.statistics,
+                  dataExamples.statisticsWithPoints,
+                ],
+                description:
+                  'El intervalo puede ser válido y no tener puntos; en ese caso teams está vacío. Los valores agregados de ejemplo son ilustrativos.',
+              }),
             ...authResponses,
           },
         },
@@ -364,7 +411,9 @@ export async function registerDataRoutes(
           headers: sessionHeadersSchema,
           params: z.object({ codigo: irisCode }),
           querystring: z.strictObject({}),
-          body: z.strictObject({ state: z.enum(['EnJuego', 'Finalizado']) }),
+          body: z
+            .strictObject({ state: z.enum(['EnJuego', 'Finalizado']) })
+            .meta({ examples: [dataExamples.stateBody] }),
           response: { 200: irisMatchSchema, ...authResponses },
         },
       },
@@ -384,13 +433,20 @@ export async function registerDataRoutes(
           headers: sessionHeadersSchema,
           params: z.object({ codigo: irisCode }),
           querystring: z.strictObject({}),
-          body: z.strictObject({
-            code: z.string().regex(/^EVT-[A-Z0-9-]{1,40}$/),
-            type: z.enum(['Gol', 'TarjetaAmarilla', 'TarjetaRoja', 'Cambio']),
-            minute: z.number().int().min(0).max(130),
-            detail: z.string().max(250).default(''),
-          }),
-          response: { 201: irisMatchSchema, ...authResponses },
+          body: z
+            .strictObject({
+              code: z.string().regex(/^EVT-[A-Z0-9-]{1,40}$/),
+              type: z.enum(['Gol', 'TarjetaAmarilla', 'TarjetaRoja', 'Cambio']),
+              minute: z.number().int().min(0).max(130),
+              detail: z.string().max(250).default(''),
+            })
+            .meta({ examples: [dataExamples.eventBody] }),
+          response: {
+            201: irisMatchSchema.meta({
+              examples: [dataExamples.irisWithEvent],
+            }),
+            ...authResponses,
+          },
         },
       },
       async (request, reply) => {

@@ -77,10 +77,12 @@ export async function buildServer(
         operationId: 'getHttpHealth',
         querystring: z.strictObject({}),
         response: {
-          200: z.object({
-            status: z.literal('ok'),
-            service: z.literal('fixture2030-api'),
-          }),
+          200: z
+            .object({
+              status: z.literal('ok'),
+              service: z.literal('fixture2030-api'),
+            })
+            .meta({ examples: [{ status: 'ok', service: 'fixture2030-api' }] }),
           400: errorSchema,
           500: errorSchema,
         },

@@ -284,6 +284,48 @@ describe('Rutas de datos con adaptadores simulados', () => {
     )
   })
 
+  it('acepta los ejemplos publicados de POST y PATCH sin errores de contrato', async () => {
+    currentUser.role = 'admin'
+    const contract = (await app.inject('/docs/json')).json()
+    for (const example of [
+      {
+        path: '/partidos/{id}/comentarios',
+        url: '/partidos/F2030-001/comentarios',
+        method: 'POST',
+        status: 201,
+      },
+      {
+        path: '/partidos/{codigo}/estado',
+        url: '/partidos/F2030-IRIS-0011/estado',
+        method: 'PATCH',
+        status: 200,
+      },
+      {
+        path: '/partidos/{codigo}/eventos',
+        url: '/partidos/F2030-IRIS-0011/eventos',
+        method: 'POST',
+        status: 201,
+      },
+    ] as const) {
+      const payload =
+        contract.paths[example.path][example.method.toLowerCase()].requestBody
+          .content['application/json'].example
+      expect(payload).toBeDefined()
+      const response = await app.inject({
+        method: example.method,
+        url: example.url,
+        headers,
+        payload,
+      })
+      expect(response.statusCode).toBe(example.status)
+    }
+    const teamResponse =
+      contract.paths['/equipos/{codigo}'].get.responses['200'].content[
+        'application/json'
+      ].example
+    expect(teamResponse.code).toBe('ARG')
+  })
+
   it.each([
     { createdAt: '2030-06-13T20:00:00.000Z', id: '-'.repeat(36) },
     { createdAt: 'ayer', id: randomUUID() },

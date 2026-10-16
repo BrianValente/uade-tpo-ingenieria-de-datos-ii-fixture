@@ -1,0 +1,3 @@
+# La API y su workflow conservan LF también con core.autocrlf=true.
+hito-10-api/** text=auto eol=lf
+.github/workflows/hito-10-api.yml text=auto eol=lf

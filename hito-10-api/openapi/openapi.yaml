@@ -2,8 +2,9 @@ openapi: 3.0.3
 info:
   title: Fixture 2030 API
   version: 0.1.0
-  description: Base del Hito 10. El estado HTTP no comprueba la conectividad de
-    las bases NoSQL.
+  description: API integrada del Fixture 2030. Los ejemplos son ilustrativos de
+    laboratorio; no contienen credenciales ni tokens de sesión utilizables. Las
+    escrituras dependen del estado actual del recurso.
 components:
   securitySchemes:
     bearerSession:
@@ -44,6 +45,10 @@ components:
         - id
         - username
         - role
+      example:
+        id: 550e8400-e29b-41d4-a716-446655440000
+        username: fixture-user
+        role: user
     ApiError:
       type: object
       properties:
@@ -79,6 +84,10 @@ components:
         - username
         - role
       additionalProperties: false
+      example:
+        id: 550e8400-e29b-41d4-a716-446655440000
+        username: fixture-user
+        role: user
 paths:
   /auth/login:
     post:
@@ -107,9 +116,16 @@ paths:
                 - username
                 - password
               additionalProperties: false
+              description: El password del ejemplo es un marcador, no una credencial
+                utilizable.
+            example:
+              username: fixture-user
+              password: <usar API_SEED_USER_PASSWORD del .env local>
+        description: El password del ejemplo es un marcador, no una credencial utilizable.
       responses:
         "200":
-          description: Default Response
+          description: Respuesta ilustrativa. El token de ejemplo no corresponde a una
+            sesión.
           content:
             application/json:
               schema:
@@ -134,6 +150,16 @@ paths:
                   - expiresIn
                   - user
                 additionalProperties: false
+                description: Respuesta ilustrativa. El token de ejemplo no corresponde a una
+                  sesión.
+              example:
+                accessToken: EJEMPLO_SIN_VALIDEZ________________________
+                tokenType: Bearer
+                expiresIn: 1800
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  username: fixture-user
+                  role: user
         "400":
           description: Default Response
           content:
@@ -208,6 +234,14 @@ paths:
                   - lastActivity
                   - ttlSeconds
                 additionalProperties: false
+              example:
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  username: fixture-user
+                  role: user
+                createdAt: 2030-06-13T20:00:00.000000Z
+                lastActivity: 2030-06-13T20:00:00.000000Z
+                ttlSeconds: 1770
         "400":
           description: Default Response
           content:
@@ -277,6 +311,7 @@ paths:
         - schema:
             type: string
             pattern: ^[A-Z]{3}$
+          example: ARG
           in: path
           name: codigo
           required: true
@@ -297,6 +332,7 @@ paths:
                   code:
                     type: string
                     pattern: ^[A-Z]{3}$
+                    example: ARG
                   name:
                     type: string
                   confederation:
@@ -318,6 +354,14 @@ paths:
                   - qualificationStage
                   - participates
                 additionalProperties: false
+              example:
+                id: 4fe7c544-b1ce-5020-afae-7429c4c02d50
+                code: ARG
+                name: Argentina
+                confederation: CONMEBOL
+                selectionOrigin: clasificado_2026
+                qualificationStage: Clasificación
+                participates: true
         "400":
           description: Default Response
           content:
@@ -384,6 +428,7 @@ paths:
         - schema:
             type: string
             pattern: ^[A-Z]{3}$
+          example: ARG
           in: path
           name: codigo
           required: true
@@ -413,6 +458,7 @@ paths:
                         teamCode:
                           type: string
                           pattern: ^[A-Z]{3}$
+                          example: ARG
                         firstName:
                           type: string
                         lastName:
@@ -452,6 +498,20 @@ paths:
                         - available
                         - synthetic
                       additionalProperties: false
+                      example:
+                        id: 123e4567-e89b-42d3-a456-426614174000
+                        teamId: 4fe7c544-b1ce-5020-afae-7429c4c02d50
+                        teamCode: ARG
+                        firstName: Ana
+                        lastName: Pérez
+                        birthDate: 2000-01-01T00:00:00.000Z
+                        position: Delantero
+                        number: 9
+                        heightCm: 170
+                        preferredFoot: Derecho
+                        selected: true
+                        available: true
+                        synthetic: true
                   total:
                     type: integer
                     minimum: -9007199254740991
@@ -470,6 +530,24 @@ paths:
                   - page
                   - limit
                 additionalProperties: false
+              example:
+                items:
+                  - id: 123e4567-e89b-42d3-a456-426614174000
+                    teamId: 4fe7c544-b1ce-5020-afae-7429c4c02d50
+                    teamCode: ARG
+                    firstName: Ana
+                    lastName: Pérez
+                    birthDate: 2000-01-01T00:00:00.000Z
+                    position: Delantero
+                    number: 9
+                    heightCm: 170
+                    preferredFoot: Derecho
+                    selected: true
+                    available: true
+                    synthetic: true
+                total: 24
+                page: 1
+                limit: 1
         "400":
           description: Default Response
           content:
@@ -521,6 +599,7 @@ paths:
         - schema:
             type: string
             pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-001
           in: path
           name: id
           required: true
@@ -537,6 +616,7 @@ paths:
                   id:
                     type: string
                     pattern: ^F2030-[A-Z0-9-]{1,40}$
+                    example: F2030-001
                   date:
                     type: string
                   time:
@@ -546,9 +626,11 @@ paths:
                   homeCode:
                     type: string
                     pattern: ^[A-Z]{3}$
+                    example: ARG
                   awayCode:
                     type: string
                     pattern: ^[A-Z]{3}$
+                    example: ARG
                   venue:
                     type: object
                     properties:
@@ -579,6 +661,7 @@ paths:
                       code:
                         type: string
                         pattern: ^[A-Z]{3}$
+                        example: ARG
                       name:
                         type: string
                       confederation:
@@ -600,6 +683,14 @@ paths:
                       - qualificationStage
                       - participates
                     additionalProperties: false
+                    example:
+                      id: 4fe7c544-b1ce-5020-afae-7429c4c02d50
+                      code: ARG
+                      name: Argentina
+                      confederation: CONMEBOL
+                      selectionOrigin: clasificado_2026
+                      qualificationStage: Clasificación
+                      participates: true
                   away:
                     type: object
                     properties:
@@ -610,6 +701,7 @@ paths:
                       code:
                         type: string
                         pattern: ^[A-Z]{3}$
+                        example: ARG
                       name:
                         type: string
                       confederation:
@@ -631,6 +723,14 @@ paths:
                       - qualificationStage
                       - participates
                     additionalProperties: false
+                    example:
+                      id: 4fe7c544-b1ce-5020-afae-7429c4c02d50
+                      code: ARG
+                      name: Argentina
+                      confederation: CONMEBOL
+                      selectionOrigin: clasificado_2026
+                      qualificationStage: Clasificación
+                      participates: true
                 required:
                   - id
                   - date
@@ -642,6 +742,35 @@ paths:
                   - home
                   - away
                 additionalProperties: false
+              example:
+                id: F2030-001
+                date: 2030-06-13
+                time: 16:00:00Z
+                phase: Grupos
+                homeCode: ARG
+                awayCode: BRA
+                venue:
+                  id: MAD-01
+                  name: Estadio de laboratorio
+                  city: Madrid
+                  country: España
+                  region: Europa
+                home:
+                  id: 4fe7c544-b1ce-5020-afae-7429c4c02d50
+                  code: ARG
+                  name: Argentina
+                  confederation: CONMEBOL
+                  selectionOrigin: clasificado_2026
+                  qualificationStage: Clasificación
+                  participates: true
+                away:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  code: BRA
+                  name: Brasil
+                  confederation: CONMEBOL
+                  selectionOrigin: clasificado_2026
+                  qualificationStage: Clasificación
+                  participates: true
         "400":
           description: Default Response
           content:
@@ -700,6 +829,7 @@ paths:
         - schema:
             type: string
             pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-001
           in: path
           name: id
           required: true
@@ -740,6 +870,7 @@ paths:
                             teamCode:
                               type: string
                               pattern: ^[A-Z]{3}$
+                              example: ARG
                           required:
                             - id
                             - firstName
@@ -761,6 +892,18 @@ paths:
                   - items
                   - limit
                 additionalProperties: false
+              example:
+                items:
+                  - id: EVT-001
+                    type: Gol
+                    minute: 18
+                    detail: Gol de laboratorio
+                    player:
+                      id: 123e4567-e89b-42d3-a456-426614174000
+                      firstName: Ana
+                      lastName: Pérez
+                      teamCode: ARG
+                limit: 20
         "400":
           description: Default Response
           content:
@@ -812,6 +955,7 @@ paths:
             type: string
             format: date-time
             pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z))$
+          example: 2030-06-13T20:01:00.000Z
           in: query
           name: minute
           required: true
@@ -828,12 +972,14 @@ paths:
             minLength: 1
             maxLength: 300
             pattern: ^[A-Za-z0-9_-]+$
+          example: eyJjcmVhdGVkQXQiOiIyMDMwLTA2LTEzVDIwOjAxOjE1LjAwMFoiLCJpZCI6IjEyM2U0NTY3LWU4OWItNDJkMy1hNDU2LTQyNjYxNDE3NDAwMCJ9
           in: query
           name: cursor
           required: false
         - schema:
             type: string
             pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-001
           in: path
           name: id
           required: true
@@ -855,6 +1001,7 @@ paths:
                         matchId:
                           type: string
                           pattern: ^F2030-[A-Z0-9-]{1,40}$
+                          example: F2030-001
                         createdAt:
                           type: string
                           format: date-time
@@ -890,6 +1037,16 @@ paths:
                         - likes
                         - replies
                       additionalProperties: false
+                      example:
+                        matchId: F2030-001
+                        createdAt: 2030-06-13T20:01:15.000Z
+                        id: 123e4567-e89b-42d3-a456-426614174000
+                        userId: 550e8400-e29b-41d4-a716-446655440000
+                        username: fixture-user
+                        content: Buen partido del Fixture 2030.
+                        state: visible
+                        likes: 0
+                        replies: 0
                   nextCursor:
                     nullable: true
                     type: string
@@ -897,6 +1054,18 @@ paths:
                   - items
                   - nextCursor
                 additionalProperties: false
+              example:
+                items:
+                  - matchId: F2030-001
+                    createdAt: 2030-06-13T20:01:15.000Z
+                    id: 123e4567-e89b-42d3-a456-426614174000
+                    userId: 550e8400-e29b-41d4-a716-446655440000
+                    username: fixture-user
+                    content: Buen partido del Fixture 2030.
+                    state: visible
+                    likes: 0
+                    replies: 0
+                nextCursor: null
         "400":
           description: Default Response
           content:
@@ -966,10 +1135,15 @@ paths:
                 - createdAt
                 - content
               additionalProperties: false
+            example:
+              commentId: 123e4567-e89b-42d3-a456-426614174000
+              createdAt: 2030-06-13T20:01:15.000Z
+              content: Buen partido del Fixture 2030.
       parameters:
         - schema:
             type: string
             pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-001
           in: path
           name: id
           required: true
@@ -996,6 +1170,7 @@ paths:
                   matchId:
                     type: string
                     pattern: ^F2030-[A-Z0-9-]{1,40}$
+                    example: F2030-001
                   user:
                     type: object
                     properties:
@@ -1021,6 +1196,15 @@ paths:
                   - user
                   - state
                 additionalProperties: false
+              example:
+                commentId: 123e4567-e89b-42d3-a456-426614174000
+                createdAt: 2030-06-13T20:01:15.000Z
+                content: Buen partido del Fixture 2030.
+                matchId: F2030-001
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  username: fixture-user
+                state: visible
         "400":
           description: Default Response
           content:
@@ -1072,6 +1256,7 @@ paths:
             type: string
             format: date-time
             pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z))$
+          example: 2030-06-13T20:00:00.000Z
           in: query
           name: start
           required: true
@@ -1079,12 +1264,14 @@ paths:
             type: string
             format: date-time
             pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z))$
+          example: 2030-06-13T20:01:00.000Z
           in: query
           name: end
           required: true
         - schema:
             type: string
             pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-001
           in: path
           name: id
           required: true
@@ -1092,7 +1279,8 @@ paths:
         - bearerSession: []
       responses:
         "200":
-          description: Default Response
+          description: El intervalo puede ser válido y no tener puntos; en ese caso teams
+            está vacío. Los valores agregados de ejemplo son ilustrativos.
           content:
             application/json:
               schema:
@@ -1101,6 +1289,7 @@ paths:
                   matchId:
                     type: string
                     pattern: ^F2030-[A-Z0-9-]{1,40}$
+                    example: F2030-001
                   start:
                     type: string
                     format: date-time
@@ -1120,6 +1309,26 @@ paths:
                   - end
                   - teams
                 additionalProperties: false
+                description: El intervalo puede ser válido y no tener puntos; en ese caso teams
+                  está vacío. Los valores agregados de ejemplo son ilustrativos.
+              examples:
+                example1:
+                  value:
+                    matchId: F2030-001
+                    start: 2030-06-13T20:00:00.000Z
+                    end: 2030-06-13T20:01:00.000Z
+                    teams: []
+                example2:
+                  value:
+                    matchId: F2030-001
+                    start: 2030-06-13T20:00:00.000Z
+                    end: 2030-06-13T20:01:00.000Z
+                    teams:
+                      - equipo_id: 4fe7c544-b1ce-5020-afae-7429c4c02d50
+                        muestras: 6
+                        posesion_promedio: 52.5
+                        tiros_maximos: 3
+                        pases_intervalo: 120
         "400":
           description: Default Response
           content:
@@ -1170,6 +1379,7 @@ paths:
         - schema:
             type: string
             pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-IRIS-0011
           in: path
           name: codigo
           required: true
@@ -1186,14 +1396,17 @@ paths:
                   code:
                     type: string
                     pattern: ^F2030-[A-Z0-9-]{1,40}$
+                    example: F2030-IRIS-0011
                   dateTime:
                     type: string
                   homeCode:
                     type: string
                     pattern: ^[A-Z]{3}$
+                    example: ARG
                   awayCode:
                     type: string
                     pattern: ^[A-Z]{3}$
+                    example: ARG
                   state:
                     type: string
                   referee:
@@ -1230,6 +1443,7 @@ paths:
                       teamCode:
                         type: string
                         pattern: ^[A-Z]{3}$
+                        example: ARG
                     required:
                       - code
                       - name
@@ -1251,6 +1465,7 @@ paths:
                       teamCode:
                         type: string
                         pattern: ^[A-Z]{3}$
+                        example: ARG
                     required:
                       - code
                       - name
@@ -1290,6 +1505,31 @@ paths:
                   - awayCoach
                   - events
                 additionalProperties: false
+              example:
+                code: F2030-IRIS-0011
+                dateTime: 2030-06-13 16:00:00
+                homeCode: ARG
+                awayCode: BRA
+                state: EnJuego
+                referee:
+                  code: ARB-EJEMPLO
+                  name: Árbitro de laboratorio
+                  nationality: Uruguay
+                  license: LIC-A-EJEMPLO
+                  category: Internacional
+                homeCoach:
+                  code: TEC-ARG-EJEMPLO
+                  name: Técnico local
+                  nationality: Argentina
+                  license: LIC-L-EJEMPLO
+                  teamCode: ARG
+                awayCoach:
+                  code: TEC-BRA-EJEMPLO
+                  name: Técnico visitante
+                  nationality: Brasil
+                  license: LIC-V-EJEMPLO
+                  teamCode: BRA
+                events: []
         "400":
           description: Default Response
           content:
@@ -1351,10 +1591,13 @@ paths:
               required:
                 - state
               additionalProperties: false
+            example:
+              state: EnJuego
       parameters:
         - schema:
             type: string
             pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-IRIS-0011
           in: path
           name: codigo
           required: true
@@ -1371,14 +1614,17 @@ paths:
                   code:
                     type: string
                     pattern: ^F2030-[A-Z0-9-]{1,40}$
+                    example: F2030-IRIS-0011
                   dateTime:
                     type: string
                   homeCode:
                     type: string
                     pattern: ^[A-Z]{3}$
+                    example: ARG
                   awayCode:
                     type: string
                     pattern: ^[A-Z]{3}$
+                    example: ARG
                   state:
                     type: string
                   referee:
@@ -1415,6 +1661,7 @@ paths:
                       teamCode:
                         type: string
                         pattern: ^[A-Z]{3}$
+                        example: ARG
                     required:
                       - code
                       - name
@@ -1436,6 +1683,7 @@ paths:
                       teamCode:
                         type: string
                         pattern: ^[A-Z]{3}$
+                        example: ARG
                     required:
                       - code
                       - name
@@ -1475,6 +1723,31 @@ paths:
                   - awayCoach
                   - events
                 additionalProperties: false
+              example:
+                code: F2030-IRIS-0011
+                dateTime: 2030-06-13 16:00:00
+                homeCode: ARG
+                awayCode: BRA
+                state: EnJuego
+                referee:
+                  code: ARB-EJEMPLO
+                  name: Árbitro de laboratorio
+                  nationality: Uruguay
+                  license: LIC-A-EJEMPLO
+                  category: Internacional
+                homeCoach:
+                  code: TEC-ARG-EJEMPLO
+                  name: Técnico local
+                  nationality: Argentina
+                  license: LIC-L-EJEMPLO
+                  teamCode: ARG
+                awayCoach:
+                  code: TEC-BRA-EJEMPLO
+                  name: Técnico visitante
+                  nationality: Brasil
+                  license: LIC-V-EJEMPLO
+                  teamCode: BRA
+                events: []
         "400":
           description: Default Response
           content:
@@ -1551,10 +1824,16 @@ paths:
                 - type
                 - minute
               additionalProperties: false
+            example:
+              code: EVT-H10-EJEMPLO
+              type: Gol
+              minute: 10
+              detail: Gol de laboratorio
       parameters:
         - schema:
             type: string
             pattern: ^F2030-[A-Z0-9-]{1,40}$
+          example: F2030-IRIS-0011
           in: path
           name: codigo
           required: true
@@ -1571,14 +1850,17 @@ paths:
                   code:
                     type: string
                     pattern: ^F2030-[A-Z0-9-]{1,40}$
+                    example: F2030-IRIS-0011
                   dateTime:
                     type: string
                   homeCode:
                     type: string
                     pattern: ^[A-Z]{3}$
+                    example: ARG
                   awayCode:
                     type: string
                     pattern: ^[A-Z]{3}$
+                    example: ARG
                   state:
                     type: string
                   referee:
@@ -1615,6 +1897,7 @@ paths:
                       teamCode:
                         type: string
                         pattern: ^[A-Z]{3}$
+                        example: ARG
                     required:
                       - code
                       - name
@@ -1636,6 +1919,7 @@ paths:
                       teamCode:
                         type: string
                         pattern: ^[A-Z]{3}$
+                        example: ARG
                     required:
                       - code
                       - name
@@ -1675,6 +1959,35 @@ paths:
                   - awayCoach
                   - events
                 additionalProperties: false
+              example:
+                code: F2030-IRIS-0011
+                dateTime: 2030-06-13 16:00:00
+                homeCode: ARG
+                awayCode: BRA
+                state: EnJuego
+                referee:
+                  code: ARB-EJEMPLO
+                  name: Árbitro de laboratorio
+                  nationality: Uruguay
+                  license: LIC-A-EJEMPLO
+                  category: Internacional
+                homeCoach:
+                  code: TEC-ARG-EJEMPLO
+                  name: Técnico local
+                  nationality: Argentina
+                  license: LIC-L-EJEMPLO
+                  teamCode: ARG
+                awayCoach:
+                  code: TEC-BRA-EJEMPLO
+                  name: Técnico visitante
+                  nationality: Brasil
+                  license: LIC-V-EJEMPLO
+                  teamCode: BRA
+                events:
+                  - code: EVT-H10-EJEMPLO
+                    type: Gol
+                    minute: 10
+                    detail: Gol de laboratorio
         "400":
           description: Default Response
           content:
@@ -1744,6 +2057,9 @@ paths:
                   - status
                   - service
                 additionalProperties: false
+              example:
+                status: ok
+                service: fixture2030-api
         "400":
           description: Default Response
           content:

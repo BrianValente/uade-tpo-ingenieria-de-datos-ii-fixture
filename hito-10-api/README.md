@@ -55,6 +55,17 @@ escrituras reales, competencia por claves y pruebas de permisos y repetición.
 - Node.js 24 LTS, indicado en `.nvmrc`. También admitimos Node.js 26 para trabajo local.
 - pnpm 10.34.7, indicado en `packageManager`.
 
+Los comandos `nvm install` y `nvm use` del ejemplo corresponden a nvm de macOS/Linux.
+En Windows se puede instalar Node.js 24 directamente o usar `nvm install 24` y
+`nvm use 24` de nvm-windows; después se ejecutan los mismos scripts de pnpm.
+
+En un clon nuevo, **primero preparar el `.env` de Compose en la raíz** a partir
+del `.env.example` raíz y configurar sus credenciales según el README general.
+No sobrescribir un `.env` existente ni cambiar credenciales de volúmenes ya
+inicializados. Después iniciar y cargar los motores con los procedimientos de
+sus hitos. `pnpm env:local` no crea el `.env` raíz ni inventa sus contraseñas:
+si falta, termina con una indicación explícita y no crea archivos.
+
 Ejecutar desde la raíz del repositorio:
 
 ```bash
@@ -73,6 +84,15 @@ según [la guía de autenticación](docs/autenticacion.md).
 `pnpm env:local` copia la conexión del entorno raíz y genera contraseñas de seed
 aleatorias. Conserva cualquier `.env` existente sin modificarlo. El `.env.example`
 también documenta los valores que pueden configurarse manualmente.
+
+La API y el workflow usan LF mediante `.gitattributes`, incluso con
+`core.autocrlf=true` en Windows. Prettier también declara `endOfLine: lf`.
+Si un clon anterior conserva CRLF, `pnpm format:write` normaliza los archivos
+de la API. El chequeo del contrato compara el contenido con CRLF normalizado,
+sin ignorar cambios de rutas, esquemas u otros espacios.
+Las comprobaciones de checkout, CRLF y setup están registradas en
+[portabilidad](docs/evidencia/portabilidad.md), con su límite de no haber usado
+Windows nativo.
 
 ## Iniciar y detener
 
@@ -197,6 +217,25 @@ pnpm openapi:check
 
 El YAML generado queda en `openapi/openapi.yaml`. Prettier lo excluye porque lo
 formatea el generador; CI comprueba su contenido exacto contra el servidor.
+
+Los ejemplos de parámetros, cuerpos y respuestas se declaran mediante metadatos
+Zod y aparecen en Swagger UI. Son ilustrativos: el password y token de ejemplo
+no sirven para autenticarse. Para ejecutar una escritura IRIS se necesita además
+un objeto en un estado compatible con la operación.
+
+## Rendimiento básico
+
+Con la API iniciada mediante `pnpm dev:lab`, ejecutar en otra terminal:
+
+```bash
+pnpm --silent measure:latency
+```
+
+El script hace lecturas HTTP secuenciales y registra media, p95, muestras, volumen
+y entorno sin imprimir credenciales. La [corrida de referencia](docs/evidencia/rendimiento-basico.md)
+incluye las [muestras y resultados JSON](docs/evidencia/latencia-local.json).
+Es una medición local pequeña con calentamiento; no demuestra capacidad bajo carga.
+Los códigos de los datos y parámetros configurables están documentados en esa evidencia.
 
 El workflow `Hito 10 - Calidad de la API` corre en PRs que cambien esta carpeta,
 el propio workflow o `.gitignore`; también corre en `main` y permite ejecución

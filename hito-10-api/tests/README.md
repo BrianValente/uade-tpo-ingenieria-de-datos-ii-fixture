@@ -72,3 +72,16 @@ de una demostración anterior.
 El servidor debe terminar la transacción por timeout. No se modifican nodos ni
 relaciones. Esta prueba, las escrituras y las lecturas forman parte de la suite
 completa de integración, separada de las pruebas unitarias de CI.
+
+## Ejemplos y medición
+
+Las pruebas de documentación validan los ejemplos de autenticación contra Zod y
+envían los ejemplos publicados de POST/PATCH a los controladores con dependencias
+simuladas. Esto comprueba su formato y permisos sin presentarlos como escrituras
+reales. Los ejemplos contienen marcadores, no credenciales de laboratorio.
+
+`latency-summary.test.ts` comprueba media y p95 _nearest rank_ con veinte valores
+conocidos, sin alterar las muestras. Esa prueba es del cálculo, no una medición de
+la API. `pnpm --silent measure:latency` realiza la medición por HTTP con los motores
+reales; el procedimiento y resultados están en
+[rendimiento básico](../docs/evidencia/rendimiento-basico.md).

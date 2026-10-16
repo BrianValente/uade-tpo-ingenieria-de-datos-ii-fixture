@@ -11,7 +11,7 @@ try {
   const destination = new URL('../openapi/openapi.yaml', import.meta.url)
   if (process.argv.includes('--check')) {
     const current = await readFile(destination, 'utf8')
-    if (current !== yaml) {
+    if (current.replace(/\r\n/g, '\n') !== yaml.replace(/\r\n/g, '\n')) {
       throw new Error('OpenAPI desactualizado. Ejecutar pnpm openapi:export.')
     }
   } else {

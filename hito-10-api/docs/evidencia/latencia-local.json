@@ -1,0 +1,173 @@
+{
+  "measuredAt": "2026-10-16T18:42:06.144Z",
+  "baseUrl": "http://127.0.0.1:8000",
+  "environment": {
+    "clientNode": "v24.22.0",
+    "platform": "darwin",
+    "release": "27.0.0",
+    "arch": "arm64",
+    "cpuModel": "Apple M3 Pro",
+    "logicalCpus": 11,
+    "memoryGiB": 18
+  },
+  "method": {
+    "tool": "Node.js fetch + performance.now",
+    "concurrency": 1,
+    "measuredPerProfile": 20,
+    "warmupPerProfile": 3,
+    "requestTimeoutMs": 10000,
+    "duration": "Desde antes de fetch hasta leer y parsear el JSON completo.",
+    "p95": "Nearest rank: ordenar y elegir ceil(0.95 * N), con posiciones desde 1.",
+    "measuredRequests": 160,
+    "warmupRequests": 24,
+    "controlRequests": 2,
+    "httpRequests": 186
+  },
+  "results": [
+    {
+      "source": "Redis",
+      "method": "GET",
+      "path": "/auth/session",
+      "status": 200,
+      "count": 20,
+      "minMs": 0.748,
+      "meanMs": 1.237,
+      "p95Ms": 2.141,
+      "maxMs": 2.717,
+      "responseBytes": { "min": 201, "max": 201 },
+      "responseVolumes": [{ "rows": 1 }],
+      "samplesMs": [
+        2.138, 2.717, 1.307, 1.657, 2.141, 1.713, 1.164, 0.999, 0.924, 0.861,
+        1.021, 0.802, 0.769, 1.202, 1.083, 0.827, 0.968, 0.852, 0.748, 0.852
+      ]
+    },
+    {
+      "source": "MongoDB",
+      "method": "GET",
+      "path": "/equipos/ARG",
+      "status": 200,
+      "count": 20,
+      "minMs": 1.926,
+      "meanMs": 2.987,
+      "p95Ms": 3.766,
+      "maxMs": 10.762,
+      "responseBytes": { "min": 222, "max": 222 },
+      "responseVolumes": [{ "rows": 1 }],
+      "samplesMs": [
+        2.505, 1.926, 2.287, 2.298, 2.528, 2.652, 10.762, 3.336, 2.799, 3.231,
+        2.119, 2.712, 2.432, 2.493, 2.304, 2.527, 1.945, 2.782, 2.339, 3.766
+      ]
+    },
+    {
+      "source": "MongoDB",
+      "method": "GET",
+      "path": "/equipos/ARG/jugadores?page=1&limit=5",
+      "status": 200,
+      "count": 20,
+      "minMs": 2.035,
+      "meanMs": 3.283,
+      "p95Ms": 4.329,
+      "maxMs": 4.625,
+      "responseBytes": { "min": 1665, "max": 1665 },
+      "responseVolumes": [{ "rows": 5, "totalPlayers": 24 }],
+      "samplesMs": [
+        3.608, 2.9, 3.232, 3.137, 4.329, 3.713, 3.291, 3.271, 3.814, 3.895,
+        3.059, 3.384, 3.465, 4.264, 4.625, 2.118, 2.949, 2.382, 2.195, 2.035
+      ]
+    },
+    {
+      "source": "Neo4j + MongoDB",
+      "method": "GET",
+      "path": "/partidos/F2030-001",
+      "status": 200,
+      "count": 20,
+      "minMs": 5.689,
+      "meanMs": 7.208,
+      "p95Ms": 9.048,
+      "maxMs": 11.388,
+      "responseBytes": { "min": 697, "max": 697 },
+      "responseVolumes": [{ "rows": 1, "teamDocuments": 2 }],
+      "samplesMs": [
+        7.316, 9.048, 9.016, 7.194, 6.242, 6.809, 7.641, 6.92, 6.436, 5.958,
+        11.388, 6.725, 6.761, 7.472, 6.278, 5.689, 8.124, 7.11, 5.89, 6.153
+      ]
+    },
+    {
+      "source": "Neo4j",
+      "method": "GET",
+      "path": "/partidos/F2030-001/eventos?limit=5",
+      "status": 200,
+      "count": 20,
+      "minMs": 4.011,
+      "meanMs": 6.157,
+      "p95Ms": 9.937,
+      "maxMs": 14.81,
+      "responseBytes": { "min": 446, "max": 446 },
+      "responseVolumes": [{ "rows": 2 }],
+      "samplesMs": [
+        14.81, 7.442, 6.568, 4.714, 6.699, 9.937, 5.495, 5.297, 4.576, 4.078,
+        4.011, 5.452, 6.46, 6.253, 5.538, 5.517, 4.289, 4.529, 5.583, 5.892
+      ]
+    },
+    {
+      "source": "Cassandra",
+      "method": "GET",
+      "path": "/partidos/F2030-DEMO/comentarios?minute=2030-06-13T20:01:00.000Z&limit=2",
+      "status": 200,
+      "count": 20,
+      "minMs": 1.832,
+      "meanMs": 3.422,
+      "p95Ms": 5.916,
+      "maxMs": 6.228,
+      "responseBytes": { "min": 636, "max": 636 },
+      "responseVolumes": [{ "rows": 2 }],
+      "samplesMs": [
+        2.789, 2.714, 3.59, 3.975, 3.862, 2.567, 3.045, 3.281, 2.598, 3.278,
+        2.771, 6.228, 5.916, 4.932, 3.826, 2.939, 1.832, 2.172, 3.138, 2.986
+      ]
+    },
+    {
+      "source": "InfluxDB",
+      "method": "GET",
+      "path": "/partidos/F2030-001/estadisticas?start=2030-06-13T20:00:00.000Z&end=2030-06-13T20:01:00.000Z",
+      "status": 200,
+      "count": 20,
+      "minMs": 2.82,
+      "meanMs": 3.716,
+      "p95Ms": 5.575,
+      "maxMs": 5.629,
+      "responseBytes": { "min": 102, "max": 102 },
+      "responseVolumes": [{ "rows": 0 }],
+      "samplesMs": [
+        5.575, 4.536, 4.211, 4.335, 5.629, 3.569, 3.599, 3.843, 3.331, 3.227,
+        2.82, 2.918, 3.661, 3.606, 4.135, 3.243, 3.03, 2.86, 3.09, 3.095
+      ]
+    },
+    {
+      "source": "IRIS",
+      "method": "GET",
+      "path": "/partidos/F2030-IRIS-0011/detalle",
+      "status": 200,
+      "count": 20,
+      "minMs": 16.909,
+      "meanMs": 18.374,
+      "p95Ms": 20.219,
+      "maxMs": 20.383,
+      "responseBytes": { "min": 724, "max": 724 },
+      "responseVolumes": [{ "rows": 1, "events": 2, "state": "Finalizado" }],
+      "samplesMs": [
+        18.687, 18.005, 17.712, 17.591, 20.383, 19.668, 19.478, 18.025, 18.493,
+        17.706, 17.613, 17.266, 17.963, 18.55, 16.909, 18.031, 20.219, 19.198,
+        18.684, 17.293
+      ]
+    }
+  ],
+  "limitations": [
+    "Referencia local secuencial con conexiones reutilizadas y calentamiento; no es una prueba de carga.",
+    "Notebook y contenedores compartidos con otros procesos; no se aisló CPU ni memoria.",
+    "20 muestras por perfil en la configuración predeterminada: p95 sensible a valores individuales.",
+    "El perfil InfluxDB puede medir una respuesta vacía válida; consultar responseVolumes.",
+    "No cuenta el tamaño global de las bases ni demuestra objetivos de producción o concurrencia distribuida.",
+    "Login y logout son controles fuera de las estadísticas de los perfiles de lectura."
+  ]
+}

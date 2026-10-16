@@ -14,7 +14,7 @@ export async function registerOpenApi(app: FastifyInstance) {
         title: 'Fixture 2030 API',
         version: '0.1.0',
         description:
-          'Base del Hito 10. El estado HTTP no comprueba la conectividad de las bases NoSQL.',
+          'API integrada del Fixture 2030. Los ejemplos son ilustrativos de laboratorio; no contienen credenciales ni tokens de sesión utilizables. Las escrituras dependen del estado actual del recurso.',
       },
       servers: [
         { url: '/', description: 'Servidor que publica esta documentación' },
