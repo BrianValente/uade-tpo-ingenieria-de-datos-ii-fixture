@@ -31,6 +31,10 @@ export interface SeedRepository {
 export interface SessionRepository {
   create(digest: string, user: User, context: OperationContext): Promise<void>
   read(digest: string, context: OperationContext): Promise<Session | null>
+  readAndRenew(
+    digest: string,
+    context: OperationContext,
+  ): Promise<Session | null>
   remove(digest: string, context: OperationContext): Promise<void>
 }
 

@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { parseEnv } from 'node:util'
 
 import { readAuthEnvironment, readSeedPasswords } from './auth-environment.js'
+import { readDataEnvironment } from './data-environment.js'
 import { readEnvironment } from './environment.js'
 
 export function createLocalEnvironment(
@@ -17,6 +18,12 @@ export function createLocalEnvironment(
     'MONGO_DATABASE',
     'MONGO_PORT',
     'REDIS_PORT',
+    'NEO4J_BOLT_PORT',
+    'NEO4J_PASSWORD',
+    'CASSANDRA_PORT',
+    'IRIS_PORT',
+    'IRIS_USERNAME',
+    'IRIS_PASSWORD',
   ]) {
     if (source[key] !== undefined) values[key] = source[key]
   }
@@ -24,6 +31,7 @@ export function createLocalEnvironment(
   values.API_SEED_USER_PASSWORD = randomBytes(32).toString('base64url')
   readEnvironment(values)
   readAuthEnvironment(values)
+  readDataEnvironment(values)
   readSeedPasswords(values)
   const content =
     Object.entries(values)

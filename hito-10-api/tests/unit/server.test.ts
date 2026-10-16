@@ -27,7 +27,16 @@ describe('Contrato HTTP de la base', () => {
     expect(Object.keys(specification.paths).sort()).toEqual([
       '/auth/login',
       '/auth/session',
+      '/equipos/{codigo}',
+      '/equipos/{codigo}/jugadores',
       '/health',
+      '/partidos/{codigo}/detalle',
+      '/partidos/{codigo}/estado',
+      '/partidos/{codigo}/eventos',
+      '/partidos/{id}',
+      '/partidos/{id}/comentarios',
+      '/partidos/{id}/estadisticas',
+      '/partidos/{id}/eventos',
     ])
     expect(specification.paths['/health'].get.responses).toHaveProperty('200')
     expect(health.statusCode).toBe(200)

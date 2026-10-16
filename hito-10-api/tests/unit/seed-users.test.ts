@@ -41,6 +41,7 @@ describe('Seed y Argon2id', () => {
       {
         create: vi.fn(),
         read: vi.fn(),
+        readAndRenew: vi.fn(),
         remove: vi.fn(),
       },
       new Argon2PasswordHasher(),

@@ -14,6 +14,11 @@ import {
   type AuthModule,
 } from '../modules/auth/auth.module.js'
 import { registerAuthRoutes } from '../modules/auth/presentation/auth.routes.js'
+import {
+  createDataModule,
+  type DataModule,
+} from '../modules/data/data.module.js'
+import { registerDataRoutes } from '../modules/data/presentation/data.routes.js'
 import { registerErrorHandler } from './errors/error-handler.js'
 import { registerOpenApi } from './plugins/openapi.js'
 import { errorSchema } from './schemas.js'
@@ -22,6 +27,7 @@ export async function buildServer(
   config: Environment,
   logStream?: Writable,
   auth: AuthModule = createAuthModule(),
+  data: DataModule = createDataModule(),
 ) {
   const app = Fastify({
     logger: {
@@ -55,8 +61,11 @@ export async function buildServer(
   })
 
   await registerOpenApi(app)
-  app.addHook('onClose', async () => auth.close())
+  app.addHook('onClose', async () => {
+    await Promise.all([auth.close(), data.close()])
+  })
   await registerAuthRoutes(app, auth.service)
+  await registerDataRoutes(app, data.service, auth.service)
   app.get(
     '/health',
     {

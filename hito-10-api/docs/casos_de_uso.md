@@ -1,10 +1,8 @@
 # Casos de uso acordados y continuidad
 
-Esta tabla registra el alcance conversado con Brian. Las tres operaciones de
-autenticación están implementadas con adaptadores MongoDB y Redis y pruebas
-unitarias. La integración con las dos bases reales se ejecutó y tiene
-[evidencia](evidencia/integracion-autenticacion.md). Las otras rutas son propuestas pendientes de implementación;
-no se incluyen en OpenAPI hasta que existan en el servidor.
+Esta tabla registra el alcance conversado con Brian. Las operaciones están
+implementadas y aparecen en OpenAPI. Las pruebas unitarias usan adaptadores
+simulados. La evidencia real existente de autenticación cubre MongoDB y Redis.
 
 | Caso                         | Consumidor               | Operación propuesta              | Fuente y datos existentes                                                 |
 | ---------------------------- | ------------------------ | -------------------------------- | ------------------------------------------------------------------------- |
@@ -35,31 +33,28 @@ no se incluyen en OpenAPI hasta que existan en el servidor.
 - Generar OpenAPI desde las rutas y esquemas, con el backend de baloncesto como
   referencia de organización.
 
-## Trabajo de diseño con el equipo
-
-Antes de implementar cada caso, completar sus entradas, respuesta de éxito,
-ausencia, falla de dependencia y criterio de aceptación conforme a §5.1 del hito.
+## Contratos implementados
 
 1. **Cuentas:** implementadas en `usuarios_api` con UUID, índice único de username,
    rol y hash Argon2id. La seed usa `$setOnInsert` y conserva cuentas existentes.
    La ejecución real de seed y login está registrada en la evidencia.
 2. **Sesiones:** implementadas como hashes bajo `fixture2030:h10:<alcance>`, con
-   token Bearer opaco, digest en Redis y TTL de 1800 s. Lectura atómica sin renovación
-   y logout repetible. Falta la renovación por actividad y aplicar permisos a las
-   futuras escrituras de negocio.
-3. **Comentarios:** mantener la partición
-   `(partido_id, bucket_minuto, grupo)`. Definir unión y paginación de los 16 grupos,
-   clave idempotente, escrituras en dos tablas y recuperación de fallas parciales.
+   token Bearer opaco, digest en Redis y TTL de 1800 s. `GET /auth/session` no
+   renueva. Las rutas de negocio renuevan actividad y TTL solo si la clave sigue vigente.
+3. **Comentarios:** conservan la partición `(partido_id, bucket_minuto, grupo)`.
+   La API consulta los 16 grupos, une por fecha e ID y entrega un cursor opaco.
+   `comentarioId` y `creadoEn` forman claves repetibles. Si falla la segunda vista,
+   el consumidor repite la misma solicitud para completar ambas mediante upsert.
 4. **Estadísticas:** preservar intervalo semiabierto, unidades, timestamps UTC y
    significado de `posesion_pct`, `tiros_acumulados` y `pases_intervalo`. Las fechas
    de laboratorio se desplazan al presente para respetar la retención.
-5. **IRIS:** definir acceso desde Node.js, preservar IDs y relaciones, ejecutar las
-   escrituras mediante métodos de objetos y comprobar `%Status`. Las proyecciones
-   SQL existentes rechazan escrituras directas.
+5. **IRIS:** el SDK nativo abre `Fixture.Partido`, navega relaciones y ejecuta
+   `CambiarEstado()`, `RegistrarEvento()` y `%Save()`. Cada `%Status` se comprueba.
+   Las proyecciones SQL no reciben escrituras.
 6. **Cada adaptador:** configuración sin secretos, límites, conexión, consultas
    parametrizadas, traducción de errores, logs de dependencia y cierre de recursos.
-7. **Cada caso:** pruebas reales de éxito, ausencia, validación, falla de fuente y
-   límites; repetición cuando haya escritura. Registrar entorno y resultado.
+7. **Cada caso:** las pruebas unitarias cubren éxito, ausencia, validación, falla
+   simulada, límites, repetición y permisos. No sustituyen una ejecución real.
 
 ## Fuentes locales
 

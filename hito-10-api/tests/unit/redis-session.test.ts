@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { readAuthEnvironment } from '../../src/config/auth-environment.js'
 import {
   CREATE_SESSION,
+  READ_AND_RENEW_SESSION,
   READ_SESSION,
   RedisSessionRepository,
 } from '../../src/modules/auth/infrastructure/redis-session.repository.js'
@@ -92,6 +93,34 @@ describe('Adaptador de sesiones con cliente Redis simulado', () => {
     await expect(repository.read('digest', context)).rejects.toMatchObject({
       code: 'DEPENDENCY_UNAVAILABLE',
     })
+  })
+
+  it('renueva actividad solo si la sesión todavía existe', async () => {
+    const id = randomUUID()
+    mock.eval.mockResolvedValueOnce([
+      [
+        'usuario_id',
+        id,
+        'username',
+        'fixture-user',
+        'rol',
+        'user',
+        'creada_en',
+        '0.123456',
+        'ultima_actividad',
+        '2.000001',
+      ],
+      1800000,
+    ])
+    const session = await repository.readAndRenew('digest', context)
+    expect(session?.lastActivity).toBe('1970-01-01T00:00:02.000001Z')
+    expect(session?.ttlSeconds).toBe(1800)
+    expect(mock.eval).toHaveBeenCalledWith(READ_AND_RENEW_SESSION, {
+      keys: ['fixture2030:h10:api:sesion:digest'],
+      arguments: ['1800'],
+    })
+    mock.eval.mockResolvedValueOnce(null)
+    expect(await repository.readAndRenew('expired', context)).toBeNull()
   })
 
   it('corta una operación sin respuesta y no reintenta la escritura', async () => {

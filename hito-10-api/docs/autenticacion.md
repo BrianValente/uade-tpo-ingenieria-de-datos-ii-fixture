@@ -99,11 +99,12 @@ UTC. No consulta ni modifica sesiones sintéticas bajo `fixture2030:h7:*`.
 ## Repetición, expiración y fallas
 
 - Cada login crea otra sesión para otro acceso o dispositivo.
-- La consulta no renueva el TTL. En esta etapa, el vencimiento se cuenta desde
-  el login. La renovación por actividad autenticada queda pendiente junto con
-  los casos de uso protegidos.
-- Los roles se guardan en la sesión, pero todavía no hay rutas de escritura de
-  negocio sobre las que aplicar permisos.
+- `GET /auth/session` no renueva el TTL. Cada ruta de negocio autenticada actualiza
+  `ultima_actividad` y restablece 1800 segundos antes de consultar su motor.
+- El script Lua comprueba primero un TTL positivo. Una clave ausente o expirada
+  devuelve `401`; `HSET` y `EXPIRE` no se ejecutan y la sesión no se recrea.
+- Publicar comentarios requiere cualquier sesión vigente. Cambiar estado o registrar
+  eventos en IRIS requiere el rol `admin`; un usuario común recibe `403`.
 - Logout es idempotente y solo borra la sesión actual. No invalida otros dispositivos.
 - Un `503` durante logout no confirma el cierre. El consumidor puede repetirlo.
 - Ante timeout de creación, no se entrega token ni se reintenta automáticamente.

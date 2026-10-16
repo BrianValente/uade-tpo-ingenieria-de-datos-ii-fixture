@@ -1,9 +1,8 @@
-# Hito 10 — Base de la API del Fixture 2030
+# Hito 10 — API integrada del Fixture 2030
 
-Esta etapa prepara el servidor HTTP y adapta el login del equipo al Hito 10. Es una base de trabajo
-para desarrollar y revisar con el equipo. **No constituye la entrega completa del
-hito.** La guía de la materia permite usar IA para aprender y revisar trabajo,
-pero prohíbe generar una solución completa para entregar.
+Esta etapa integra los modelos ejecutables de MongoDB, Redis, Neo4j, Cassandra,
+InfluxDB 3 Core e InterSystems IRIS. La guía de la materia permite usar IA para
+aprender y revisar trabajo, pero prohíbe generar una solución completa para entregar.
 
 ## Decisiones del equipo
 
@@ -21,7 +20,7 @@ sesiones Redis, lecturas de los seis motores, escrituras de comentarios y objeto
 y una ficha de partido que combina Neo4j con MongoDB. Consultar
 [los casos de uso y su estado](docs/casos_de_uso.md).
 
-## Implementado en esta etapa
+## Implementado
 
 - Servidor Fastify con TypeScript y validación Zod.
 - `GET /health`: estado del proceso HTTP, sin consultas a bases.
@@ -34,12 +33,20 @@ y una ficha de partido que combina Neo4j con MongoDB. Consultar
 - Login con cuentas MongoDB y verificación Argon2id, basado en el flujo de baloncesto.
 - Seed repetible de dos cuentas con roles `user` y `admin`.
 - Sesiones Redis con token opaco, consulta y cierre de sesión.
+- Renovación de sesiones por actividad en rutas de negocio.
+- Consultas de equipos y jugadores en MongoDB.
+- Ficha de partido compuesta con Neo4j y MongoDB, sin respuesta parcial.
+- Eventos de partido consultados con Cypher parametrizado.
+- Lectura y escritura repetible de comentarios en las dos vistas Cassandra.
+- Resúmenes acotados de estadísticas mediante SQL parametrizado de InfluxDB.
+- Lectura y escrituras mediante el modelo de objetos de IRIS.
+- Permiso `admin` para cambios de estado y eventos de IRIS.
 
 Los adaptadores de autenticación están implementados y tienen pruebas unitarias.
 La integración de autenticación se ejecutó contra MongoDB y Redis reales;
 consultar [la evidencia](docs/evidencia/integracion-autenticacion.md).
-Los módulos de equipos, partidos, comentarios, estadísticas e IRIS y sus permisos
-de escritura siguen pendientes. Consultar [autenticación y seed](docs/autenticacion.md).
+Consultar [autenticación y seed](docs/autenticacion.md) y
+[contratos de integración](docs/integracion.md).
 
 ## Requisitos e instalación
 
@@ -86,7 +93,7 @@ pnpm start
 Detener con `Ctrl+C`. El proceso atiende `SIGINT` y `SIGTERM` mediante
 `app.close()`. No inicia, reinicia ni elimina servicios o datos de Docker.
 Esta etapa se ejecuta desde la notebook. `/health` y Swagger funcionan sin bases;
-login necesita MongoDB y Redis, y sesión/logout necesitan Redis.
+Cada ruta consulta las dependencias que indica su etiqueta en Swagger.
 
 ## Configuración
 
@@ -99,12 +106,12 @@ login necesita MongoDB y Redis, y sesión/logout necesitan Redis.
 | `API_BODY_LIMIT_BYTES`   | `16384`              | Tamaño máximo del cuerpo recibido.           |
 
 El límite HTTP de recepción **no es un timeout de consultas ni del handler**.
-Los adaptadores de autenticación usan `DEPENDENCY_TIMEOUT_MS=2000` para conexión
-y operación. Los futuros adaptadores también deberán definir sus límites.
+Los adaptadores usan `DEPENDENCY_TIMEOUT_MS=2000` para conexión y operación.
 
 La API lee el `.env` de esta carpeta. No carga automáticamente el `.env` raíz que
-usa Compose. Los futuros adaptadores deben documentar sus variables, las bases
-existentes y la diferencia entre acceder desde la notebook y desde Docker.
+usa Compose. Las variables de cada motor están en `.env.example`. Los valores
+predeterminados apuntan a los puertos publicados en la notebook. Los secretos
+quedan vacíos.
 
 ## Probar las rutas publicadas
 
@@ -138,8 +145,8 @@ el identificador enviado por el consumidor como identificador interno.
 
 La base traduce validación a `400`, ausencia a `404`, cuerpo excesivo a `413`,
 tipo de contenido no admitido a `415` y error inesperado a `500`. Los módulos
-pueden usar `ApiError` para señalar `401`, `403`, `409` y `503`. Login y sesiones
-usan `401` y `503`; `403` y `409` se preparan para los casos de uso posteriores.
+pueden usar `ApiError` para señalar `401`, `403`, `409` y `503`. Las rutas usan
+`403` para rol insuficiente, `409` para reglas de IRIS y `503` para dependencias.
 
 Los logs usan la plantilla de ruta, no la URL con parámetros. No incluyen
 headers, cookies, cuerpos, contraseñas, hashes ni mensajes sin filtrar de drivers.
@@ -162,8 +169,8 @@ usar `pnpm format:write` y revisar el diff. Consultar [el alcance de las
 pruebas](tests/README.md), incluidas las simulaciones de error.
 
 Con MongoDB, Redis y las contraseñas de seed configuradas, ejecutar
-`pnpm test:integration`. Esa prueba conserva las cuentas de seed y utiliza un
-alcance Redis nuevo. No se ejecuta en CI unitaria. Ver sus requisitos y límites
+`pnpm test:integration`. Las pruebas conservan las cuentas de seed y utilizan un
+alcance Redis nuevo. No se ejecutan en CI unitaria. Ver sus requisitos y límites
 en [la guía de autenticación](docs/autenticacion.md).
 
 Después de cambiar una ruta o esquema, regenerar y versionar el contrato:
@@ -186,18 +193,18 @@ permisos de lectura. No requiere secretos ni bases de datos.
 ```text
 src/
   index.ts                 # entorno, escucha y señales de cierre
-  config/environment.ts    # validación de configuración
+  config/                  # configuración HTTP y de dependencias
   app/
     server.ts              # composición del servidor
     errors/                # errores públicos y traducción HTTP
     plugins/openapi.ts     # OpenAPI y Swagger UI
     schemas.ts             # esquema de error
+  modules/data/            # rutas, servicio, puertos y cinco adaptadores
 scripts/export-openapi.ts
 openapi/
 tests/unit/
 docs/casos_de_uso.md
 ```
 
-Al incorporar cada módulo, separar rutas, servicio y adaptador. Los drivers y las
-consultas deben quedar dentro del adaptador. Revisar con el equipo sus entradas,
-respuestas, límites, reintentos y pruebas antes de ampliar el contrato publicado.
+Las rutas validan entradas. El servicio compone casos de uso. Los drivers y las
+consultas quedan dentro de los adaptadores.

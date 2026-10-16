@@ -31,6 +31,17 @@ if ttl <= 0 then return nil end
 if redis.call('HGET', KEYS[1], 'estado_acceso') ~= 'autorizado' then return nil end
 return {redis.call('HGETALL', KEYS[1]), ttl}`
 
+// Comprueba primero que la sesión siga vigente. EXPIRE nunca recrea una clave ausente.
+export const READ_AND_RENEW_SESSION = `
+local ttl = redis.call('PTTL', KEYS[1])
+if ttl <= 0 then return nil end
+if redis.call('HGET', KEYS[1], 'estado_acceso') ~= 'autorizado' then return nil end
+local t = redis.call('TIME')
+local now = t[1] .. '.' .. string.format('%06d', tonumber(t[2]))
+redis.call('HSET', KEYS[1], 'ultima_actividad', now)
+redis.call('EXPIRE', KEYS[1], ARGV[1])
+return {redis.call('HGETALL', KEYS[1]), tonumber(ARGV[1]) * 1000}`
+
 const fieldsSchema = z.object({
   usuario_id: z.uuid(),
   username: z.string(),
@@ -153,6 +164,20 @@ export class RedisSessionRepository implements SessionRepository {
     const result = await this.run('readSession', context, (client) =>
       client.eval(READ_SESSION, { keys: [this.key(digest)], arguments: [] }),
     )
+    return this.toSession(result)
+  }
+
+  async readAndRenew(digest: string, context: OperationContext) {
+    const result = await this.run('readAndRenewSession', context, (client) =>
+      client.eval(READ_AND_RENEW_SESSION, {
+        keys: [this.key(digest)],
+        arguments: [String(SESSION_TTL_SECONDS)],
+      }),
+    )
+    return this.toSession(result)
+  }
+
+  private toSession(result: unknown): Session | null {
     if (result === null) return null
     const [values, ttl] = resultSchema.parse(result)
     if (values.length % 2 !== 0) throw new ApiError('INTERNAL_ERROR')

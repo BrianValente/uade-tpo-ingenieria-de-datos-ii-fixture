@@ -55,6 +55,21 @@ export class AuthService {
     return session
   }
 
+  async authorize(
+    token: string,
+    context: OperationContext,
+    requiredRole?: 'admin',
+  ) {
+    const session = await this.sessions.readAndRenew(
+      tokenDigest(token),
+      context,
+    )
+    if (!session) throw new ApiError('UNAUTHENTICATED')
+    if (requiredRole && session.user.role !== requiredRole)
+      throw new ApiError('FORBIDDEN')
+    return session.user
+  }
+
   async logout(token: string, context: OperationContext) {
     await this.sessions.remove(tokenDigest(token), context)
   }

@@ -24,7 +24,12 @@ describe('Login y sesiones HTTP con repositorios simulados', () => {
   }
   const accounts = { findByUsername: vi.fn() }
   const passwords = { hash: vi.fn(), verify: vi.fn() }
-  const sessions = { create: vi.fn(), read: vi.fn(), remove: vi.fn() }
+  const sessions = {
+    create: vi.fn(),
+    read: vi.fn(),
+    readAndRenew: vi.fn(),
+    remove: vi.fn(),
+  }
   let stored: Map<string, Session>
   let app: Awaited<ReturnType<typeof buildServer>>
 
@@ -47,6 +52,9 @@ describe('Login y sesiones HTTP con repositorios simulados', () => {
       })
     })
     sessions.read.mockImplementation(
+      async (digest: string) => stored.get(digest) ?? null,
+    )
+    sessions.readAndRenew.mockImplementation(
       async (digest: string) => stored.get(digest) ?? null,
     )
     sessions.remove.mockImplementation(async (digest: string) => {
