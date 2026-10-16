@@ -9,6 +9,7 @@
   "packageManager": "pnpm@10.34.7",
   "pnpm": {
     "onlyBuiltDependencies": [
+      "argon2",
       "esbuild"
     ]
   },
@@ -22,15 +23,21 @@
     "format:write": "prettier . ../.github/workflows/hito-10-api.yml --write",
     "test": "pnpm test:unit",
     "test:unit": "vitest run",
+    "test:integration": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts",
+    "test:timeouts": "vitest run --config vitest.integration.config.ts tests/integration/timeouts.test.ts",
     "openapi:export": "tsx scripts/export-openapi.ts",
     "openapi:check": "tsx scripts/export-openapi.ts --check",
+    "seed:users": "node --env-file-if-exists=.env --import tsx scripts/seed-users.ts",
     "validate": "pnpm lint && pnpm format && pnpm typecheck && pnpm test:unit && pnpm build && pnpm openapi:check"
   },
   "dependencies": {
     "@fastify/swagger": "9.9.2",
     "@fastify/swagger-ui": "6.1.2",
+    "argon2": "0.45.1",
     "fastify": "5.12.7",
     "fastify-type-provider-zod": "7.0.0",
+    "mongodb": "7.7.0",
+    "redis": "6.3.0",
     "zod": "4.6.7"
   },
   "devDependencies": {

@@ -19,10 +19,46 @@ export async function registerOpenApi(app: FastifyInstance) {
       servers: [
         { url: '/', description: 'Servidor que publica esta documentación' },
       ],
-      tags: [{ name: 'Sistema', description: 'Estado del proceso HTTP.' }],
+      tags: [
+        { name: 'Sistema', description: 'Estado del proceso HTTP.' },
+        {
+          name: 'Autenticación',
+          description: 'Cuentas de laboratorio en MongoDB y sesiones Redis.',
+        },
+      ],
+      components: {
+        securitySchemes: {
+          bearerSession: {
+            type: 'http',
+            scheme: 'bearer',
+            description:
+              'Token opaco recibido al iniciar sesión. No es un JWT.',
+          },
+        },
+      },
     },
     transform: jsonSchemaTransform,
-    transformObject: jsonSchemaTransformObject,
+    transformObject: (input) => {
+      const specification = jsonSchemaTransformObject(input)
+      if ('openapi' in specification) {
+        for (const path of Object.values(specification.paths ?? {})) {
+          for (const method of [
+            'get',
+            'post',
+            'put',
+            'patch',
+            'delete',
+            'head',
+            'options',
+            'trace',
+          ] as const) {
+            const response = path?.[method]?.responses?.['204']
+            if (response && !('$ref' in response)) delete response.content
+          }
+        }
+      }
+      return specification
+    },
   })
   await app.register(swaggerUi, { routePrefix: '/docs' })
 }

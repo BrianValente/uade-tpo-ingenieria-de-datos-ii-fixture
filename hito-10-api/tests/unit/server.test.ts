@@ -24,7 +24,11 @@ describe('Contrato HTTP de la base', () => {
     expect(ui.body).toContain('swagger-ui')
     expect(contract.statusCode).toBe(200)
     const specification = contract.json()
-    expect(Object.keys(specification.paths)).toEqual(['/health'])
+    expect(Object.keys(specification.paths).sort()).toEqual([
+      '/auth/login',
+      '/auth/session',
+      '/health',
+    ])
     expect(specification.paths['/health'].get.responses).toHaveProperty('200')
     expect(health.statusCode).toBe(200)
     expect(health.json()).toEqual({ status: 'ok', service: 'fixture2030-api' })

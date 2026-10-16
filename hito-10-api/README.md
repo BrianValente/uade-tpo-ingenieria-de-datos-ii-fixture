@@ -1,6 +1,6 @@
 # Hito 10 — Base de la API del Fixture 2030
 
-Esta primera etapa prepara el servidor HTTP del Hito 10. Es una base de trabajo
+Esta etapa prepara el servidor HTTP y adapta el login del equipo al Hito 10. Es una base de trabajo
 para desarrollar y revisar con el equipo. **No constituye la entrega completa del
 hito.** La guía de la materia permite usar IA para aprender y revisar trabajo,
 pero prohíbe generar una solución completa para entregar.
@@ -31,9 +31,14 @@ y una ficha de partido que combina Neo4j con MongoDB. Consultar
 - Logs con método, plantilla de ruta, request ID, estado y duración.
 - Pruebas unitarias HTTP sin puertos, con `Fastify.inject()` y Vitest.
 - CI para ESLint, Prettier, tipos, pruebas, compilación y vigencia del contrato.
+- Login con cuentas MongoDB y verificación Argon2id, basado en el flujo de baloncesto.
+- Seed repetible de dos cuentas con roles `user` y `admin`.
+- Sesiones Redis con token opaco, consulta y cierre de sesión.
 
-Los adaptadores, login, seed, permisos y operaciones del Fixture están pendientes.
-No hay rutas simuladas de negocio en el servidor ni evidencia de conectividad.
+Los adaptadores de autenticación están implementados y tienen pruebas unitarias.
+Su prueba de integración está preparada, pero falta ejecutarla con Docker.
+Los módulos de equipos, partidos, comentarios, estadísticas e IRIS y sus permisos
+de escritura siguen pendientes. Consultar [autenticación y seed](docs/autenticacion.md).
 
 ## Requisitos e instalación
 
@@ -53,6 +58,8 @@ cp .env.example .env
 
 Si pnpm ya está instalado en la versión indicada, omitir su instalación global.
 Revisar `.env` antes de iniciar. Este archivo está excluido de Git.
+Configurar las credenciales de MongoDB que usa Compose y las contraseñas de seed
+según [la guía de autenticación](docs/autenticacion.md).
 
 ## Iniciar y detener
 
@@ -74,7 +81,8 @@ pnpm start
 
 Detener con `Ctrl+C`. El proceso atiende `SIGINT` y `SIGTERM` mediante
 `app.close()`. No inicia, reinicia ni elimina servicios o datos de Docker.
-Esta etapa se ejecuta desde la notebook y no necesita las bases iniciadas.
+Esta etapa se ejecuta desde la notebook. `/health` y Swagger funcionan sin bases;
+login necesita MongoDB y Redis, y sesión/logout necesitan Redis.
 
 ## Configuración
 
@@ -87,8 +95,8 @@ Esta etapa se ejecuta desde la notebook y no necesita las bases iniciadas.
 | `API_BODY_LIMIT_BYTES`   | `16384`              | Tamaño máximo del cuerpo recibido.           |
 
 El límite HTTP de recepción **no es un timeout de consultas ni del handler**.
-Cada adaptador deberá definir sus límites de conexión y operación antes de
-incorporar rutas que accedan a las bases.
+Los adaptadores de autenticación usan `DEPENDENCY_TIMEOUT_MS=2000` para conexión
+y operación. Los futuros adaptadores también deberán definir sus límites.
 
 La API lee el `.env` de esta carpeta. No carga automáticamente el `.env` raíz que
 usa Compose. Los futuros adaptadores deben documentar sus variables, las bases
@@ -126,8 +134,8 @@ el identificador enviado por el consumidor como identificador interno.
 
 La base traduce validación a `400`, ausencia a `404`, cuerpo excesivo a `413`,
 tipo de contenido no admitido a `415` y error inesperado a `500`. Los módulos
-podrán usar `ApiError` para señalar `401`, `403`, `409` y `503`. La existencia de
-esos códigos comunes no significa que login, permisos o dependencias ya funcionen.
+pueden usar `ApiError` para señalar `401`, `403`, `409` y `503`. Login y sesiones
+usan `401` y `503`; `403` y `409` se preparan para los casos de uso posteriores.
 
 Los logs usan la plantilla de ruta, no la URL con parámetros. No incluyen
 headers, cookies, cuerpos, contraseñas, hashes ni mensajes sin filtrar de drivers.
@@ -148,6 +156,11 @@ pnpm openapi:check
 `pnpm validate` ejecuta todos esos controles en ese orden. Para corregir formato,
 usar `pnpm format:write` y revisar el diff. Consultar [el alcance de las
 pruebas](tests/README.md), incluidas las simulaciones de error.
+
+Con MongoDB, Redis y las contraseñas de seed configuradas, ejecutar
+`pnpm test:integration`. Esa prueba conserva las cuentas de seed y utiliza un
+alcance Redis nuevo. No se ejecuta en CI unitaria. Ver sus requisitos y límites
+en [la guía de autenticación](docs/autenticacion.md).
 
 Después de cambiar una ruta o esquema, regenerar y versionar el contrato:
 

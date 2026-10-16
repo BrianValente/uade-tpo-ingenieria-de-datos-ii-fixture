@@ -16,3 +16,22 @@ demuestran autenticación, permisos ni reglas de negocio implementadas.
 `pnpm openapi:check` comprueba por separado que el YAML versionado coincida con
 las rutas reales. Las futuras pruebas de integración deberán consultar las seis
 bases y registrar sus resultados de forma independiente.
+
+## Autenticación
+
+Las pruebas unitarias de login usan repositorios simulados y verifican que una
+falla de MongoDB o Redis no entregue un token. Las de seed comprueban repetición
+sin restablecer cuentas. Argon2 se ejecuta realmente para verificar salt aleatorio,
+parámetros y aceptación/rechazo de contraseñas. Los adaptadores tienen pruebas
+con clientes simulados; no prueban un servidor real ni la ejecución de Lua.
+
+`pnpm test:integration` lee el `.env` local y ejecuta `tests/integration/auth.test.ts`.
+Requiere MongoDB, Redis y ambas contraseñas de seed. Si las cuentas ya existen,
+usar sus contraseñas originales: la seed no las cambia. La prueba conserva esas
+cuentas y usa un prefijo de sesiones nuevo. No borra colecciones ni limpia Redis.
+No se ejecuta en la CI unitaria. Registrar por separado cuándo y dónde se ejecutó.
+
+`pnpm test:timeouts` no requiere Docker ni credenciales. Inicia un servidor TCP
+local que acepta conexiones sin completar el protocolo y usa los drivers reales
+para comprobar sus límites de espera. Es una simulación de red sin respuesta;
+no demuestra disponibilidad ni ejecución de consultas en MongoDB o Redis.

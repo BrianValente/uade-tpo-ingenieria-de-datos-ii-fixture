@@ -9,11 +9,20 @@ import {
 import { z } from 'zod'
 
 import type { Environment } from '../config/environment.js'
+import {
+  createAuthModule,
+  type AuthModule,
+} from '../modules/auth/auth.module.js'
+import { registerAuthRoutes } from '../modules/auth/presentation/auth.routes.js'
 import { registerErrorHandler } from './errors/error-handler.js'
 import { registerOpenApi } from './plugins/openapi.js'
 import { errorSchema } from './schemas.js'
 
-export async function buildServer(config: Environment, logStream?: Writable) {
+export async function buildServer(
+  config: Environment,
+  logStream?: Writable,
+  auth: AuthModule = createAuthModule(),
+) {
   const app = Fastify({
     logger: {
       level: config.API_LOG_LEVEL,
@@ -46,6 +55,8 @@ export async function buildServer(config: Environment, logStream?: Writable) {
   })
 
   await registerOpenApi(app)
+  app.addHook('onClose', async () => auth.close())
+  await registerAuthRoutes(app, auth.service)
   app.get(
     '/health',
     {

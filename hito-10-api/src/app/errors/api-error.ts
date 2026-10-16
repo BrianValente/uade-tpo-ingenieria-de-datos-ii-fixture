@@ -1,6 +1,7 @@
 const errors = {
   VALIDATION_ERROR: { status: 400, message: 'La entrada no es válida.' },
   UNAUTHENTICATED: { status: 401, message: 'Se requiere una sesión vigente.' },
+  INVALID_CREDENTIALS: { status: 401, message: 'Credenciales incorrectas.' },
   FORBIDDEN: { status: 403, message: 'La operación no está permitida.' },
   RESOURCE_NOT_FOUND: { status: 404, message: 'El recurso no existe.' },
   CONFLICT: { status: 409, message: 'El estado actual impide la operación.' },

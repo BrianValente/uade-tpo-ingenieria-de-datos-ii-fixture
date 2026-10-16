@@ -1,7 +1,9 @@
 # Casos de uso acordados y continuidad
 
-Esta tabla registra el alcance conversado con Brian. Todas las operaciones de
-negocio están **pendientes de implementar y probar**. Las rutas son propuestas;
+Esta tabla registra el alcance conversado con Brian. Las tres operaciones de
+autenticación están implementadas con adaptadores MongoDB y Redis y pruebas
+unitarias. Su prueba de integración está preparada, pero falta ejecutarla con
+Docker disponible. Las otras rutas son propuestas pendientes de implementación;
 no se incluyen en OpenAPI hasta que existan en el servidor.
 
 | Caso                         | Consumidor               | Operación propuesta              | Fuente y datos existentes                                                 |
@@ -38,11 +40,13 @@ no se incluyen en OpenAPI hasta que existan en el servidor.
 Antes de implementar cada caso, completar sus entradas, respuesta de éxito,
 ausencia, falla de dependencia y criterio de aceptación conforme a §5.1 del hito.
 
-1. **Cuentas:** definir identificador único, campos de cuenta, política de seed y
-   rechazo de credenciales. Comprobar que una recarga no restablezca contraseñas
-   o roles de forma silenciosa.
-2. **Sesiones:** definir prefijo estable para la API, transporte del identificador,
-   consulta y renovación atómicas, TTL, permisos y efecto de logout repetido.
+1. **Cuentas:** implementadas en `usuarios_api` con UUID, índice único de username,
+   rol y hash Argon2id. La seed usa `$setOnInsert` y conserva cuentas existentes.
+   Validar la ejecución real y completar evidencia.
+2. **Sesiones:** implementadas como hashes bajo `fixture2030:h10:<alcance>`, con
+   token Bearer opaco, digest en Redis y TTL de 1800 s. Lectura atómica sin renovación
+   y logout repetible. Falta la renovación por actividad y aplicar permisos a las
+   futuras escrituras de negocio.
 3. **Comentarios:** mantener la partición
    `(partido_id, bucket_minuto, grupo)`. Definir unión y paginación de los 16 grupos,
    clave idempotente, escrituras en dos tablas y recuperación de fallas parciales.

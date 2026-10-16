@@ -5,6 +5,11 @@ info:
   description: Base del Hito 10. El estado HTTP no comprueba la conectividad de
     las bases NoSQL.
 components:
+  securitySchemes:
+    bearerSession:
+      type: http
+      scheme: bearer
+      description: Token opaco recibido al iniciar sesión. No es un JWT.
   schemas:
     ApiErrorInput:
       type: object
@@ -21,6 +26,24 @@ components:
         - code
         - message
         - requestId
+    UserInput:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        username:
+          type: string
+        role:
+          type: string
+          enum:
+            - user
+            - admin
+      required:
+        - id
+        - username
+        - role
     ApiError:
       type: object
       properties:
@@ -37,7 +60,215 @@ components:
         - message
         - requestId
       additionalProperties: false
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        username:
+          type: string
+        role:
+          type: string
+          enum:
+            - user
+            - admin
+      required:
+        - id
+        - username
+        - role
+      additionalProperties: false
 paths:
+  /auth/login:
+    post:
+      operationId: login
+      summary: Inicia una sesión de laboratorio
+      tags:
+        - Autenticación
+      description: Valida Argon2id contra MongoDB y crea una sesión Redis de 1800
+        segundos. Cada login crea otra sesión. El token se muestra solo en esta
+        respuesta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  pattern: ^[a-z][a-z0-9._-]{2,31}$
+                password:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+              required:
+                - username
+                - password
+              additionalProperties: false
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    pattern: ^[A-Za-z0-9_-]{43}$
+                  tokenType:
+                    type: string
+                    enum:
+                      - Bearer
+                  expiresIn:
+                    type: number
+                    enum:
+                      - 1800
+                  user:
+                    $ref: "#/components/schemas/User"
+                required:
+                  - accessToken
+                  - tokenType
+                  - expiresIn
+                  - user
+                additionalProperties: false
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /auth/session:
+    get:
+      operationId: getCurrentSession
+      summary: Consulta la sesión actual
+      tags:
+        - Autenticación
+      description: Lee un hash Redis con TTL positivo. No renueva el vencimiento. Una
+        sesión ausente o expirada produce 401; Redis inaccesible produce 503.
+      security:
+        - bearerSession: []
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+                  createdAt:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z))$
+                  lastActivity:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z))$
+                  ttlSeconds:
+                    type: integer
+                    minimum: 1
+                    maximum: 1800
+                required:
+                  - user
+                  - createdAt
+                  - lastActivity
+                  - ttlSeconds
+                additionalProperties: false
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: logout
+      summary: Cierra la sesión actual
+      tags:
+        - Autenticación
+      description: "Elimina solo la sesión del token Bearer. Devuelve 204 aunque ya no
+        exista: repetir el cierre es idempotente. No confirma el cierre si Redis
+        falla."
+      security:
+        - bearerSession: []
+      responses:
+        "204":
+          description: Sesión cerrada o ya ausente.
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /health:
     get:
       operationId: getHttpHealth
@@ -83,3 +314,5 @@ servers:
 tags:
   - name: Sistema
     description: Estado del proceso HTTP.
+  - name: Autenticación
+    description: Cuentas de laboratorio en MongoDB y sesiones Redis.

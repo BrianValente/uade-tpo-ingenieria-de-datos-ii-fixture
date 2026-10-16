@@ -1,8 +1,14 @@
 import { buildServer } from './app/server.js'
 import { readEnvironment } from './config/environment.js'
+import { readAuthEnvironment } from './config/auth-environment.js'
+import { createAuthModule } from './modules/auth/auth.module.js'
 
 const config = readEnvironment()
-const app = await buildServer(config)
+const app = await buildServer(
+  config,
+  undefined,
+  createAuthModule(readAuthEnvironment()),
+)
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {

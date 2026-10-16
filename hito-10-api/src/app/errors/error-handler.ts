@@ -35,6 +35,8 @@ export function registerErrorHandler(app: FastifyInstance) {
       { code: publicError.code, statusCode: publicError.statusCode },
       'Solicitud rechazada',
     )
+    if (publicError.statusCode === 401)
+      reply.header('www-authenticate', 'Bearer realm="fixture2030"')
     return reply.code(publicError.statusCode).send({
       code: publicError.code,
       message: publicError.message,
