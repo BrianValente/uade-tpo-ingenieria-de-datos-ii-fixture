@@ -15,6 +15,7 @@
   },
   "scripts": {
     "dev": "node --env-file-if-exists=.env --import tsx --watch src/index.ts",
+    "dev:lab": "node --env-file-if-exists=.env --import tsx scripts/run-integration.ts --serve",
     "start": "node --env-file-if-exists=.env dist/index.js",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
@@ -23,7 +24,8 @@
     "format:write": "prettier . ../.github/workflows/hito-10-api.yml --write",
     "test": "pnpm test:unit",
     "test:unit": "vitest run",
-    "test:integration": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts",
+    "test:integration": "node --env-file-if-exists=.env --import tsx scripts/run-integration.ts",
+    "test:writes": "node --env-file-if-exists=.env --import tsx scripts/run-integration.ts tests/integration/writes.test.ts",
     "test:timeouts": "vitest run --config vitest.integration.config.ts tests/integration/timeouts.test.ts",
     "test:redis": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts tests/integration/redis-session.test.ts",
     "openapi:export": "tsx scripts/export-openapi.ts",

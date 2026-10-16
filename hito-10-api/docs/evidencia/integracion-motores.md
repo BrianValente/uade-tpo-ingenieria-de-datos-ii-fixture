@@ -1,6 +1,6 @@
 # Integración de los motores
 
-## Ejecución observada
+## Ejecución inicial observada — commit dd2cdef
 
 La prueba se ejecutó el 16 de octubre de 2026 en Docker Desktop para macOS, con
 el contexto `desktop-linux` y el proyecto Compose `fixture2030`. Los seis servicios
@@ -32,8 +32,16 @@ eventos de negocio.
 
 ## Límites
 
-La ejecución comprueba conectividad, contratos de lectura, composición y cursor.
+Esa ejecución comprueba conectividad, contratos de lectura, composición y cursor.
 No mide latencia bajo carga, concurrencia, alta disponibilidad ni los objetivos
 distribuidos del escenario. Las escrituras, permisos, repetición y fallas parciales
 se comprobaron con adaptadores simulados en las pruebas unitarias. Esa simulación
 no demuestra atomicidad ni recuperación real entre dos particiones Cassandra.
+
+## Correcciones posteriores
+
+La revisión posterior agregó reservas condicionales, validación de cursores,
+compatibilidad con grupos históricos, límites de transacción Neo4j y pruebas
+reales de escrituras Cassandra e IRIS. La ejecución actualizada se registra en
+[la evidencia de correcciones](correcciones-integracion.md). Esta sección inicial
+se conserva como historial de la validación anterior, no como estado final.

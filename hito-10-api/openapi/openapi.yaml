@@ -825,7 +825,9 @@ paths:
           required: false
         - schema:
             type: string
+            minLength: 1
             maxLength: 300
+            pattern: ^[A-Za-z0-9_-]+$
           in: query
           name: cursor
           required: false

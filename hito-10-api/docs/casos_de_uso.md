@@ -2,7 +2,8 @@
 
 Esta tabla registra el alcance conversado con Brian. Las operaciones están
 implementadas y aparecen en OpenAPI. Las pruebas unitarias usan adaptadores
-simulados. La evidencia real existente de autenticación cubre MongoDB y Redis.
+simulados. La integración real cubre lecturas de los seis motores y escrituras
+de comentarios, estados y eventos. Sus límites se registran en la evidencia.
 
 | Caso                         | Consumidor               | Operación propuesta              | Fuente y datos existentes                                                 |
 | ---------------------------- | ------------------------ | -------------------------------- | ------------------------------------------------------------------------- |
@@ -44,7 +45,8 @@ simulados. La evidencia real existente de autenticación cubre MongoDB y Redis.
 3. **Comentarios:** conservan la partición `(partido_id, bucket_minuto, grupo)`.
    La API consulta los 16 grupos, une por fecha e ID y entrega un cursor opaco.
    `comentarioId` y `creadoEn` forman claves repetibles. Si falla la segunda vista,
-   el consumidor repite la misma solicitud para completar ambas mediante upsert.
+   el consumidor repite la misma solicitud para reparar la vista faltante. La
+   reserva condicional conserva autor y contenido; una colisión produce `409`.
 4. **Estadísticas:** preservar intervalo semiabierto, unidades, timestamps UTC y
    significado de `posesion_pct`, `tiros_acumulados` y `pases_intervalo`. Las fechas
    de laboratorio se desplazan al presente para respetar la retención.
@@ -54,7 +56,8 @@ simulados. La evidencia real existente de autenticación cubre MongoDB y Redis.
 6. **Cada adaptador:** configuración sin secretos, límites, conexión, consultas
    parametrizadas, traducción de errores, logs de dependencia y cierre de recursos.
 7. **Cada caso:** las pruebas unitarias cubren éxito, ausencia, validación, falla
-   simulada, límites, repetición y permisos. No sustituyen una ejecución real.
+   simulada, límites, repetición y permisos. Las pruebas reales verifican las dos
+   vistas de comentarios, competencia por una clave, reparación y reglas IRIS.
 
 ## Fuentes locales
 

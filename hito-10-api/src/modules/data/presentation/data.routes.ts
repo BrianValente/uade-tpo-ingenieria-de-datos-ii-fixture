@@ -7,6 +7,7 @@ import { errorSchema } from '../../../app/schemas.js'
 import type { AuthService } from '../../auth/application/auth.service.js'
 import { sessionHeadersSchema } from '../../auth/presentation/auth.schemas.js'
 import type { DataService } from '../application/data.service.js'
+import { commentCursorSchema } from '../application/data.service.js'
 
 const code = z.string().regex(/^[A-Z]{3}$/)
 const matchId = z.string().regex(/^F2030-[A-Z0-9-]{1,40}$/)
@@ -242,7 +243,7 @@ export async function registerDataRoutes(
           querystring: z.strictObject({
             minute: z.iso.datetime(),
             limit,
-            cursor: z.string().max(300).optional(),
+            cursor: commentCursorSchema.optional(),
           }),
           response: {
             200: z.object({

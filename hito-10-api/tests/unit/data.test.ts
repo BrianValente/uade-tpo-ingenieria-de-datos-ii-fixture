@@ -284,6 +284,24 @@ describe('Rutas de datos con adaptadores simulados', () => {
     )
   })
 
+  it.each([
+    { createdAt: '2030-06-13T20:00:00.000Z', id: '-'.repeat(36) },
+    { createdAt: 'ayer', id: randomUUID() },
+    { createdAt: '2030-06-13T20:00:00.000Z', id: randomUUID(), extra: true },
+  ])(
+    'rechaza un cursor inválido antes de consultar Redis o Cassandra',
+    async (payload) => {
+      const cursor = Buffer.from(JSON.stringify(payload)).toString('base64url')
+      const response = await app.inject({
+        url: `/partidos/F2030-001/comentarios?minute=2030-06-13T20:00:00.000Z&cursor=${cursor}`,
+        headers,
+      })
+      expect(response.statusCode).toBe(400)
+      expect(sessions.readAndRenew).not.toHaveBeenCalled()
+      expect(comments.list).not.toHaveBeenCalled()
+    },
+  )
+
   it('valida la ventana InfluxDB y limita su duración a 24 horas', async () => {
     const valid = await app.inject({
       url: '/partidos/F2030-001/estadisticas?start=2030-06-13T20:00:00.000Z&end=2030-06-13T20:01:00.000Z',

@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { z } from 'zod'
 
 import { ApiError } from '../../../app/errors/api-error.js'
 import type { OperationContext, User } from '../../auth/domain/ports.js'
@@ -153,30 +153,47 @@ export class DataService {
 }
 
 export function commentGroup(id: string) {
-  return createHash('sha256').update(id).digest()[0]! % 16
+  // Hito 6: UUID entero módulo 16, equivalente a su último dígito hexadecimal.
+  return Number.parseInt(id.at(-1)!, 16)
 }
 
 function encodeCursor(cursor: CommentCursor) {
   return Buffer.from(JSON.stringify(cursor)).toString('base64url')
 }
 
+export const commentCursorSchema = z
+  .string()
+  .min(1)
+  .max(300)
+  .regex(/^[A-Za-z0-9_-]+$/)
+  .refine((value) => {
+    try {
+      decodeCursor(value)
+      return true
+    } catch {
+      return false
+    }
+  }, 'Cursor de comentarios inválido.')
+
+const cursorPayload = z.strictObject({
+  createdAt: z.iso.datetime(),
+  // CQL uuid también admite los UUID de laboratorio anteriores, incluso versión cero.
+  id: z
+    .string()
+    .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i),
+})
+
 function decodeCursor(value: string | undefined): CommentCursor | undefined {
-  if (!value) return undefined
+  if (value === undefined) return undefined
   try {
-    const parsed = JSON.parse(
-      Buffer.from(value, 'base64url').toString(),
-    ) as unknown
-    if (
-      typeof parsed === 'object' &&
-      parsed !== null &&
-      'createdAt' in parsed &&
-      typeof parsed.createdAt === 'string' &&
-      !Number.isNaN(Date.parse(parsed.createdAt)) &&
-      'id' in parsed &&
-      typeof parsed.id === 'string' &&
-      /^[0-9a-f-]{36}$/i.test(parsed.id)
-    )
-      return { createdAt: parsed.createdAt, id: parsed.id }
+    if (!/^[A-Za-z0-9_-]+$/.test(value) || value.length > 300) throw new Error()
+    const bytes = Buffer.from(value, 'base64url')
+    if (bytes.toString('base64url') !== value) throw new Error()
+    const parsed = cursorPayload.parse(JSON.parse(bytes.toString()))
+    return {
+      createdAt: new Date(parsed.createdAt).toISOString(),
+      id: parsed.id.toLowerCase(),
+    }
   } catch {
     /* Se traduce abajo a un error público estable. */
   }

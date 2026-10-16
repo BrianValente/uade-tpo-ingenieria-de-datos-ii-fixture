@@ -31,8 +31,10 @@ LIMIT $limit`
 
 export class Neo4jGraphRepository implements GraphRepository {
   private readonly driver: Driver
+  private readonly timeoutMs: number
 
   constructor(config: DataEnvironment) {
+    this.timeoutMs = config.DEPENDENCY_TIMEOUT_MS
     const host = config.NEO4J_HOST.includes(':')
       ? `[${config.NEO4J_HOST}]`
       : config.NEO4J_HOST
@@ -41,6 +43,7 @@ export class Neo4jGraphRepository implements GraphRepository {
       neo4j.auth.basic(config.NEO4J_USERNAME, config.NEO4J_PASSWORD),
       {
         connectionTimeout: config.DEPENDENCY_TIMEOUT_MS,
+        connectionAcquisitionTimeout: config.DEPENDENCY_TIMEOUT_MS,
         maxConnectionPoolSize: 5,
         maxTransactionRetryTime: 0,
       },
@@ -80,7 +83,7 @@ export class Neo4jGraphRepository implements GraphRepository {
       const result = await this.driver.executeQuery(
         MATCH_QUERY,
         { id },
-        { routing: 'READ' },
+        { routing: 'READ', transactionConfig: { timeout: this.timeoutMs } },
       )
       const row = result.records[0]
       if (!row) return null
@@ -111,7 +114,7 @@ export class Neo4jGraphRepository implements GraphRepository {
       const result = await this.driver.executeQuery(
         EVENTS_QUERY,
         { id, limit: neo4j.int(limit) },
-        { routing: 'READ' },
+        { routing: 'READ', transactionConfig: { timeout: this.timeoutMs } },
       )
       if (!result.records[0]) return null
       if (result.records[0].get('id') === null) return []

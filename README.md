@@ -91,7 +91,8 @@ flujo documentada. Los otros módulos de negocio están pendientes.
 ```bash
 cd hito-10-api
 pnpm install --frozen-lockfile
-pnpm dev
+pnpm env:local
+pnpm dev:lab
 ```
 
 Consultar los requisitos de Node.js y pnpm en el README de la API.

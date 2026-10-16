@@ -10,10 +10,12 @@ entorno, los comandos, los resultados y sus límites.
 
 ## Configurar desde la notebook
 
-El `.env` de `hito-10-api/` no carga el `.env` raíz. Copiar las credenciales locales
+El inicio directo usa el `.env` de `hito-10-api/`. Copiar las credenciales locales
 de MongoDB sin publicarlas. `MONGO_ROOT_PASSWORD` debe coincidir con la configuración
 de Compose. Las contraseñas de seed solo se requieren al cargar usuarios o ejecutar
 la prueba de integración.
+`pnpm dev:lab` y el lanzador de integración pueden completar conexiones desde los
+archivos locales y preparar un acceso IRIS temporal; ver [integración](integracion.md).
 
 Para crear la configuración automáticamente desde `hito-10-api/`:
 

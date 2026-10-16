@@ -18,6 +18,7 @@ declare module '@intersystems/intersystems-iris-native' {
     ): boolean | null
   }
   export interface IRISObject {
+    set(propertyName: string, value: IRISReturnType): void
     getObject(propertyName: string): IRISReturnType | null
     getString(propertyName: string): string | null
     getNumber(propertyName: string): number | null

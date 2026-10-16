@@ -47,6 +47,8 @@ La integración de autenticación se ejecutó contra MongoDB y Redis reales;
 consultar [la evidencia](docs/evidencia/integracion-autenticacion.md).
 Consultar [autenticación y seed](docs/autenticacion.md) y
 [contratos de integración](docs/integracion.md).
+Las [correcciones verificadas](docs/evidencia/correcciones-integracion.md) incluyen
+escrituras reales, competencia por claves y pruebas de permisos y repetición.
 
 ## Requisitos e instalación
 
@@ -61,27 +63,35 @@ nvm install
 nvm use
 npm install --global pnpm@10.34.7
 pnpm install --frozen-lockfile
-cp .env.example .env
+pnpm env:local
 ```
 
 Si pnpm ya está instalado en la versión indicada, omitir su instalación global.
 Revisar `.env` antes de iniciar. Este archivo está excluido de Git.
 Configurar las credenciales de MongoDB que usa Compose y las contraseñas de seed
 según [la guía de autenticación](docs/autenticacion.md).
-Como alternativa al copiado manual, ejecutar `pnpm env:local` antes de crear el
-`.env`: copia la conexión del entorno raíz y genera contraseñas de seed aleatorias.
-Conserva cualquier `.env` existente sin modificarlo.
+`pnpm env:local` copia la conexión del entorno raíz y genera contraseñas de seed
+aleatorias. Conserva cualquier `.env` existente sin modificarlo. El `.env.example`
+también documenta los valores que pueden configurarse manualmente.
 
 ## Iniciar y detener
 
 Desde `hito-10-api/`:
 
 ```bash
-pnpm dev
+pnpm dev:lab
 ```
 
 Por defecto, la API escucha en `http://127.0.0.1:8000`. Abrir
 `http://127.0.0.1:8000/docs/` para explorar el contrato.
+El modo de laboratorio usa los seis servicios de Compose. Completa la conexión
+Neo4j desde el `.env` raíz y el token InfluxDB desde su archivo local. Si falta
+una cuenta IRIS, prepara una temporal y la elimina al cerrar. No hace falta crear
+una cuenta manualmente ni cambiar la contraseña de `_SYSTEM`. Consultar los
+[detalles del acceso local](docs/integracion.md).
+
+`pnpm dev` conserva el inicio directo con recarga automática y requiere todas las
+credenciales configuradas por entorno, igual que `pnpm start`.
 
 Para ejecutar el código compilado:
 
@@ -91,7 +101,8 @@ pnpm start
 ```
 
 Detener con `Ctrl+C`. El proceso atiende `SIGINT` y `SIGTERM` mediante
-`app.close()`. No inicia, reinicia ni elimina servicios o datos de Docker.
+`app.close()`. El modo de laboratorio también elimina su cuenta temporal IRIS.
+No inicia ni reinicia servicios y conserva los datos de negocio.
 Esta etapa se ejecuta desde la notebook. `/health` y Swagger funcionan sin bases;
 Cada ruta consulta las dependencias que indica su etiqueta en Swagger.
 
@@ -108,10 +119,11 @@ Cada ruta consulta las dependencias que indica su etiqueta en Swagger.
 El límite HTTP de recepción **no es un timeout de consultas ni del handler**.
 Los adaptadores usan `DEPENDENCY_TIMEOUT_MS=2000` para conexión y operación.
 
-La API lee el `.env` de esta carpeta. No carga automáticamente el `.env` raíz que
-usa Compose. Las variables de cada motor están en `.env.example`. Los valores
-predeterminados apuntan a los puertos publicados en la notebook. Los secretos
-quedan vacíos.
+El inicio directo lee el `.env` de esta carpeta. Los lanzadores de laboratorio
+completan conexiones faltantes desde los archivos locales existentes y pasan las
+credenciales al proceso por entorno. Las variables de cada motor están en
+`.env.example`. Los valores predeterminados apuntan a los puertos publicados en
+la notebook; los secretos no se versionan.
 
 ## Probar las rutas publicadas
 
@@ -168,10 +180,13 @@ pnpm openapi:check
 usar `pnpm format:write` y revisar el diff. Consultar [el alcance de las
 pruebas](tests/README.md), incluidas las simulaciones de error.
 
-Con MongoDB, Redis y las contraseñas de seed configuradas, ejecutar
-`pnpm test:integration`. Las pruebas conservan las cuentas de seed y utilizan un
-alcance Redis nuevo. No se ejecutan en CI unitaria. Ver sus requisitos y límites
-en [la guía de autenticación](docs/autenticacion.md).
+Con los seis motores saludables y `.env` local preparado, ejecutar
+`pnpm test:integration`. El lanzador completa los accesos locales, conserva las
+cuentas de seed y prepara una cuenta temporal IRIS si hace falta. `pnpm test:writes`
+ejecuta solo las escrituras Cassandra e IRIS. Las pruebas usan datos nuevos
+`F2030-TEST-*` y los conservan para inspección. Solo se cierran las sesiones propias
+y la cuenta temporal. No se ejecutan en CI unitaria. Ver
+[configuración y garantías](docs/integracion.md) y [el alcance de las pruebas](tests/README.md).
 
 Después de cambiar una ruta o esquema, regenerar y versionar el contrato:
 
