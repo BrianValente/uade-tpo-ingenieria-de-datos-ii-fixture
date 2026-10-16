@@ -85,8 +85,8 @@ La prueba compila las clases, guarda un arbol de objetos con una sola invocacion
 La [base de la API REST](hito-10-api/README.md) usa Node.js, TypeScript,
 Fastify y Swagger UI. Incluye validación HTTP, errores comunes, pruebas
 unitarias y controles de calidad en GitHub Actions. Es una primera etapa:
-incluye login y seed con Argon2id y sesiones Redis. La integración real de ese
-flujo y los otros módulos de negocio están pendientes.
+incluye login y seed con Argon2id y sesiones Redis, con integración real de ese
+flujo documentada. Los otros módulos de negocio están pendientes.
 
 ```bash
 cd hito-10-api

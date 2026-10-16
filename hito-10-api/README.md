@@ -36,7 +36,8 @@ y una ficha de partido que combina Neo4j con MongoDB. Consultar
 - Sesiones Redis con token opaco, consulta y cierre de sesión.
 
 Los adaptadores de autenticación están implementados y tienen pruebas unitarias.
-Su prueba de integración está preparada, pero falta ejecutarla con Docker.
+La integración de autenticación se ejecutó contra MongoDB y Redis reales;
+consultar [la evidencia](docs/evidencia/integracion-autenticacion.md).
 Los módulos de equipos, partidos, comentarios, estadísticas e IRIS y sus permisos
 de escritura siguen pendientes. Consultar [autenticación y seed](docs/autenticacion.md).
 
@@ -60,6 +61,9 @@ Si pnpm ya está instalado en la versión indicada, omitir su instalación globa
 Revisar `.env` antes de iniciar. Este archivo está excluido de Git.
 Configurar las credenciales de MongoDB que usa Compose y las contraseñas de seed
 según [la guía de autenticación](docs/autenticacion.md).
+Como alternativa al copiado manual, ejecutar `pnpm env:local` antes de crear el
+`.env`: copia la conexión del entorno raíz y genera contraseñas de seed aleatorias.
+Conserva cualquier `.env` existente sin modificarlo.
 
 ## Iniciar y detener
 

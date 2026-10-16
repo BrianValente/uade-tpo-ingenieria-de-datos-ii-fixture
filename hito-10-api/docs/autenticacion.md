@@ -4,8 +4,9 @@ Adaptamos la búsqueda de cuenta y verificación de Argon2 del TPO de baloncesto
 MongoDB conserva las cuentas; Redis conserva las sesiones. El servidor registra
 las rutas reales y las describe en OpenAPI. Las pruebas unitarias usan repositorios
 y clientes simulados, salvo las comprobaciones del hash Argon2, que son reales.
-La prueba de integración está preparada, pero falta ejecutarla: Docker no estaba
-disponible durante esta etapa. No hay evidencia nueva de conectividad a las bases.
+La integración se ejecutó contra MongoDB y Redis reales. La
+[evidencia de la ejecución](evidencia/integracion-autenticacion.md) registra el
+entorno, los comandos, los resultados y sus límites.
 
 ## Configurar desde la notebook
 
@@ -13,6 +14,19 @@ El `.env` de `hito-10-api/` no carga el `.env` raíz. Copiar las credenciales lo
 de MongoDB sin publicarlas. `MONGO_ROOT_PASSWORD` debe coincidir con la configuración
 de Compose. Las contraseñas de seed solo se requieren al cargar usuarios o ejecutar
 la prueba de integración.
+
+Para crear la configuración automáticamente desde `hito-10-api/`:
+
+```bash
+pnpm env:local
+```
+
+El comando copia la conexión desde el `.env` raíz, con precedencia de variables
+exportadas igual que Compose, y genera dos contraseñas aleatorias de 32 bytes.
+Guarda el `.env` ignorado por Git con permisos `0600`. No imprime las credenciales
+ni sobrescribe un archivo existente. Revisar el archivo local con el editor para
+usar las cuentas en Swagger. Si ya se copió `.env.example`, completar ese archivo
+manualmente: el comando lo conserva.
 
 | Variable                                     | Valor predeterminado | Uso                                                                               |
 | -------------------------------------------- | -------------------- | --------------------------------------------------------------------------------- |
@@ -111,6 +125,13 @@ pnpm test:integration
 La prueba ejecuta la seed dos veces y verifica login, consulta, logout repetido y
 rechazo de la sesión cerrada. Usa un alcance Redis nuevo y cierra solo las sesiones
 que creó. Conserva las cuentas de laboratorio; no borra colecciones ni limpia Redis.
+Comprueba ambos roles, entradas inválidas, credenciales incorrectas y dependencias
+inaccesibles configurando puertos sin servicio, sin detener las bases en uso.
+
+`pnpm test:redis` ejecuta por separado una prueba contra Redis real. Verifica los
+scripts Lua, lectura HTTP sin renovar TTL, logout y expiración real. Para la
+expiración reduce a 50 ms el TTL de una sesión que creó la propia prueba. No ejecuta
+login ni usa MongoDB. Esta prueba también se incluye en `pnpm test:integration`.
 
 No forma parte de CI unitaria. Registrar entorno, fecha y resultados al ejecutarla.
 La prueba no espera 30 minutos ni demuestra capacidad para millones de sesiones.

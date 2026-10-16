@@ -2,8 +2,8 @@
 
 Esta tabla registra el alcance conversado con Brian. Las tres operaciones de
 autenticación están implementadas con adaptadores MongoDB y Redis y pruebas
-unitarias. Su prueba de integración está preparada, pero falta ejecutarla con
-Docker disponible. Las otras rutas son propuestas pendientes de implementación;
+unitarias. La integración con las dos bases reales se ejecutó y tiene
+[evidencia](evidencia/integracion-autenticacion.md). Las otras rutas son propuestas pendientes de implementación;
 no se incluyen en OpenAPI hasta que existan en el servidor.
 
 | Caso                         | Consumidor               | Operación propuesta              | Fuente y datos existentes                                                 |
@@ -42,7 +42,7 @@ ausencia, falla de dependencia y criterio de aceptación conforme a §5.1 del hi
 
 1. **Cuentas:** implementadas en `usuarios_api` con UUID, índice único de username,
    rol y hash Argon2id. La seed usa `$setOnInsert` y conserva cuentas existentes.
-   Validar la ejecución real y completar evidencia.
+   La ejecución real de seed y login está registrada en la evidencia.
 2. **Sesiones:** implementadas como hashes bajo `fixture2030:h10:<alcance>`, con
    token Bearer opaco, digest en Redis y TTL de 1800 s. Lectura atómica sin renovación
    y logout repetible. Falta la renovación por actividad y aplicar permisos a las

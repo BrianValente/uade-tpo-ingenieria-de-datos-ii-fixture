@@ -25,9 +25,11 @@
     "test:unit": "vitest run",
     "test:integration": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts",
     "test:timeouts": "vitest run --config vitest.integration.config.ts tests/integration/timeouts.test.ts",
+    "test:redis": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts tests/integration/redis-session.test.ts",
     "openapi:export": "tsx scripts/export-openapi.ts",
     "openapi:check": "tsx scripts/export-openapi.ts --check",
     "seed:users": "node --env-file-if-exists=.env --import tsx scripts/seed-users.ts",
+    "env:local": "tsx scripts/setup-local-env.ts",
     "validate": "pnpm lint && pnpm format && pnpm typecheck && pnpm test:unit && pnpm build && pnpm openapi:check"
   },
   "dependencies": {

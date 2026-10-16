@@ -1,4 +1,6 @@
-import { randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
+import { once } from 'node:events'
+import { createServer } from 'node:net'
 import { expect, it } from 'vitest'
 
 import { buildServer } from '../../src/app/server.js'
@@ -60,6 +62,86 @@ it('seed repetible, login, consulta y logout contra MongoDB y Redis reales', asy
     expect(
       (await app.inject({ url: '/auth/session', headers })).statusCode,
     ).toBe(401)
+    const userLogin = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: {
+        username: 'fixture-user',
+        password: passwords.API_SEED_USER_PASSWORD,
+      },
+    })
+    expect(userLogin.statusCode).toBe(200)
+    tokens.push(userLogin.json().accessToken)
+    expect(userLogin.json().user.role).toBe('user')
+
+    const invalid = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: {
+        username: { $ne: null },
+        password: passwords.API_SEED_ADMIN_PASSWORD,
+      },
+    })
+    expect(invalid.statusCode).toBe(400)
+    const wrongPassword = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: {
+        username: 'fixture-admin',
+        password: randomBytes(32).toString('base64url'),
+      },
+    })
+    const unknownUser = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: {
+        username: `ausente-${randomUUID().slice(0, 8)}`,
+        password: randomBytes(32).toString('base64url'),
+      },
+    })
+    expect(wrongPassword.statusCode).toBe(401)
+    expect(unknownUser.statusCode).toBe(401)
+    expect(wrongPassword.json().message).toBe(unknownUser.json().message)
+
+    // Se usa un puerto local libre para provocar indisponibilidad sin detener servicios.
+    const probe = createServer()
+    probe.listen(0, '127.0.0.1')
+    await once(probe, 'listening')
+    const address = probe.address()
+    if (!address || typeof address === 'string')
+      throw new Error('Puerto de prueba no disponible.')
+    await new Promise<void>((resolve, reject) =>
+      probe.close((error) => (error ? reject(error) : resolve())),
+    )
+    for (const dependency of ['MongoDB', 'Redis'] as const) {
+      const unavailable = createAuthModule({
+        ...config,
+        DEPENDENCY_TIMEOUT_MS: 100,
+        ...(dependency === 'MongoDB'
+          ? { MONGO_PORT: address.port }
+          : { REDIS_PORT: address.port }),
+      })
+      const unavailableApp = await buildServer(
+        readEnvironment({ API_LOG_LEVEL: 'silent' }),
+        undefined,
+        unavailable,
+      )
+      try {
+        const response = await unavailableApp.inject({
+          method: 'POST',
+          url: '/auth/login',
+          payload: {
+            username: 'fixture-admin',
+            password: passwords.API_SEED_ADMIN_PASSWORD,
+          },
+        })
+        expect(response.statusCode, dependency).toBe(503)
+        expect(response.json().code).toBe('DEPENDENCY_UNAVAILABLE')
+        expect(response.json().accessToken).toBeUndefined()
+      } finally {
+        await unavailableApp.close()
+      }
+    }
   } finally {
     // Solo se cierran sesiones creadas por esta prueba. Las cuentas de seed se conservan.
     for (const token of tokens)
