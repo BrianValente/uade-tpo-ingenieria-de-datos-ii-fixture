@@ -33,6 +33,10 @@
     "openapi:check": "tsx scripts/export-openapi.ts --check",
     "seed:users": "node --env-file-if-exists=.env --import tsx scripts/seed-users.ts",
     "env:local": "tsx scripts/setup-local-env.ts",
+    "eval:conectividad": "node --env-file-if-exists=.env --import tsx ../hito-11-conectividad/scripts/evaluar_conectividad.ts",
+    "eval:tcp": "node --env-file-if-exists=.env --import tsx ../hito-11-conectividad/scripts/prueba_tcp.ts",
+    "eval:nativos": "node --env-file-if-exists=.env --import tsx ../hito-11-conectividad/scripts/prueba_clientes_nativos.ts",
+    "eval:api": "node --env-file-if-exists=.env --import tsx ../hito-11-conectividad/scripts/prueba_api.ts",
     "validate": "pnpm lint && pnpm format && pnpm typecheck && pnpm test:unit && pnpm build && pnpm openapi:check"
   },
   "dependencies": {

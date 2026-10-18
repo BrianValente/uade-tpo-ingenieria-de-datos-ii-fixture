@@ -1,0 +1,14 @@
+{
+  "name": "fixture2030-hito-11-conectividad",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "eval": "npx tsx scripts/evaluar_conectividad.ts --all",
+    "eval:all": "npx tsx scripts/evaluar_conectividad.ts --all",
+    "eval:tcp": "npx tsx scripts/prueba_tcp.ts",
+    "eval:nativos": "npx tsx scripts/prueba_clientes_nativos.ts",
+    "eval:api": "npx tsx scripts/prueba_api.ts",
+    "eval:inprocess": "npx tsx scripts/evaluar_conectividad.ts --all --in-process"
+  }
+}
