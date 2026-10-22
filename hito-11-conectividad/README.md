@@ -58,8 +58,11 @@ hito-11-conectividad/
 1. **Node.js:** Versión 24 LTS o compatible (probado en Node.js v25.9.0 / v24).
 2. **Dependencias:** Instaladas en `hito-10-api` vía `pnpm install` (`mongodb`, `redis`, `neo4j-driver`, `cassandra-driver`, `@intersystems/intersystems-iris-native`, `fastify`).
 3. **Variables de Entorno:**
-   - Para ejecutar pruebas con parámetros personalizados, copiar `config/configuracion-ejemplo.env` como `.env` en la raíz de `hito-10-api` o en este directorio:
+   - La suite carga de forma transparente las variables configuradas en `../hito-10-api/.env` o en el entorno del sistema.
+   - Si ya existe un archivo `.env` configurado en `hito-10-api`, **no lo sobreescriba**.
+   - En una clonación limpia sin `.env`, puede utilizar la plantilla de ejemplo sin secretos:
      ```bash
+     # Solo si ../hito-10-api/.env no existe aún:
      cp config/configuracion-ejemplo.env ../hito-10-api/.env
      ```
 
@@ -138,4 +141,4 @@ El sistema clasifica el resultado de cada prueba según los lineamientos de la c
 
 - **Cero Secretos:** Ninguna contraseña, token Bearer ni clave privada se encuentra versionada en el código fuente ni en los reportes de evidencia.
 - **Redacción Automática:** Las URIs de bases de datos que contienen credenciales son redactadas automáticamente (`mongodb://admin:******@127.0.0.1:27017/...`).
-- **Pruebas No Destructivas:** Todas las verificaciones se limitan a lecturas (`findOne`, `MATCH`, `SELECT`, `PING`), health checks o escrituras efímeras con TTL que expiran automáticamente.
+- **Pruebas No Destructivas:** Todas las verificaciones se limitan a lecturas acotadas (`findOne`, `MATCH`, `SELECT`, `PING`), health checks y comprobaciones de claves ausentes sin mutar el estado ni realizar escrituras persistentes en las bases de datos.

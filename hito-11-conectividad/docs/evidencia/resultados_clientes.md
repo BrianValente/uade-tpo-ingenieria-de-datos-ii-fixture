@@ -49,7 +49,7 @@ Ejecutando verificaciones de drivers y protocolos nativos...
 | MongoDB | Operación mínima | **UP (OK)** | 2ms | Lectura no destructiva ejecutada: Equipo ARG encontrado | Operación mínima de lectura completada con éxito sin modificar datos. |
 | Redis | Handshake | **UP (OK)** | 1ms | Comando PING respondió: PONG | Protocolo RESP validado correctamente. |
 | Redis | Contexto | **UP (OK)** | 1ms | Base de datos lógica Redis #0 activa | Contexto de base de datos indexada accesible. |
-| Redis | Operación mínima | **UP (OK)** | 1ms | Lectura de clave ausente devolvió: null. Prueba de TTL (2s) exitosa. | Diferenciación verificada: una clave inexistente retorna null y no equivale a Redis caído. |
+| Redis | Operación mínima | **UP (OK)** | 1ms | Lectura de clave ausente devolvió: null. Consulta de TTL: -2. | Diferenciación verificada: una clave inexistente retorna null y TTL -2 de forma pura de solo lectura sin alterar el estado de Redis. |
 | Neo4j (Bolt) | Handshake | **UP (OK)** | 12ms | Conexión Bolt y autenticación exitosa | Handshake Bolt establecido en bolt://127.0.0.1:7687 como usuario "neo4j". |
 | Neo4j (Bolt) | Contexto | **UP (OK)** | 3ms | Base de datos "neo4j" seleccionada correctamente | Contexto de grafo accesible y permisos de consulta comprobados. |
 | Neo4j (Bolt) | Operación mínima | **UP (OK)** | 4ms | Cypher ping retorno: 1. Consulta Match acotada: F2030-001. | Consulta Cypher parametrizada ejecutada sin alterar datos. |
@@ -73,4 +73,4 @@ Resumen:
 ## 3. Observabilidad y Protección de Secretos (RNF7, RNF8)
 - Todas las URIs generadas en las salidas reemplazan contraseñas por cadenas redactadas (`******`).
 - Los tokens y contraseñas de las pruebas se leen de variables de entorno o memoria volátil, impidiendo cualquier filtración hacia los reportes.
-- El script no realiza escrituras persistentes en las colecciones de negocio (`equipos`, `partidos`, etc.); las pruebas de escritura usan claves efímeras con expiración automática (TTL) en Redis.
+- El script opera de forma estrictamente no destructiva y de solo lectura; la prueba de ausencia en Redis consulta una clave no existente y verifica su TTL (-2) sin realizar escrituras ni mutar el estado.

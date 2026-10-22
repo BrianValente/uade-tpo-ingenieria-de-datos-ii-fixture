@@ -34,7 +34,7 @@ Para garantizar honestidad experimental (RNF17) y una clasificación rigurosa (R
 | | Transporte TCP | Socket TCP a `127.0.0.1:6379` | **UP** / **DOWN** | ~1ms / - | Listener RESP activo. |
 | | Handshake Protocolo | Comando RESP `PING` | **UP** | <1ms | Responde `PONG`. Protocolo en memoria verificado. |
 | | Contexto Lógico | Selección de base indexada `#0` y namespace `api:session` | **UP** | <1ms | Estructura de claves verificada. |
-| | Operación Mínima | `GET probe_key` (null) y `SET probe_key EX 2` | **UP** | ~1ms | Clave ausente devuelve null sin error. Demuestra que clave ausente $\neq$ Redis caído. |
+| | Operación Mínima | `GET probe_key` (null) y `TTL probe_key` (-2) | **UP** | ~1ms | Operación de solo lectura no destructiva. Clave ausente devuelve null sin alterar el estado de Redis. |
 | | Cadena API HTTP | `POST /auth/login` y verificación en `GET /auth/perfil` | **UP** | ~12ms | Genera token opaco y valida renovación de TTL en rutas de negocio. |
 | **Neo4j** | Configuración | `NEO4J_HOST`, `NEO4J_BOLT_PORT`, `NEO4J_HTTP_PORT` | **UP** | <1ms | Configuración de puertos Bolt y HTTP leída correctamente. |
 | | Transporte TCP (Bolt) | Socket TCP a `127.0.0.1:7687` | **UP** / **DOWN** | ~1ms / - | Listener Bolt activo. |
@@ -42,26 +42,26 @@ Para garantizar honestidad experimental (RNF17) y una clasificación rigurosa (R
 | | Handshake Protocolo | `driver.verifyConnectivity()` | **UP** | ~10ms | Negociación de versión de protocolo Bolt completada. |
 | | Autenticación | Basic Auth con `NEO4J_USERNAME` y `NEO4J_PASSWORD` | **UP** / **NOT_CONF** | ~18ms | `NOT_CONFIGURED` si falta contraseña en .env; `UP` con credencial válida. |
 | | Contexto Lógico | Sesión explícita sobre base `neo4j` | **UP** | ~2ms | Base de datos de grafos seleccionada. |
-| | Operación Mínima | Cypher `RETURN 1 AS ping` y `MATCH (m:Match) RETURN m LIMIT 1` | **UP** | ~4ms | Consulta acotada de lectura Cypher no destructiva. |
+| | Operación Mínima | Cypher `RETURN 1 AS ping` y `MATCH (p:Partido {codigo: $codigo}) RETURN p.codigo, p.estado LIMIT 1` | **UP** | ~4ms | Consulta acotada de lectura Cypher parametrizada sobre la entidad del modelo. |
 | | Cadena API HTTP | `GET /partidos/F2030-001` y `GET /partidos/F2030-001/eventos` | **UP** | ~15ms | Ficha de partido coordinada con MongoDB y eventos de grafo. |
 | **Cassandra** | Configuración | `CASSANDRA_HOST`, `CASSANDRA_PORT`, `CASSANDRA_KEYSPACE` | **UP** | <1ms | Datacenter `datacenter1` y keyspace configurados. |
 | | Transporte TCP | Socket TCP a `127.0.0.1:9042` | **UP** / **DOWN** | ~1ms / - | Listener nativo CQL activo. |
 | | Handshake Protocolo | `client.connect()` | **UP** | ~20ms | Negociación binaria CQL y descubrimiento de topología de nodos. |
-| | Contexto Lógico | `USE fixture2030_comentarios` | **UP** / **DEGRADED** | ~3ms | `UP` si el esquema de comentarios fue migrado; `DEGRADED` si no existe aún. |
-| | Operación Mínima | `SELECT release_version FROM system.local` | **UP** | ~3ms | Comprobación de metadatos del cluster Cassandra. |
+| | Contexto Lógico | Metadatos de keyspace `fixture2030_comentarios` y tabla `comentarios_por_partido` | **UP** / **DEGRADED** | ~3ms | `UP` si el esquema de comentarios fue migrado; `DEGRADED` si no existe aún. |
+| | Operación Mínima | `SELECT release_version FROM system.local` y consulta particionada preparada por `(partido_id, bucket_minuto, grupo)` | **UP** | ~3ms | Lectura CQL de comentarios con clave de partición real sin full-scan. |
 | | Cadena API HTTP | `GET /partidos/F2030-001/comentarios` | **UP** | ~9ms | Consulta paginada con cursor temporal sin full scan. |
 | **InfluxDB 3** | Configuración | `INFLUXDB_URL`, `INFLUXDB_DATABASE`, `INFLUXDB_TOKEN` | **UP** | <1ms | URL HTTP `http://127.0.0.1:8181` configurada. |
 | | Transporte TCP | Socket TCP a `127.0.0.1:8181` | **UP** / **DOWN** | ~1ms / - | Listener HTTP activo. |
 | | Handshake Protocolo | `GET /health` | **UP** | ~3ms | Responde HTTP 200 `{ "status": "pass" }` sin requerir token. |
-| | Autenticación / Contexto | Petición con `Authorization: Bearer <token>` a la base | **UP** / **NOT_CONF** | ~5ms | `NOT_CONFIGURED` si falta token en `.local/admin-token`. |
-| | Operación Mínima | Consulta acotada de intervalo temporal | **UP** | ~6ms | Comprobación de intervalo válido sin puntos vs falla de base. |
+| | Autenticación / Contexto | `Authorization: Bearer <token>` contra `/api/v3/query_sql` | **UP** / **NOT_CONF** | ~5ms | `NOT_CONFIGURED` si falta token en entorno; `UP` con token válido. |
+| | Operación Mínima | Consulta SQL parametrizada sobre `estadisticas_equipo` con ventana temporal acotada | **UP** | ~6ms | Comprobación de intervalo temporal válido sin mutar datos. |
 | | Cadena API HTTP | `GET /partidos/F2030-001/estadisticas` | **UP** | ~10ms | Consulta parametrizada sobre intervalo de tiempo. |
 | **InterSystems IRIS** | Configuración | `IRIS_HOST`, `IRIS_PORT`, `IRIS_NAMESPACE` | **UP** | <1ms | Namespace `USER` y puertos 1972/52773 leídos. |
 | | Transporte TCP (SS) | Socket TCP a `127.0.0.1:1972` | **UP** / **DOWN** | ~1ms / - | Listener SuperServer binario. |
-| | Transporte TCP (Web) | Socket TCP a `127.0.0.1:52773` | **UP** / **DOWN** | ~1ms / - | Portal de administración web accesible. |
+| | Transporte TCP (Web) | Socket TCP a `127.0.0.1:52773` | **UP** / **DOWN** | ~1ms / - | Portal de administración web accesible (`/csp/sys/UtilHome.csp`). |
 | | Handshake / Auth | Conexión SuperServer mediante cliente nativo | **UP** / **NOT_CONF** | ~15ms | `NOT_CONFIGURED` en entornos sin usuario de laboratorio temporal. |
 | | Contexto Lógico | Namespace `USER` | **UP** | ~2ms | Espacio de clases y rutinas seleccionado. |
-| | Operación Mínima | Lectura de clase de partido extendido | **UP** | ~5ms | Persistencia orientada a objetos comprobada. |
+| | Operación Mínima | Consulta `%SQL.Statement` sobre clase persistente `Fixture.Partido` | **UP** | ~5ms | Persistencia orientada a objetos comprobada de forma no destructiva. |
 | | Cadena API HTTP | `GET /partidos/F2030-IRIS-0011/detalle` | **UP** | ~12ms | Lectura de entidad persistente y eventos de partido en IRIS. |
 
 ---

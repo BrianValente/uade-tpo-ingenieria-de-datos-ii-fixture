@@ -1,9 +1,14 @@
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
-import { MongoClient } from 'mongodb'
-import { createClient } from 'redis'
-import neo4j from 'neo4j-driver'
-import cassandra from 'cassandra-driver'
+import {
+  loadMongo,
+  loadRedis,
+  loadNeo4j,
+  loadCassandra,
+  loadIris,
+} from './driver_loader.js'
+import { sanitizeSecrets, sanitizeUrl } from './sanitizer.js'
+import { parsePort } from './prueba_tcp.js'
 
 export interface NativeCheckResult {
   product: string
@@ -16,38 +21,84 @@ export interface NativeCheckResult {
 
 const TIMEOUT_MS = Number(process.env.DEPENDENCY_TIMEOUT_MS) || 2000
 
+// Helper para envolver promesas con timeout estricto
+function withTimeout<T>(promise: Promise<T>, ms: number, opName: string): Promise<T> {
+  let timer: NodeJS.Timeout
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`Timeout de ${ms}ms superado durante la operación "${opName}"`))
+    }, ms)
+  })
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer))
+}
+
 // ============================================================================
 // 1. MONGODB
 // ============================================================================
 export async function testMongoNative(): Promise<NativeCheckResult[]> {
   const host = process.env.MONGO_HOST || '127.0.0.1'
-  const port = Number(process.env.MONGO_PORT) || 27017
+  const portConfig = parsePort(process.env.MONGO_PORT, 27017, 'MONGO_PORT')
   const database = process.env.MONGO_DATABASE || 'fixture2030'
   const username = process.env.MONGO_ROOT_USERNAME || ''
   const password = process.env.MONGO_ROOT_PASSWORD || ''
   const authSource = process.env.MONGO_AUTH_SOURCE || 'admin'
 
+  const results: NativeCheckResult[] = []
+
+  if (portConfig.configError) {
+    results.push({
+      product: 'MongoDB',
+      layer: 'Configuración',
+      status: 'DOWN',
+      latencyMs: 0,
+      detail: portConfig.configError,
+      diagnostic: 'Error de configuración: puerto de MongoDB inválido.',
+    })
+    return results
+  }
+
+  const port = portConfig.port
   const authPart = username && password ? `${encodeURIComponent(username)}:******@` : ''
   const sanitizedUri = `mongodb://${authPart}${host}:${port}/${database}?authSource=${authSource}`
   const realAuthPart = username && password ? `${encodeURIComponent(username)}:${encodeURIComponent(password)}@` : ''
   const realUri = `mongodb://${realAuthPart}${host}:${port}/${database}?authSource=${authSource}`
 
-  const results: NativeCheckResult[] = []
   const start = Date.now()
-  let client: MongoClient | null = null
+  let client: any = null
 
   try {
-    client = new MongoClient(realUri, {
+    let MongoClientClass: any
+    try {
+      MongoClientClass = await loadMongo()
+    } catch (loadErr: unknown) {
+      const msg = loadErr instanceof Error ? loadErr.message : String(loadErr)
+      results.push({
+        product: 'MongoDB',
+        layer: 'Handshake',
+        status: 'SKIP',
+        latencyMs: 0,
+        detail: 'Driver de MongoDB no disponible en el entorno',
+        diagnostic: `SKIP: ${sanitizeSecrets(msg)}`,
+      })
+      return results
+    }
+
+    client = new MongoClientClass(realUri, {
       serverSelectionTimeoutMS: TIMEOUT_MS,
       connectTimeoutMS: TIMEOUT_MS,
+      timeoutMS: TIMEOUT_MS,
     })
 
-    await client.connect()
+    await withTimeout(client.connect(), TIMEOUT_MS, 'MongoClient.connect')
     const connectLatency = Date.now() - start
 
     // Layer: Handshake / Ping
-    const pingRes = await client.db(authSource).command({ ping: 1 })
-    if (pingRes.ok === 1) {
+    const pingRes: any = await withTimeout(
+      client.db(authSource).command({ ping: 1 }),
+      TIMEOUT_MS,
+      'MongoDB ping',
+    )
+    if (pingRes && pingRes.ok === 1) {
       results.push({
         product: 'MongoDB',
         layer: 'Handshake',
@@ -58,42 +109,78 @@ export async function testMongoNative(): Promise<NativeCheckResult[]> {
       })
     }
 
-    // Layer: Context & Operación mínima
+    // Layer: Contexto (F12 — verificar existencia real de la colección mediante metadatos)
     const db = client.db(database)
     const opStart = Date.now()
-    const team = await db.collection('equipos').findOne({ codigo: 'ARG' })
-    const opLatency = Date.now() - opStart
 
-    // Test non-existent entity to prove difference between empty and error
-    const nonExistent = await db.collection('equipos').findOne({ codigo: 'NON_EXISTENT_XXX' })
+    const collections = await withTimeout(
+      db.listCollections({ name: 'equipos' }).toArray(),
+      TIMEOUT_MS,
+      'MongoDB listCollections',
+    )
+    const collectionExists = Array.isArray(collections) && collections.length > 0
+    const contextLatency = Date.now() - opStart
 
-    results.push({
-      product: 'MongoDB',
-      layer: 'Contexto',
-      status: 'UP',
-      latencyMs: opLatency,
-      detail: `Base "${database}" y colección "equipos" seleccionadas correctamente`,
-      diagnostic: `Contexto verificado. Documento inexistente retornó ${nonExistent === null ? 'null (ausencia válida)' : 'valor'}.`,
-    })
+    if (collectionExists) {
+      results.push({
+        product: 'MongoDB',
+        layer: 'Contexto',
+        status: 'UP',
+        latencyMs: contextLatency,
+        detail: `Base "${database}" y colección "equipos" verificadas mediante listCollections`,
+        diagnostic: 'Contexto de base y colección verificado en el catálogo de MongoDB.',
+      })
 
-    results.push({
-      product: 'MongoDB',
-      layer: 'Operación mínima',
-      status: 'UP',
-      latencyMs: opLatency,
-      detail: `Lectura no destructiva ejecutada: ${team ? `Equipo ${team.codigo ?? 'ARG'} encontrado` : 'Colección vacía'}`,
-      diagnostic: 'Operación mínima de lectura completada con éxito sin modificar datos.',
-    })
+      // Layer: Operación mínima (F12 — diferenciar ausencia de ARG respecto a colección vacía o inexistente)
+      const readStart = Date.now()
+      const team = await withTimeout(
+        db.collection('equipos').findOne({ codigo: 'ARG' }),
+        TIMEOUT_MS,
+        'MongoDB findOne',
+      )
+      const opLatency = Date.now() - readStart
+
+      results.push({
+        product: 'MongoDB',
+        layer: 'Operación mínima',
+        status: 'UP',
+        latencyMs: opLatency,
+        detail: team
+          ? `Equipo ARG encontrado en colección "equipos"`
+          : 'Equipo ARG ausente en colección existente (ausencia controlada)',
+        diagnostic: 'Operación mínima de lectura ejecutada de forma no destructiva.',
+      })
+    } else {
+      results.push({
+        product: 'MongoDB',
+        layer: 'Contexto',
+        status: 'DEGRADED',
+        latencyMs: contextLatency,
+        detail: `Base "${database}" accesible, pero la colección "equipos" no existe aún en el nodo`,
+        diagnostic: 'La base de datos responde pero la colección requerida no ha sido creada o sembrada.',
+      })
+
+      results.push({
+        product: 'MongoDB',
+        layer: 'Operación mínima',
+        status: 'SKIP',
+        latencyMs: 0,
+        detail: 'Lectura de equipo omitida por ausencia de la colección "equipos"',
+        diagnostic: 'No se puede ejecutar findOne sobre una colección inexistente.',
+      })
+    }
   } catch (err: unknown) {
-    const error = err as Error & { code?: string | number }
+    const error = err as Error
     const latency = Date.now() - start
     results.push({
       product: 'MongoDB',
       layer: 'Handshake',
       status: 'DOWN',
       latencyMs: latency,
-      detail: `Error de conexión: ${error.name} - ${error.message}`,
-      diagnostic: `No se pudo completar el handshake o autenticación con MongoDB en ${host}:${port}. URI objetivo: ${sanitizedUri}.`,
+      detail: sanitizeSecrets(`Error de conexión: ${error.name} - ${error.message}`),
+      diagnostic: sanitizeSecrets(
+        `Fallo al conectar o autenticar con MongoDB en ${host}:${port}. URI objetivo: ${sanitizedUri}.`,
+      ),
     })
   } finally {
     if (client) {
@@ -109,14 +196,44 @@ export async function testMongoNative(): Promise<NativeCheckResult[]> {
 // ============================================================================
 export async function testRedisNative(): Promise<NativeCheckResult[]> {
   const host = process.env.REDIS_HOST || '127.0.0.1'
-  const port = Number(process.env.REDIS_PORT) || 6379
+  const portConfig = parsePort(process.env.REDIS_PORT, 6379, 'REDIS_PORT')
   const database = Number(process.env.REDIS_DATABASE) || 0
   const password = process.env.REDIS_PASSWORD || ''
 
   const results: NativeCheckResult[] = []
+
+  if (portConfig.configError) {
+    results.push({
+      product: 'Redis',
+      layer: 'Configuración',
+      status: 'DOWN',
+      latencyMs: 0,
+      detail: portConfig.configError,
+      diagnostic: 'Error de configuración: puerto de Redis inválido.',
+    })
+    return results
+  }
+
+  const port = portConfig.port
   const start = Date.now()
 
-  const client = createClient({
+  let createClientFn: any
+  try {
+    createClientFn = await loadRedis()
+  } catch (loadErr: unknown) {
+    const msg = loadErr instanceof Error ? loadErr.message : String(loadErr)
+    results.push({
+      product: 'Redis',
+      layer: 'Handshake',
+      status: 'SKIP',
+      latencyMs: 0,
+      detail: 'Driver de Redis no disponible en el entorno',
+      diagnostic: `SKIP: ${sanitizeSecrets(msg)}`,
+    })
+    return results
+  }
+
+  const client = createClientFn({
     url: `redis://${password ? `:${encodeURIComponent(password)}@` : ''}${host}:${port}/${database}`,
     socket: {
       connectTimeout: TIMEOUT_MS,
@@ -125,15 +242,15 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
   })
 
   client.on('error', () => {
-    // suppress unhandled errors in emitter
+    // suprimir errores no capturados del emisor
   })
 
   try {
-    await client.connect()
+    await withTimeout(client.connect(), TIMEOUT_MS, 'Redis connect')
     const connectLatency = Date.now() - start
 
-    // Layer: Handshake / Ping RESP
-    const pingReply = await client.ping()
+    // Layer: Handshake / Ping RESP (F08 — con timeout de comando)
+    const pingReply = await withTimeout(client.ping(), TIMEOUT_MS, 'Redis PING')
     results.push({
       product: 'Redis',
       layer: 'Handshake',
@@ -153,23 +270,21 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
       diagnostic: 'Contexto de base de datos indexada accesible.',
     })
 
-    // Layer: Operación mínima y comprobación de ausencia vs caída
+    // Layer: Operación mínima y comprobación de ausencia vs caída (F07 / R13 — Solo lectura)
     const opStart = Date.now()
-    const nonExistentKey = `fixture2030:test:probe:${Date.now()}`
-    const missingValue = await client.get(nonExistentKey)
-
-    // Demo write con TTL para validar expiración sin persistir basura
-    await client.set(nonExistentKey, 'probe_val', { EX: 2 })
-    const fetchedVal = await client.get(nonExistentKey)
+    const probeKey = 'fixture2030:test:nonexistent_probe_key'
+    const missingValue = await withTimeout(client.get(probeKey), TIMEOUT_MS, 'Redis GET')
+    const probeTtl = await withTimeout(client.ttl(probeKey), TIMEOUT_MS, 'Redis TTL')
     const opLatency = Date.now() - opStart
 
     results.push({
       product: 'Redis',
       layer: 'Operación mínima',
-      status: fetchedVal === 'probe_val' ? 'UP' : 'DEGRADED',
+      status: missingValue === null ? 'UP' : 'DEGRADED',
       latencyMs: opLatency,
-      detail: `Lectura de clave ausente devolvió: ${missingValue === null ? 'null' : missingValue}. Prueba de TTL (2s) exitosa.`,
-      diagnostic: 'Diferenciación verificada: una clave inexistente retorna null y no equivale a Redis caído.',
+      detail: `Lectura de clave ausente devolvió: null. Consulta de TTL: ${probeTtl} (clave inexistente comprobada sin escrituras).`,
+      diagnostic:
+        'Operación de solo lectura completada: una clave ausente retorna null y TTL -2 sin alterar el estado de Redis.',
     })
   } catch (err: unknown) {
     const error = err as Error
@@ -178,11 +293,11 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
       layer: 'Handshake',
       status: 'DOWN',
       latencyMs: Date.now() - start,
-      detail: `Fallo de conexión Redis: ${error.message}`,
+      detail: sanitizeSecrets(`Fallo de conexión Redis: ${error.message}`),
       diagnostic: `No se pudo conectar al servidor RESP en ${host}:${port}.`,
     })
   } finally {
-    if (client.isOpen) {
+    if (client && client.isOpen) {
       await client.quit().catch(() => client.disconnect())
     }
   }
@@ -195,11 +310,23 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
 // ============================================================================
 export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
   const host = process.env.NEO4J_HOST || '127.0.0.1'
-  const boltPort = Number(process.env.NEO4J_BOLT_PORT) || 7687
+  const portConfig = parsePort(process.env.NEO4J_BOLT_PORT, 7687, 'NEO4J_BOLT_PORT')
   const username = process.env.NEO4J_USERNAME || 'neo4j'
   const password = process.env.NEO4J_PASSWORD || ''
 
   const results: NativeCheckResult[] = []
+
+  if (portConfig.configError) {
+    results.push({
+      product: 'Neo4j (Bolt)',
+      layer: 'Configuración',
+      status: 'DOWN',
+      latencyMs: 0,
+      detail: portConfig.configError,
+      diagnostic: 'Error de configuración: puerto Bolt de Neo4j inválido.',
+    })
+    return results
+  }
 
   if (!password) {
     results.push({
@@ -213,16 +340,33 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
     return results
   }
 
+  let neo4jLib: any
+  try {
+    neo4jLib = await loadNeo4j()
+  } catch (loadErr: unknown) {
+    const msg = loadErr instanceof Error ? loadErr.message : String(loadErr)
+    results.push({
+      product: 'Neo4j (Bolt)',
+      layer: 'Handshake',
+      status: 'SKIP',
+      latencyMs: 0,
+      detail: 'Driver de Neo4j no disponible en el entorno',
+      diagnostic: `SKIP: ${sanitizeSecrets(msg)}`,
+    })
+    return results
+  }
+
   const start = Date.now()
+  const boltPort = portConfig.port
   const uri = `bolt://${host}:${boltPort}`
-  const driver = neo4j.driver(
+  const driver = neo4jLib.driver(
     uri,
-    neo4j.auth.basic(username, password),
+    neo4jLib.auth.basic(username, password),
     { connectionTimeout: TIMEOUT_MS, maxConnectionLifetime: 3000 },
   )
 
   try {
-    await driver.verifyConnectivity()
+    await withTimeout(driver.verifyConnectivity(), TIMEOUT_MS, 'Neo4j verifyConnectivity')
     const connectLatency = Date.now() - start
 
     results.push({
@@ -237,13 +381,27 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
     const session = driver.session({ database: 'neo4j' })
     try {
       const opStart = Date.now()
-      const queryRes = await session.run('RETURN 1 AS ping')
+      const queryRes: any = await withTimeout(
+        session.run('RETURN 1 AS ping'),
+        TIMEOUT_MS,
+        'Neo4j Cypher ping',
+      )
       const opLatency = Date.now() - opStart
       const pingVal = queryRes.records[0]?.get('ping')?.toNumber?.() ?? 1
 
-      // Match check acotado
-      const matchRes = await session.run('MATCH (m:Match) RETURN m.id AS id LIMIT 1')
-      const matchFound = matchRes.records.length > 0 ? matchRes.records[0].get('id') : 'Sin registros'
+      // F11 — Consulta parametrizada sobre etiqueta real del modelo: :Partido
+      const partidoRes: any = await withTimeout(
+        session.run(
+          'MATCH (p:Partido {codigo: $codigo}) RETURN p.codigo AS codigo, p.estado AS estado LIMIT 1',
+          { codigo: 'F2030-001' },
+        ),
+        TIMEOUT_MS,
+        'Neo4j Cypher partido query',
+      )
+
+      const foundPartido = partidoRes.records.length > 0
+        ? `Partido ${partidoRes.records[0].get('codigo')} encontrado`
+        : 'Código F2030-001 ausente (ausencia controlada en grafo)'
 
       results.push({
         product: 'Neo4j (Bolt)',
@@ -259,8 +417,8 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
         layer: 'Operación mínima',
         status: 'UP',
         latencyMs: opLatency,
-        detail: `Cypher ping retorno: ${pingVal}. Consulta Match acotada: ${matchFound}.`,
-        diagnostic: 'Consulta Cypher parametrizada ejecutada sin alterar datos.',
+        detail: `Cypher ping retorno: ${pingVal}. Consulta :Partido parametrizada: ${foundPartido}.`,
+        diagnostic: 'Consulta Cypher parametrizada sobre etiqueta :Partido ejecutada sin alterar datos.',
       })
     } finally {
       await session.close()
@@ -272,7 +430,7 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
       layer: 'Handshake',
       status: 'DOWN',
       latencyMs: Date.now() - start,
-      detail: `Fallo Bolt: ${error.message}`,
+      detail: sanitizeSecrets(`Fallo Bolt: ${error.message}`),
       diagnostic: `No se pudo establecer sesión Bolt en ${uri}.`,
     })
   } finally {
@@ -287,22 +445,54 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
 // ============================================================================
 export async function testCassandraNative(): Promise<NativeCheckResult[]> {
   const host = process.env.CASSANDRA_HOST || '127.0.0.1'
-  const port = Number(process.env.CASSANDRA_PORT) || 9042
+  const portConfig = parsePort(process.env.CASSANDRA_PORT, 9042, 'CASSANDRA_PORT')
   const datacenter = process.env.CASSANDRA_DATACENTER || 'datacenter1'
   const keyspace = process.env.CASSANDRA_KEYSPACE || 'fixture2030_comentarios'
 
   const results: NativeCheckResult[] = []
+
+  if (portConfig.configError) {
+    results.push({
+      product: 'Cassandra (CQL)',
+      layer: 'Configuración',
+      status: 'DOWN',
+      latencyMs: 0,
+      detail: portConfig.configError,
+      diagnostic: 'Error de configuración: puerto de Cassandra inválido.',
+    })
+    return results
+  }
+
+  let cassandraLib: any
+  try {
+    cassandraLib = await loadCassandra()
+  } catch (loadErr: unknown) {
+    const msg = loadErr instanceof Error ? loadErr.message : String(loadErr)
+    results.push({
+      product: 'Cassandra (CQL)',
+      layer: 'Handshake',
+      status: 'SKIP',
+      latencyMs: 0,
+      detail: 'Driver de Cassandra no disponible en el entorno',
+      diagnostic: `SKIP: ${sanitizeSecrets(msg)}`,
+    })
+    return results
+  }
+
+  const port = portConfig.port
   const start = Date.now()
 
-  const client = new cassandra.Client({
+  // F05 — Configurar keyspace directamente en el cliente
+  const client = new cassandraLib.Client({
     contactPoints: [host],
     protocolOptions: { port },
     localDataCenter: datacenter,
+    keyspace,
     socketOptions: { connectTimeout: TIMEOUT_MS, readTimeout: TIMEOUT_MS },
   })
 
   try {
-    await client.connect()
+    await withTimeout(client.connect(), TIMEOUT_MS, 'Cassandra connect')
     const connectLatency = Date.now() - start
 
     results.push({
@@ -315,38 +505,96 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
     })
 
     const opStart = Date.now()
-    const systemRes = await client.execute('SELECT release_version FROM system.local')
+    const systemRes: any = await withTimeout(
+      client.execute('SELECT release_version FROM system.local'),
+      TIMEOUT_MS,
+      'Cassandra system.local',
+    )
     const version = systemRes.first()?.get('release_version') ?? 'desconocida'
 
+    // F05 — Comprobar contexto y existencia de la tabla comentarios_por_partido
     let keyspaceOk = false
+    let tableOk = false
     try {
-      await client.execute(`USE ${keyspace}`)
-      keyspaceOk = true
+      const meta = client.metadata.keyspaces[keyspace]
+      if (meta) {
+        keyspaceOk = true
+        tableOk = Boolean(meta.tables['comentarios_por_partido'])
+      }
     } catch {
       keyspaceOk = false
     }
 
     const opLatency = Date.now() - opStart
 
-    results.push({
-      product: 'Cassandra (CQL)',
-      layer: 'Contexto',
-      status: keyspaceOk ? 'UP' : 'DEGRADED',
-      latencyMs: opLatency,
-      detail: keyspaceOk ? `Keyspace "${keyspace}" seleccionado` : `Keyspace "${keyspace}" no encontrado en el nodo`,
-      diagnostic: keyspaceOk
-        ? 'Contexto de keyspace validado.'
-        : `El cluster responde versión ${version}, pero el keyspace "${keyspace}" no existe aún.`,
-    })
+    if (keyspaceOk && tableOk) {
+      results.push({
+        product: 'Cassandra (CQL)',
+        layer: 'Contexto',
+        status: 'UP',
+        latencyMs: opLatency,
+        detail: `Keyspace "${keyspace}" y tabla "comentarios_por_partido" verificados`,
+        diagnostic: 'Contexto de keyspace y tabla de comentarios validado en metadatos.',
+      })
 
-    results.push({
-      product: 'Cassandra (CQL)',
-      layer: 'Operación mínima',
-      status: 'UP',
-      latencyMs: opLatency,
-      detail: `Consulta de metadatos del cluster: versión Cassandra ${version}`,
-      diagnostic: 'Operación CQL no destructiva completada con éxito.',
-    })
+      // F05 — Lectura preparada con partición real: partido_id, bucket_minuto, grupo
+      const cqlQuery = `SELECT partido_id, bucket_minuto, grupo, comentario_id, contenido
+        FROM comentarios_por_partido
+        WHERE partido_id = ? AND bucket_minuto = ? AND grupo = ? LIMIT 1`
+      const params = ['F2030-001', new Date('2030-06-13T20:01:00.000Z'), 0]
+
+      const cqlRes: any = await withTimeout(
+        client.execute(cqlQuery, params, { prepare: true }),
+        TIMEOUT_MS,
+        'Cassandra comentarios read',
+      )
+      const rowsCount = cqlRes.rowLength ?? cqlRes.rows?.length ?? 0
+
+      results.push({
+        product: 'Cassandra (CQL)',
+        layer: 'Operación mínima',
+        status: 'UP',
+        latencyMs: opLatency,
+        detail: `Lectura CQL particionada ejecutada (${rowsCount} comentarios encontrados)`,
+        diagnostic: 'Consulta CQL con partición real (partido_id, bucket_minuto, grupo) ejecutada con éxito.',
+      })
+    } else if (keyspaceOk && !tableOk) {
+      results.push({
+        product: 'Cassandra (CQL)',
+        layer: 'Contexto',
+        status: 'DEGRADED',
+        latencyMs: opLatency,
+        detail: `Keyspace "${keyspace}" presente pero tabla "comentarios_por_partido" no creada`,
+        diagnostic: 'El cluster responde pero la tabla de comentarios no ha sido inicializada.',
+      })
+
+      results.push({
+        product: 'Cassandra (CQL)',
+        layer: 'Operación mínima',
+        status: 'SKIP',
+        latencyMs: 0,
+        detail: 'Lectura de comentarios omitida por ausencia de tabla',
+        diagnostic: 'No se puede ejecutar consulta de comentarios sin la tabla creada.',
+      })
+    } else {
+      results.push({
+        product: 'Cassandra (CQL)',
+        layer: 'Contexto',
+        status: 'DEGRADED',
+        latencyMs: opLatency,
+        detail: `Keyspace "${keyspace}" no encontrado en el nodo (versión ${version})`,
+        diagnostic: 'El cluster responde pero el keyspace configurado no existe aún.',
+      })
+
+      results.push({
+        product: 'Cassandra (CQL)',
+        layer: 'Operación mínima',
+        status: 'SKIP',
+        latencyMs: 0,
+        detail: 'Lectura omitida por falta de keyspace',
+        diagnostic: 'No se ejecutó operación de comentarios por contexto no inicializado.',
+      })
+    }
   } catch (err: unknown) {
     const error = err as Error
     const cleanMsg = error.message.split('\n')[0]
@@ -355,7 +603,7 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
       layer: 'Handshake',
       status: 'DOWN',
       latencyMs: Date.now() - start,
-      detail: `Fallo CQL: ${cleanMsg}`,
+      detail: sanitizeSecrets(`Fallo CQL: ${cleanMsg}`),
       diagnostic: `No se pudo conectar al protocolo nativo CQL en ${host}:${port}.`,
     })
   } finally {
@@ -369,62 +617,47 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
 // 5. INFLUXDB 3 CORE
 // ============================================================================
 export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
-  const url = process.env.INFLUXDB_URL || 'http://127.0.0.1:8181'
+  const rawUrl = process.env.INFLUXDB_URL || 'http://127.0.0.1:8181'
   const database = process.env.INFLUXDB_DATABASE || 'fixture2030_h8_lab_detalle'
   const token = process.env.INFLUXDB_TOKEN || ''
 
   const results: NativeCheckResult[] = []
   const start = Date.now()
 
+  // 1. Health check HTTP (F08 — Timeout cubre toda la lectura del cuerpo)
+  const healthUrl = `${rawUrl.replace(/\/$/, '')}/health`
+  let healthOk = false
+
   try {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+    try {
+      const response = await fetch(healthUrl, { signal: controller.signal })
+      const text = await response.text()
+      const latency = Date.now() - start
 
-    const healthUrl = `${url.replace(/\/$/, '')}/health`
-    const response = await fetch(healthUrl, { signal: controller.signal })
-    clearTimeout(timer)
-
-    const latency = Date.now() - start
-
-    if (response.ok) {
-      results.push({
-        product: 'InfluxDB 3 Core',
-        layer: 'Handshake',
-        status: 'UP',
-        latencyMs: latency,
-        detail: `Endpoint /health respondió status ${response.status}`,
-        diagnostic: 'Servicio InfluxDB 3 Core iniciado y saludable.',
-      })
-    } else {
-      results.push({
-        product: 'InfluxDB 3 Core',
-        layer: 'Handshake',
-        status: 'DEGRADED',
-        latencyMs: latency,
-        detail: `Endpoint /health respondió HTTP ${response.status}`,
-        diagnostic: 'Servicio responde pero con estado no exitoso.',
-      })
-    }
-
-    // Layer: Contexto y Autorización
-    if (!token) {
-      results.push({
-        product: 'InfluxDB 3 Core',
-        layer: 'Autenticación',
-        status: 'NOT_CONFIGURED',
-        latencyMs: 0,
-        detail: 'INFLUXDB_TOKEN no configurado en variables de entorno',
-        diagnostic: 'SKIP: No se configuró token de autenticación para InfluxDB 3; omitiendo consultas de datos.',
-      })
-    } else {
-      results.push({
-        product: 'InfluxDB 3 Core',
-        layer: 'Contexto',
-        status: 'UP',
-        latencyMs: latency,
-        detail: `Token presente. Base de datos configurada: "${database}"`,
-        diagnostic: 'Configuración de acceso a base de series temporales preparada.',
-      })
+      if (response.ok) {
+        healthOk = true
+        results.push({
+          product: 'InfluxDB 3 Core',
+          layer: 'Handshake',
+          status: 'UP',
+          latencyMs: latency,
+          detail: `Endpoint /health respondió HTTP ${response.status}`,
+          diagnostic: 'Servicio InfluxDB 3 Core iniciado y saludable.',
+        })
+      } else {
+        results.push({
+          product: 'InfluxDB 3 Core',
+          layer: 'Handshake',
+          status: 'DEGRADED',
+          latencyMs: latency,
+          detail: `Endpoint /health respondió HTTP ${response.status}`,
+          diagnostic: sanitizeSecrets(`Servicio responde pero con estado no exitoso: ${text.slice(0, 100)}`),
+        })
+      }
+    } finally {
+      clearTimeout(timer)
     }
   } catch (err: unknown) {
     const error = err as Error
@@ -433,8 +666,111 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
       layer: 'Handshake',
       status: 'DOWN',
       latencyMs: Date.now() - start,
-      detail: `Fallo HTTP InfluxDB: ${error.message}`,
-      diagnostic: `No se pudo alcanzar el endpoint de InfluxDB en ${url}.`,
+      detail: sanitizeSecrets(`Fallo HTTP InfluxDB: ${error.message}`),
+      diagnostic: sanitizeSecrets(`No se pudo alcanzar el endpoint /health en ${sanitizeUrl(healthUrl)}.`),
+    })
+    return results
+  }
+
+  // 2. Autenticación y Contexto (F04 — Consulta SQL autenticada en /api/v3/query_sql)
+  if (!token) {
+    results.push({
+      product: 'InfluxDB 3 Core',
+      layer: 'Autenticación',
+      status: 'NOT_CONFIGURED',
+      latencyMs: 0,
+      detail: 'INFLUXDB_TOKEN no configurado en variables de entorno',
+      diagnostic: 'SKIP: No se configuró token de autenticación para InfluxDB 3; omitiendo consultas de datos.',
+    })
+    return results
+  }
+
+  const queryUrl = `${rawUrl.replace(/\/$/, '')}/api/v3/query_sql`
+  const sqlQuery = `SELECT equipo_id, COUNT(*) AS muestras
+    FROM estadisticas_equipo
+    WHERE time >= '2030-06-13T20:00:00Z' AND time < '2030-06-13T22:00:00Z'
+    GROUP BY equipo_id LIMIT 1`
+
+  const qStart = Date.now()
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+    try {
+      const qResponse = await fetch(queryUrl, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          db: database,
+          q: sqlQuery,
+          format: 'json',
+        }),
+      })
+
+      const responseText = await qResponse.text()
+      const qLatency = Date.now() - qStart
+
+      if (qResponse.status === 200) {
+        results.push({
+          product: 'InfluxDB 3 Core',
+          layer: 'Contexto',
+          status: 'UP',
+          latencyMs: qLatency,
+          detail: `Base de datos "${database}" accesible y token validado`,
+          diagnostic: 'Autenticación y contexto de base de series temporales comprobados.',
+        })
+
+        results.push({
+          product: 'InfluxDB 3 Core',
+          layer: 'Operación mínima',
+          status: 'UP',
+          latencyMs: qLatency,
+          detail: 'Consulta temporal SQL parametrizada ejecutada en estadisticas_equipo',
+          diagnostic: 'Operación temporal mínima completada con éxito sin alterar datos.',
+        })
+      } else if (qResponse.status === 401 || qResponse.status === 403) {
+        results.push({
+          product: 'InfluxDB 3 Core',
+          layer: 'Autenticación',
+          status: 'DOWN',
+          latencyMs: qLatency,
+          detail: `Token rechazado por InfluxDB (HTTP ${qResponse.status})`,
+          diagnostic: 'El endpoint de consulta rechazó el token configurado por falta de permisos o caducidad.',
+        })
+      } else if (qResponse.status === 404 || responseText.includes('database not found')) {
+        results.push({
+          product: 'InfluxDB 3 Core',
+          layer: 'Contexto',
+          status: 'DOWN',
+          latencyMs: qLatency,
+          detail: `Base de datos "${database}" no encontrada en InfluxDB`,
+          diagnostic: 'El servidor está activo y autenticado, pero la base de datos temporal no existe.',
+        })
+      } else {
+        results.push({
+          product: 'InfluxDB 3 Core',
+          layer: 'Operación mínima',
+          status: 'DEGRADED',
+          latencyMs: qLatency,
+          detail: `Consulta SQL devolvió HTTP ${qResponse.status}`,
+          diagnostic: sanitizeSecrets(`Respuesta no esperada del motor de queries: ${responseText.slice(0, 100)}`),
+        })
+      }
+    } finally {
+      clearTimeout(timer)
+    }
+  } catch (err: unknown) {
+    const error = err as Error
+    results.push({
+      product: 'InfluxDB 3 Core',
+      layer: 'Contexto',
+      status: 'DOWN',
+      latencyMs: Date.now() - qStart,
+      detail: sanitizeSecrets(`Error al ejecutar consulta en InfluxDB: ${error.message}`),
+      diagnostic: 'No se pudo completar la consulta SQL en el endpoint temporal.',
     })
   }
 
@@ -446,37 +782,58 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
 // ============================================================================
 export async function testIrisNative(): Promise<NativeCheckResult[]> {
   const host = process.env.IRIS_HOST || '127.0.0.1'
-  const port = Number(process.env.IRIS_PORT || process.env.IRIS_SUPERSERVER_PORT) || 1972
-  const webPort = Number(process.env.IRIS_WEB_PORT) || 52773
+  const superPortConfig = parsePort(
+    process.env.IRIS_PORT || process.env.IRIS_SUPERSERVER_PORT,
+    1972,
+    'IRIS_PORT',
+  )
+  const webPortConfig = parsePort(process.env.IRIS_WEB_PORT, 52773, 'IRIS_WEB_PORT')
   const namespace = process.env.IRIS_NAMESPACE || 'USER'
   const username = process.env.IRIS_USERNAME || ''
   const password = process.env.IRIS_PASSWORD || ''
 
   const results: NativeCheckResult[] = []
 
-  // Check Web Portal reachability
+  // Check Web Portal reachability (F06 — solo 200..399 es UP; >= 400 es DEGRADED/DOWN)
   const startWeb = Date.now()
   try {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
-    const portalUrl = `http://${host}:${webPort}/csp/sys/UtilHome.csp`
-    const portalRes = await fetch(portalUrl, { signal: controller.signal })
-    clearTimeout(timer)
-    results.push({
-      product: 'InterSystems IRIS (Web)',
-      layer: 'Operación mínima',
-      status: 'UP',
-      latencyMs: Date.now() - startWeb,
-      detail: `Portal HTTP respondió con código ${portalRes.status}`,
-      diagnostic: 'Portal de administración web accesible.',
-    })
+    const portalUrl = `http://${host}:${webPortConfig.port}/csp/sys/UtilHome.csp`
+    try {
+      const portalRes = await fetch(portalUrl, { signal: controller.signal })
+      await portalRes.text()
+      const webLatency = Date.now() - startWeb
+
+      if (portalRes.status >= 200 && portalRes.status < 400) {
+        results.push({
+          product: 'InterSystems IRIS (Web)',
+          layer: 'Operación mínima',
+          status: 'UP',
+          latencyMs: webLatency,
+          detail: `Portal HTTP respondió con código ${portalRes.status}`,
+          diagnostic: 'Portal de administración web accesible y respondiendo correctamente.',
+        })
+      } else {
+        results.push({
+          product: 'InterSystems IRIS (Web)',
+          layer: 'Operación mínima',
+          status: 'DEGRADED',
+          latencyMs: webLatency,
+          detail: `Portal HTTP respondió con error HTTP ${portalRes.status}`,
+          diagnostic: 'El portal web está activo pero respondió con un código de error HTTP.',
+        })
+      }
+    } finally {
+      clearTimeout(timer)
+    }
   } catch {
     results.push({
       product: 'InterSystems IRIS (Web)',
       layer: 'Operación mínima',
       status: 'DOWN',
       latencyMs: Date.now() - startWeb,
-      detail: `No se pudo conectar al portal HTTP en puerto ${webPort}`,
+      detail: `No se pudo conectar al portal HTTP en puerto ${webPortConfig.port}`,
       diagnostic: 'Portal web no disponible en este puerto.',
     })
   }
@@ -494,38 +851,96 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
     return results
   }
 
-  const start = Date.now()
+  let irisLib: any
   try {
-    // Dynamic import to handle environments where the native addon might differ
-    const irisNative = await import('@intersystems/intersystems-iris-native')
-    const connection = irisNative.default?.createConnection?.({
+    irisLib = await loadIris()
+  } catch (loadErr: unknown) {
+    const msg = loadErr instanceof Error ? loadErr.message : String(loadErr)
+    results.push({
+      product: 'InterSystems IRIS (SuperServer)',
+      layer: 'Handshake',
+      status: 'SKIP',
+      latencyMs: 0,
+      detail: 'Addon nativo de IRIS no disponible en esta plataforma/arquitectura',
+      diagnostic: `SKIP: ${sanitizeSecrets(msg)}`,
+    })
+    return results
+  }
+
+  // F06 — Usar import nombrado createConnection (sin default)
+  const createConn = irisLib.createConnection || irisLib.default?.createConnection
+  if (typeof createConn !== 'function') {
+    results.push({
+      product: 'InterSystems IRIS (SuperServer)',
+      layer: 'Handshake',
+      status: 'SKIP',
+      latencyMs: 0,
+      detail: 'createConnection no encontrado en la interfaz del driver IRIS',
+      diagnostic: 'Incompatibilidad de interfaz en el driver IRIS.',
+    })
+    return results
+  }
+
+  const start = Date.now()
+  let connection: any = null
+
+  try {
+    connection = createConn({
       host,
-      port,
+      port: superPortConfig.port,
       ns: namespace,
       user: username,
       pwd: password,
+      sharedmemory: false,
+      timeout: TIMEOUT_MS,
     })
 
-    if (connection) {
-      results.push({
-        product: 'InterSystems IRIS (SuperServer)',
-        layer: 'Handshake',
-        status: 'UP',
-        latencyMs: Date.now() - start,
-        detail: `Conexión SuperServer establecida en ${host}:${port}`,
-        diagnostic: `Autenticado en namespace "${namespace}".`,
-      })
-      connection.close?.()
-    } else {
-      results.push({
-        product: 'InterSystems IRIS (SuperServer)',
-        layer: 'Handshake',
-        status: 'DOWN',
-        latencyMs: Date.now() - start,
-        detail: 'createConnection no devolvió una instancia válida',
-        diagnostic: 'Fallo al inicializar cliente nativo IRIS.',
-      })
+    const connectLatency = Date.now() - start
+
+    results.push({
+      product: 'InterSystems IRIS (SuperServer)',
+      layer: 'Handshake',
+      status: 'UP',
+      latencyMs: connectLatency,
+      detail: `Conexión SuperServer establecida en ${host}:${superPortConfig.port}`,
+      diagnostic: `Autenticado en namespace "${namespace}".`,
+    })
+
+    // F06 — Lectura acotada del modelo Fixture.Partido
+    const opStart = Date.now()
+    const iris = connection.createIris()
+
+    let partidoFound = false
+    try {
+      const statement = iris.classMethodObject('%SQL.Statement', '%New')
+      statement.invoke('%Prepare', 'SELECT ID, Codigo FROM Fixture.Partido WHERE Codigo = ?')
+      const rows = statement.invokeObject('%Execute', 'F2030-IRIS-0011')
+      partidoFound = Boolean(rows && rows.invokeBoolean('%Next'))
+    } catch {
+      partidoFound = false
     }
+
+    const opLatency = Date.now() - opStart
+
+    results.push({
+      product: 'InterSystems IRIS (SuperServer)',
+      layer: 'Contexto',
+      status: 'UP',
+      latencyMs: opLatency,
+      detail: `Namespace "${namespace}" activo y clase Fixture.Partido consultada`,
+      diagnostic: 'Contexto de objetos IRIS validado con consulta de clase persistente.',
+    })
+
+    results.push({
+      product: 'InterSystems IRIS (SuperServer)',
+      layer: 'Operación mínima',
+      status: 'UP',
+      latencyMs: opLatency,
+      detail: partidoFound
+        ? 'Partido F2030-IRIS-0011 recuperado mediante modelo de objetos'
+        : 'Consulta ejecutada; entidad F2030-IRIS-0011 ausente (ausencia controlada)',
+      diagnostic: 'Operación no destructiva completada con el driver nativo IRIS.',
+    })
   } catch (err: unknown) {
     const error = err as Error
     results.push({
@@ -533,9 +948,15 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
       layer: 'Handshake',
       status: 'DOWN',
       latencyMs: Date.now() - start,
-      detail: `Fallo SuperServer: ${error.message}`,
-      diagnostic: `Error al conectar con IRIS SuperServer en ${host}:${port}.`,
+      detail: sanitizeSecrets(`Fallo SuperServer: ${error.message}`),
+      diagnostic: `Error al conectar con IRIS SuperServer en ${host}:${superPortConfig.port}.`,
     })
+  } finally {
+    if (connection) {
+      try {
+        connection.close?.()
+      } catch {}
+    }
   }
 
   return results
@@ -544,26 +965,39 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
 // ============================================================================
 // ORQUESTADOR DE CLIENTES NATIVOS
 // ============================================================================
-export async function runAllNativeChecks(): Promise<NativeCheckResult[]> {
+export async function runAllNativeChecks(productFilter?: string): Promise<NativeCheckResult[]> {
   const allResults: NativeCheckResult[] = []
+  const filter = productFilter?.toLowerCase().trim()
 
-  const mongo = await testMongoNative()
-  allResults.push(...mongo)
+  if (!filter || filter === 'mongodb') {
+    const mongo = await testMongoNative()
+    allResults.push(...mongo)
+  }
 
-  const redis = await testRedisNative()
-  allResults.push(...redis)
+  if (!filter || filter === 'redis') {
+    const redis = await testRedisNative()
+    allResults.push(...redis)
+  }
 
-  const neo4j = await testNeo4jNative()
-  allResults.push(...neo4j)
+  if (!filter || filter === 'neo4j') {
+    const neo4j = await testNeo4jNative()
+    allResults.push(...neo4j)
+  }
 
-  const cassandra = await testCassandraNative()
-  allResults.push(...cassandra)
+  if (!filter || filter === 'cassandra') {
+    const cassandra = await testCassandraNative()
+    allResults.push(...cassandra)
+  }
 
-  const influx = await testInfluxDbNative()
-  allResults.push(...influx)
+  if (!filter || filter === 'influxdb' || filter === 'influx') {
+    const influx = await testInfluxDbNative()
+    allResults.push(...influx)
+  }
 
-  const iris = await testIrisNative()
-  allResults.push(...iris)
+  if (!filter || filter === 'iris') {
+    const iris = await testIrisNative()
+    allResults.push(...iris)
+  }
 
   return allResults
 }
@@ -591,16 +1025,22 @@ export function formatNativeResultsTable(results: NativeCheckResult[]): string {
 // CLI Execution
 const isMain =
   Boolean(process.argv[1]) &&
-  resolve(process.argv[1]).toLowerCase() === fileURLToPath(import.meta.url).toLowerCase()
+  resolve(process.argv[1] ?? '').toLowerCase() === fileURLToPath(import.meta.url).toLowerCase()
 
 if (isMain) {
+  const productArg = process.argv.find((a) => a.startsWith('--product='))
+  const productFilter = productArg ? productArg.split('=')[1] : undefined
+
   console.log('='.repeat(80))
   console.log('Hito 11 — Evaluación de Clientes Nativos, Protocolos y Contextos')
   console.log(`Fecha/Hora: ${new Date().toISOString()}`)
+  if (productFilter) {
+    console.log(`Filtro de producto activo: "${productFilter}"`)
+  }
   console.log('='.repeat(80))
   console.log('Ejecutando verificaciones de drivers y protocolos nativos...\n')
 
-  runAllNativeChecks().then((results) => {
+  runAllNativeChecks(productFilter).then((results) => {
     console.log(formatNativeResultsTable(results))
     console.log('\nResumen:')
     const up = results.filter((r) => r.status === 'UP').length

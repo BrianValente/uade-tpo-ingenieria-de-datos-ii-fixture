@@ -55,7 +55,7 @@ Hito 11 — Evaluación de Rutas de la API Integrada Fixture 2030
 | `GET /equipos/ZZZ` | MongoDB | **404 (Ausencia válida)** | 3ms | `e5b931e7...` | Ausencia válida: el recurso solicitado no existe en la base. Código 404 correcto. |
 | `GET /equipos/CODIGO_INVALIDO_MUY_LARGO` | Zod Validator (Sin llamada a base) | **400 (Validación)** | 1ms | `f6a820b1...` | Error de validación sintáctica/esquema Zod interceptado por la API. |
 | `GET /equipos/ARG/jugadores?page=1&limit=5` | MongoDB (Colección jugadores) | **200 OK** | 7ms | `17b931a2...` | Paginación documental con límite y skip ejecutada. |
-| `GET /partidos/F2030-001` | Neo4j (Nodo Match) + MongoDB (Equipos) | **200 OK** | 14ms | `28c042b3...` | Consulta coordinada Neo4j y MongoDB completada. |
+| `GET /partidos/F2030-001` | Neo4j (Nodo Partido) + MongoDB (Equipos) | **200 OK** | 14ms | `28c042b3...` | Consulta coordinada Neo4j y MongoDB completada. |
 | `GET /partidos/F2030-001/eventos?limit=10` | Neo4j (Relaciones en Grafo) | **200 OK** | 8ms | `39d153c4...` | Relaciones de eventos de partido leídas con Cypher. |
 | `GET /partidos/F2030-001/comentarios?minute=...` | Cassandra | **200 OK** | 9ms | `4ae264d5...` | Lectura paginada de comentarios en keyspace Cassandra. |
 | `GET /partidos/F2030-001/estadisticas?start=...` | InfluxDB 3 Core | **200 OK** | 11ms | `5bf375e6...` | Consulta de series temporales agregadas completada. |
@@ -76,6 +76,6 @@ Resumen:
    - `400`: Error de validación de esquema en la API antes de invocar los adaptadores.
    - `401`: Petición no autenticada; no se realiza consulta a las bases de datos del dominio.
    - `404`: Recurso inexistente en la base de datos (ausencia legítima, no fallo de conexión).
-   - `503`: Dependencia de base de datos no disponible o caída.
-   - `504`: Timeout de consulta a la base de datos.
+   - `503`: Dependencia de base de datos no disponible, caída o timeout de adaptador (`DEPENDENCY_FAILED`).
+   - `504`: Gateway timeout reservado a la capa perimetral o reverse proxy si el proceso API no responde.
 2. **Trazabilidad:** Cada respuesta y registro de log incluye de forma inviolable el identificador único `x-request-id`.

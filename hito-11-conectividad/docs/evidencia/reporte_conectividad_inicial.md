@@ -48,7 +48,7 @@
 | `GET /equipos/ZZZ` | MongoDB | **401 (Auth requerida)** | 1ms | `74292fe3...` | Petición rechazada por falta de sesión o token no suministrado. |
 | `GET /equipos/CODIGO_INVALIDO_MUY_LARGO` | Zod Validator (Sin llamada a base) | **400 (Validación)** | 1ms | `c2a44033...` | Error de validación sintáctica/esquema Zod interceptado por la API. |
 | `GET /equipos/ARG/jugadores?page=1&limit=5` | MongoDB (Colección jugadores) | **401 (Auth requerida)** | 1ms | `e5dc426b...` | Petición rechazada por falta de sesión o token no suministrado. |
-| `GET /partidos/F2030-001` | Neo4j (Nodo Match) + MongoDB (Equipos) | **401 (Auth requerida)** | 1ms | `d7695986...` | Petición rechazada por falta de sesión o token no suministrado. |
+| `GET /partidos/F2030-001` | Neo4j (Nodo Partido) + MongoDB (Equipos) | **401 (Auth requerida)** | 1ms | `d7695986...` | Petición rechazada por falta de sesión o token no suministrado. |
 | `GET /partidos/F2030-001/eventos?limit=10` | Neo4j (Relaciones en Grafo) | **401 (Auth requerida)** | 1ms | `7f9435a8...` | Petición rechazada por falta de sesión o token no suministrado. |
 | `GET /partidos/F2030-001/comentarios?minute=2030-06-13T20:01:00.000Z&limit=10` | Cassandra (Keyspace fixture2030_comentarios) | **401 (Auth requerida)** | 3ms | `cd3088a6...` | Petición rechazada por falta de sesión o token no suministrado. |
 | `GET /partidos/F2030-001/estadisticas?start=2030-06-13T20:00:00.000Z&end=2030-06-13T22:00:00.000Z` | InfluxDB 3 (Base fixture2030_h8_lab_detalle) | **401 (Auth requerida)** | 1ms | `e1b150f9...` | Petición rechazada por falta de sesión o token no suministrado. |

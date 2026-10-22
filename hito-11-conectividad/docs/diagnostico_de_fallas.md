@@ -39,8 +39,8 @@ flowchart TD
 - **Redis caído:** El comando lanza una excepción de socket (`ECONNREFUSED 127.0.0.1:6379`) y la API Fastify responde con código HTTP **503 Service Unavailable** o **401** si falla la validación de sesión.
 
 ### B. Neo4j: Partido Inexistente vs. Error de Conexión Bolt
-- **Partido inexistente:** La consulta Cypher parametrizada `MATCH (m:Match {id: $id}) RETURN m` finaliza con éxito en ~4ms y devuelve 0 registros (`records.length === 0`). La API traduce esto a un HTTP **404 Not Found** ("Partido no encontrado").
-- **Error de conexión Bolt:** El driver no logra realizar el handshake (`ServiceUnavailable: Failed to connect to bolt://127.0.0.1:7687`). La API no inventa una ausencia ni devuelve 404; devuelve HTTP **503** o **504** preservando el diagnóstico de infraestructura.
+- **Partido inexistente:** La consulta Cypher parametrizada `MATCH (p:Partido {codigo: $codigo}) RETURN p.codigo, p.estado LIMIT 1` finaliza con éxito en ~4ms y devuelve 0 registros (`records.length === 0`). La API traduce esto a un HTTP **404 Not Found** ("Partido no encontrado").
+- **Error de conexión Bolt:** El driver no logra realizar el handshake (`ServiceUnavailable: Failed to connect to bolt://127.0.0.1:7687`). La API no inventa una ausencia ni devuelve 404; devuelve HTTP **503 Service Unavailable** (`DEPENDENCY_FAILED`) con `statusCode: 503` preservando el diagnóstico de infraestructura.
 
 ### C. InfluxDB 3: Intervalo sin Puntos vs. Base Inexistente vs. Token Inválido
 - **Intervalo sin puntos:** El endpoint devuelve HTTP 200 con un arreglo vacío de mediciones `{ "teams": [] }`. El servicio funciona y la consulta es válida.
@@ -81,10 +81,12 @@ docker compose stop mongodb
   - Log sanitizado registrado en la API:
     ```json
     {
-      "level": "error",
+      "level": 50,
+      "time": 1792713600000,
       "reqId": "d71a932e-...",
       "dependency": "mongodb",
       "operation": "findOne",
+      "result": "error",
       "statusCode": 503,
       "durationMs": 2012,
       "msg": "Dependencia MongoDB no disponible: connect ECONNREFUSED 127.0.0.1:27017"
