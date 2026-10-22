@@ -19,6 +19,7 @@
     "start": "node --env-file-if-exists=.env dist/index.js",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
+    "typecheck:hito-11": "tsc --noEmit -p ../hito-11-conectividad/tsconfig.json",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier . ../.github/workflows/hito-10-api.yml --check",
     "format:write": "prettier . ../.github/workflows/hito-10-api.yml --write",

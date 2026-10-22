@@ -72,6 +72,6 @@ jobs:
       - name: Instalar dependencias del lockfile
         run: pnpm install --frozen-lockfile
       - name: Typecheck Hito 11
-        run: pnpm tsc --noEmit -p ../hito-11-conectividad/tsconfig.json
+        run: pnpm run typecheck:hito-11
       - name: Smoke Test Conectividad Hito 11 (TCP)
-        run: pnpm eval:conectividad --tcp
+        run: pnpm run eval:tcp
