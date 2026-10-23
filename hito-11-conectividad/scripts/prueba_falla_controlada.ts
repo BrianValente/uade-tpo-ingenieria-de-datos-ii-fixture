@@ -3,6 +3,7 @@ import { resolve, dirname } from 'node:path'
 import { writeFile, mkdir } from 'node:fs/promises'
 import { execSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
+import * as nodeModule from 'node:module'
 import { performance } from 'node:perf_hooks'
 import { Writable } from 'node:stream'
 import { sanitizeSecrets } from './sanitizer.js'
@@ -29,12 +30,53 @@ function getGitCommitSha(): string {
   }
 }
 
+/**
+ * Si el addon binario `@intersystems/intersystems-iris-native` no puede cargarse en la distribución
+ * o arquitectura actual al importar `server.ts` (que referencia `IrisObjectRepository`), registra
+ * un fallback seguro solo para ese paquete no utilizado por este ciclo documental.
+ */
+async function ensureIrisImportFallbackIfNeeded(): Promise<void> {
+  try {
+    await import('@intersystems/intersystems-iris-native' as string)
+  } catch {
+    const regHooks = (nodeModule as Record<string, unknown>).registerHooks
+    if (typeof regHooks === 'function') {
+      try {
+        ;(regHooks as (hooks: Record<string, unknown>) => void)({
+          resolve(specifier: string, context: unknown, nextResolve: (s: string, c: unknown) => unknown) {
+            if (specifier === '@intersystems/intersystems-iris-native') {
+              return { url: 'fallback:iris-native-unavailable', shortCircuit: true }
+            }
+            return nextResolve(specifier, context)
+          },
+          load(url: string, context: unknown, nextLoad: (u: string, c: unknown) => unknown) {
+            if (url === 'fallback:iris-native-unavailable') {
+              return {
+                format: 'module',
+                shortCircuit: true,
+                source: [
+                  'export function createConnection() { throw new Error("IRIS native addon unavailable on this platform"); }',
+                  'export class IRISReference { static Type = { STRING: 0 }; constructor() {} getString() { return ""; } }',
+                  'export default { createConnection, IRISReference };',
+                ].join('\n'),
+              }
+            }
+            return nextLoad(url, context)
+          },
+        })
+      } catch {}
+    }
+  }
+}
+
 export async function runControlledFailureCycle(): Promise<{
   timestamp: string
   gitCommit: string
   environment: string
   stages: ControlledCycleStageResult[]
 }> {
+  await ensureIrisImportFallbackIfNeeded()
+
   const serverMod = (await import('../../hito-10-api/src/app/server.js' as string)) as any
   const envMod = (await import('../../hito-10-api/src/config/environment.js' as string)) as any
   const dataEnvMod = (await import('../../hito-10-api/src/config/data-environment.js' as string)) as any

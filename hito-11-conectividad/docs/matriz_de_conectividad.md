@@ -10,70 +10,62 @@
 
 Para garantizar honestidad experimental (RNF17) y una clasificación rigurosa (RNF9, 5.6):
 - **`UP` (OK):** La prueba configurada terminó exitosamente en la capa evaluada. Existe conectividad, protocolo válido, contexto y respuesta funcional.
-- **`DOWN`:** Se intentó la conexión y falló por rechazo de puerto (`ECONNREFUSED`), timeout de red (`ETIMEDOUT`) o error irrecuperable.
-- **`DEGRADED`:** El transporte TCP está activo, pero falla una capa superior (ej. keyspace no inicializado, credencial errónea o endpoint degradado).
-- **`NOT_CONFIGURED`:** El módulo o dependencia carece de credenciales o parámetros en el archivo `.env` del entorno evaluado.
-- **`SKIP`:** Prueba no ejecutada debido a la ausencia deliberada de herramientas o configuración opcional en el laboratorio (no equivale a producto caído).
+- **`DOWN`:** Se intentó la conexión y falló por rechazo de puerto (`ECONNREFUSED`), timeout de red (`ETIMEDOUT`), fallo de credenciales (`Autenticación`), falta de permisos (`Autorización`) o error irrecuperable.
+- **`DEGRADED`:** El transporte TCP está activo, pero falla una capa superior (ej. keyspace o colección no inicializados, o solo uno de los listeners responde).
+- **`NOT_CONFIGURED`:** El módulo o dependencia carece de credenciales o parámetros requeridos en el archivo `.env` del entorno evaluado.
+- **`SKIP`:** Prueba no ejecutada debido a la ausencia deliberada de herramientas, prerrequisitos o etapas previas fallidas (no equivale a producto caído).
 - **`UNKNOWN`:** No se dispone de información suficiente para dictaminar el estado.
 
 ---
 
-## 2. Matriz de Conectividad Completa por Producto y Capas
+## 2. Matriz de Especificación y Referencia de Pruebas por Producto y Capas
 
-| Dependencia | Capa Evaluada | Prueba Ejecutada | Estado | Latencia | Diagnóstico Técnico y Evidencia |
+*(Nota: La siguiente tabla documenta la especificación técnica de las pruebas por capa y los estados esperados de referencia con servicios activos frente a contenedores detenidos. Para la matriz consolidada generada automáticamente a partir de la corrida observada en este host, véase [`docs/evidencia/reporte_conectividad_inicial.md`](./evidencia/reporte_conectividad_inicial.md)).*
+
+| Dependencia | Capa Evaluada | Prueba Ejecutada | Estado Esperado (Activo / Detenido) | Latencia Ref. | Diagnóstico Técnico y Criterio de Clasificación |
 |:---|:---|:---|:---:|:---:|:---|
-| **MongoDB 7.0** | Configuración | Lectura de `MONGO_HOST`, `MONGO_PORT`, `MONGO_DATABASE` | **UP** | <1ms | Variables definidas y validadas mediante esquema Zod sin secretos expuestos. |
+| **MongoDB 7.0** | Configuración | Lectura de `MONGO_HOST`, `MONGO_PORT`, `MONGO_DATABASE` | **UP** | <1ms | Variables definidas y puerto validado sin secretos expuestos. |
 | | Resolución DNS | Verificación de alcanzabilidad de `127.0.0.1` | **UP** | <1ms | Loopback local resuelto correctamente. |
 | | Transporte TCP | Socket TCP a `127.0.0.1:27017` con timeout de 2000ms | **UP** / **DOWN** | ~1ms / - | `UP` con contenedor activo; `ECONNREFUSED` con contenedor detenido. |
-| | Handshake Protocolo | `client.db("admin").command({ ping: 1 })` | **UP** / **DOWN** | ~2ms | Wire protocol validado; responde `{ ok: 1 }`. |
-| | Autenticación | Login SCRAM-SHA-256 en authSource `admin` | **UP** / **DOWN** | ~15ms | Credenciales validadas contra base administrativa. |
-| | Contexto Lógico | Selección de base `fixture2030` y colección `equipos` | **UP** | ~1ms | Espacio de nombres documental localizado. |
-| | Operación Mínima | `findOne({ codigo: 'ARG' })` y `findOne({ codigo: 'ZZZ' })` | **UP** | ~2ms | Lectura no destructiva. Retorna equipo 'ARG' y `null` para 'ZZZ' (ausencia válida). |
-| | Cadena API HTTP | `GET /equipos/ARG` y `GET /equipos/ARG/jugadores` | **UP** | ~8ms | Status 200 OK; correlación con header `x-request-id`. |
-| **Redis** | Configuración | `REDIS_HOST`, `REDIS_PORT`, `REDIS_DATABASE` | **UP** | <1ms | Parámetros cargados en memoria. |
-| | Transporte TCP | Socket TCP a `127.0.0.1:6379` | **UP** / **DOWN** | ~1ms / - | Listener RESP activo. |
-| | Handshake Protocolo | Comando RESP `PING` | **UP** | <1ms | Responde `PONG`. Protocolo en memoria verificado. |
-| | Contexto Lógico | Selección de base indexada `#0` y namespace `api:session` | **UP** | <1ms | Estructura de claves verificada. |
-| | Operación Mínima | `GET probe_key` (null) y `TTL probe_key` (-2) | **UP** | ~1ms | Operación de solo lectura no destructiva. Clave ausente devuelve null sin alterar el estado de Redis. |
-| | Cadena API HTTP | `POST /auth/login` y verificación en `GET /auth/perfil` | **UP** | ~12ms | Genera token opaco y valida renovación de TTL en rutas de negocio. |
-| **Neo4j** | Configuración | `NEO4J_HOST`, `NEO4J_BOLT_PORT`, `NEO4J_HTTP_PORT` | **UP** | <1ms | Configuración de puertos Bolt y HTTP leída correctamente. |
-| | Transporte TCP (Bolt) | Socket TCP a `127.0.0.1:7687` | **UP** / **DOWN** | ~1ms / - | Listener Bolt activo. |
-| | Transporte TCP (HTTP) | Socket TCP a `127.0.0.1:7474` | **UP** / **DOWN** | ~1ms / - | Portal Browser HTTP alcanzable. |
-| | Handshake Protocolo | `driver.verifyConnectivity()` | **UP** | ~10ms | Negociación de versión de protocolo Bolt completada. |
-| | Autenticación | Basic Auth con `NEO4J_USERNAME` y `NEO4J_PASSWORD` | **UP** / **NOT_CONF** | ~18ms | `NOT_CONFIGURED` si falta contraseña en .env; `UP` con credencial válida. |
-| | Contexto Lógico | Sesión explícita sobre base `neo4j` | **UP** | ~2ms | Base de datos de grafos seleccionada. |
-| | Operación Mínima | Cypher `RETURN 1 AS ping` y `MATCH (p:Partido {id: $id}) RETURN p.id, p.fase LIMIT 1` | **UP** | ~4ms | Consulta acotada de lectura Cypher parametrizada sobre la entidad del modelo. |
-| | Cadena API HTTP | `GET /partidos/F2030-001` y `GET /partidos/F2030-001/eventos` | **UP** | ~15ms | Ficha de partido coordinada con MongoDB y eventos de grafo. |
-| **Cassandra** | Configuración | `CASSANDRA_HOST`, `CASSANDRA_PORT`, `CASSANDRA_KEYSPACE` | **UP** | <1ms | Datacenter `datacenter1` y keyspace configurados. |
+| | Handshake Protocolo | `client.db(authSource).command({ ping: 1 })` | **UP** / **DOWN** | ~2ms | Wire protocol validado; responde `{ ok: 1 }`. |
+| | Autenticación / Autorización | SCRAM-SHA-256 (`code: 18` -> `Autenticación: DOWN`; `code: 13` -> `Autorización: DOWN`) | **UP** / **DOWN** | ~15ms | Distingue fallo de credenciales (`18`) de falta de permisos (`13`) tras handshake exitoso. |
+| | Contexto Lógico | Verificación de base `fixture2030` y colección `equipos` vía `listCollections` | **UP** / **DEGRADED** | ~2ms | `UP` si existe la colección `equipos`; `DEGRADED` si la base responde pero no fue sembrada. |
+| | Operación Mínima | `findOne({ codigo: 'ARG' })` | **UP** / **SKIP** | ~2ms | Lectura no destructiva (`SKIP` si el contexto o la autorización fallaron previamente). |
+| | Cadena API HTTP | `GET /equipos/ARG`, `GET /equipos/ZZZ` y `GET /equipos/ARG/jugadores` | **UP** / **503** | ~8ms | Status 200 OK / 404 válido con sesión; 503 `DEPENDENCY_UNAVAILABLE` si Mongo cae. |
+| **Redis** | Configuración | `REDIS_HOST`, `REDIS_PORT`, `REDIS_DATABASE` | **UP** | <1ms | Parámetros cargados y validados en memoria. |
+| | Transporte TCP | Socket TCP a `127.0.0.1:6379` | **UP** / **DOWN** | ~1ms / - | Listener RESP activo o `ECONNREFUSED`. |
+| | Handshake Protocolo | Comando RESP `PING` | **UP** / **DOWN** | ~1ms | Responde `PONG`; el cierre usa `client.destroy()` para no bloquearse si el socket cuelga. |
+| | Contexto Lógico | Selección de base indexada `#0` | **UP** | <1ms | Base lógica de sesiones seleccionada. |
+| | Operación Mínima | `GET fixture2030:test:nonexistent_probe_key` (`null`) y `TTL` (`-2`) | **UP** | ~1ms | Operación de solo lectura no destructiva: clave ausente devuelve `null` y TTL `-2` sin escrituras. |
+| | Cadena API HTTP | `POST /auth/login` y verificación en `GET /auth/session` | **UP** / **503** | ~12ms | Genera token opaco y valida renovación de TTL en rutas autenticadas. |
+| **Neo4j** | Configuración | `NEO4J_HOST`, `NEO4J_BOLT_PORT`, `NEO4J_HTTP_PORT` | **UP** | <1ms | Configuración de puertos Bolt (7687) y HTTP (7474) validada. |
+| | Transporte TCP (Bolt/HTTP) | Sockets TCP a `127.0.0.1:7687` y `127.0.0.1:7474` | **UP** / **DEGRADED** / **DOWN** | ~1ms / - | `DEGRADED` si solo uno de los listeners (Bolt o HTTP) responde. |
+| | Handshake / Autenticación | `driver.verifyConnectivity()` con `NEO4J_USERNAME` y `NEO4J_PASSWORD` | **UP** / **NOT_CONF** | ~18ms | `NOT_CONFIGURED` si falta `NEO4J_PASSWORD` en el entorno. |
+| | Contexto Lógico | Sesión explícita sobre base `neo4j` (`RETURN 1 AS ping`) | **UP** | ~2ms | Base de datos de grafos seleccionada. |
+| | Operación Mínima | Cypher `MATCH (p:Partido {id: $id}) RETURN p.id AS id, p.fase AS fase LIMIT 1` | **UP** | ~4ms | Consulta parametrizada sobre etiqueta `:Partido` y propiedad `id` real del modelo. |
+| | Cadena API HTTP | `GET /partidos/F2030-001` y `GET /partidos/F2030-001/eventos?limit=10` | **UP** / **503** | ~15ms | Ficha de partido coordinada con MongoDB y eventos de grafo (con login previo automático). |
+| **Cassandra** | Configuración | `CASSANDRA_HOST`, `CASSANDRA_PORT`, `CASSANDRA_KEYSPACE` | **UP** | <1ms | Datacenter `datacenter1` y keyspace `fixture2030_comentarios` configurados. |
 | | Transporte TCP | Socket TCP a `127.0.0.1:9042` | **UP** / **DOWN** | ~1ms / - | Listener nativo CQL activo. |
-| | Handshake Protocolo | `client.connect()` | **UP** | ~20ms | Negociación binaria CQL y descubrimiento de topología de nodos. |
-| | Contexto Lógico | Metadatos de keyspace `fixture2030_comentarios` y tabla `comentarios_por_partido` | **UP** / **DEGRADED** | ~3ms | `UP` si el esquema de comentarios fue migrado; `DEGRADED` si no existe aún. |
-| | Operación Mínima | `SELECT release_version FROM system.local` y consulta particionada preparada por `(partido_id, bucket_minuto, grupo)` | **UP** | ~3ms | Lectura CQL de comentarios con clave de partición real sin full-scan. |
-| | Cadena API HTTP | `GET /partidos/F2030-001/comentarios` | **UP** | ~9ms | Consulta paginada con cursor temporal sin full scan. |
+| | Handshake Protocolo | `client.connect()` | **UP** / **DOWN** | ~20ms | Negociación binaria CQL y descubrimiento de topología. |
+| | Contexto / Autorización | `client.metadata.getTable('fixture2030_comentarios', 'comentarios_por_partido')` | **UP** / **DEGRADED** / **DOWN** | ~3ms | Carga asíncrona de metadatos (`0x2100` -> `Autorización: DOWN`; `null` -> `Contexto: DEGRADED`). |
+| | Operación Mínima | Consulta preparada por `(partido_id, bucket_minuto, grupo)` con `LIMIT 1` | **UP** / **SKIP** | ~3ms | Lectura CQL con clave de partición completa sin `ALLOW FILTERING`. |
+| | Cadena API HTTP | `GET /partidos/F2030-001/comentarios?minute=2030-06-13T20:01:00.000Z&limit=10` | **UP** / **503** | ~9ms | Consulta paginada por minuto sin full scan. |
 | **InfluxDB 3** | Configuración | `INFLUXDB_URL`, `INFLUXDB_DATABASE`, `INFLUXDB_TOKEN` | **UP** | <1ms | URL HTTP `http://127.0.0.1:8181` configurada. |
 | | Transporte TCP | Socket TCP a `127.0.0.1:8181` | **UP** / **DOWN** | ~1ms / - | Listener HTTP activo. |
-| | Handshake Protocolo | `GET /health` | **UP** | ~3ms | Responde HTTP 200 `{ "status": "pass" }` sin requerir token. |
-| | Autenticación / Contexto | `Authorization: Bearer <token>` contra `/api/v3/query_sql` | **UP** / **NOT_CONF** | ~5ms | `NOT_CONFIGURED` si falta token en entorno; `UP` con token válido. |
-| | Operación Mínima | Consulta SQL parametrizada sobre `estadisticas_equipo` con ventana temporal acotada | **UP** | ~6ms | Comprobación de intervalo temporal válido sin mutar datos. |
-| | Cadena API HTTP | `GET /partidos/F2030-001/estadisticas` | **UP** | ~10ms | Consulta parametrizada sobre intervalo de tiempo. |
-| **InterSystems IRIS** | Configuración | `IRIS_HOST`, `IRIS_PORT`, `IRIS_NAMESPACE` | **UP** | <1ms | Namespace `USER` y puertos 1972/52773 leídos. |
-| | Transporte TCP (SS) | Socket TCP a `127.0.0.1:1972` | **UP** / **DOWN** | ~1ms / - | Listener SuperServer binario. |
-| | Transporte TCP (Web) | Socket TCP a `127.0.0.1:52773` | **UP** / **DOWN** | ~1ms / - | Portal de administración web accesible (`/csp/sys/UtilHome.csp`). |
-| | Handshake / Auth | Conexión SuperServer mediante cliente nativo | **UP** / **NOT_CONF** | ~15ms | `NOT_CONFIGURED` en entornos sin usuario de laboratorio temporal. |
-| | Contexto Lógico | Namespace `USER` | **UP** | ~2ms | Espacio de clases y rutinas seleccionado. |
-| | Operación Mínima | Consulta `%SQL.Statement` sobre clase persistente `Fixture.Partido` | **UP** | ~5ms | Persistencia orientada a objetos comprobada de forma no destructiva. |
-| | Cadena API HTTP | `GET /partidos/F2030-IRIS-0011/detalle` | **UP** | ~12ms | Lectura de entidad persistente y eventos de partido en IRIS. |
+| | Handshake Protocolo | `GET /health` | **UP** / **DOWN** | ~3ms | Verifica salud HTTP del motor de series temporales. |
+| | Autenticación / Autorización | `POST /api/v3/query_sql` con `Authorization: Bearer <token>` | **UP** / **NOT_CONF** / **DOWN** | ~5ms | `NOT_CONFIGURED` sin token; `401` -> `Autenticación: DOWN`; `403` -> `Autorización: DOWN`. |
+| | Operación Mínima | Consulta SQL agregada sobre `estadisticas_equipo` en rango temporal acotado | **UP** | ~6ms | Comprobación de ventana temporal válida sin mutar datos. |
+| | Cadena API HTTP | `GET /partidos/F2030-001/estadisticas?start=...&end=...` | **UP** / **503** | ~10ms | Resumen estadístico por partido e intervalo. |
+| **InterSystems IRIS** | Configuración | `IRIS_HOST`, `IRIS_PORT`, `IRIS_WEB_PORT`, `IRIS_NAMESPACE` | **UP** | <1ms | Namespace `USER` y puertos 1972 (SuperServer) / 52773 (Web) validados. |
+| | Transporte TCP (SS / Web) | Sockets TCP a `127.0.0.1:1972` y `127.0.0.1:52773` | **UP** / **DEGRADED** / **DOWN** | ~1ms / - | Evalúa ambos listeners y reporta `DEGRADED` si solo uno responde. |
+| | Handshake / Autenticación | `createConnection` hacia SuperServer 1972 | **UP** / **NOT_CONF** / **SKIP** | ~15ms | `NOT_CONFIGURED` sin credenciales; `SKIP` si el addon nativo no existe en la plataforma. |
+| | Contexto y `%SQLCODE` | `%Prepare` (`%Status === 1`) + `%Execute` y `%Next` sobre `Fixture.Partido` | **UP** / **DEGRADED** | ~3ms | Valida `rows.getNumber('%SQLCODE')` (`0` o `100`) y `rows.getString('%Message')` antes y después de `%Next`. |
+| | Operación Mínima | Verificación no destructiva de `F2030-IRIS-0011` | **UP** / **SKIP** | ~4ms | Distingue entidad encontrada o ausencia controlada (`100`) de error SQL (`< 0` -> `SKIP`). |
+| | Cadena API HTTP | `GET /partidos/F2030-IRIS-0011/detalle` | **UP** / **503** | ~12ms | Lectura de entidad persistente y eventos asociados en IRIS. |
 
 ---
 
-## 3. Matriz Resumida de Estados del Fixture 2030
+## 3. Referencia de Estados en Entorno Observado vs. Entorno Docker Activo
 
-| Componente | Rol en el Fixture 2030 | Conectividad TCP | Driver Nativo | Integración API | Estado General |
-|:---|:---|:---:|:---:|:---:|:---:|
-| **MongoDB 7.0** | Documental / Cuentas | `UP` / `DOWN` | `UP` / `DOWN` | `UP` / `DOWN` | **UP** (con servicio activo) |
-| **Redis** | Sesiones / Caché | `UP` / `DOWN` | `UP` / `DOWN` | `UP` / `DOWN` | **UP** (con servicio activo) |
-| **Neo4j** | Grafos / Partidos | `UP` / `DOWN` | `UP` / `NOT_CONFIGURED` | `UP` / `DOWN` | **UP** (con servicio activo) |
-| **Cassandra** | Comentarios masivos | `UP` / `DOWN` | `UP` / `DEGRADED` | `UP` / `DOWN` | **UP** (con keyspace migrado) |
-| **InfluxDB 3** | Series temporales | `UP` / `DOWN` | `UP` / `NOT_CONFIGURED` | `UP` / `DOWN` | **UP** (con token activo) |
-| **InterSystems IRIS** | Multimodelo / Objetos | `UP` / `DOWN` | `UP` / `NOT_CONFIGURED` | `UP` / `DOWN` | **UP** (con servicio activo) |
-| **API Fastify** | Capa de Servicio REST | `UP` | `N/A` | `UP` | **UP** (proceso HTTP operativo) |
+- **Estado real observado en este host (sin contenedores Docker activos):** Documentado y generado automáticamente por código en [`docs/evidencia/reporte_conectividad_inicial.md`](./evidencia/reporte_conectividad_inicial.md) (`MongoDB`: `DOWN`, `Redis`: `DOWN`, `Neo4j`: `NOT_CONFIGURED`, `Cassandra`: `DOWN`, `InfluxDB 3`: `DOWN`, `InterSystems IRIS`: `DOWN`, `API Fastify Integrada (In-Process)`: `UP (OK)`).
+- **Simulación híbrida in-process de falla y retorno en la API:** Documentada y generada automáticamente en [`docs/evidencia/ciclo_falla_recuperacion.md`](./evidencia/ciclo_falla_recuperacion.md) y explicada en [`docs/diagnostico_de_fallas.md`](./diagnostico_de_fallas.md).

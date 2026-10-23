@@ -16,7 +16,7 @@ Este módulo contiene la implementación reproducible y la documentación técni
 - **InfluxDB 3 Core:** Series Temporales y Estadísticas de Partidos
 - **InterSystems IRIS:** Persistencia Orientada a Objetos y Multimodelo
 
-El objetivo es diagnosticar la conectividad capa por capa (Configuración $\rightarrow$ Red $\rightarrow$ TCP $\rightarrow$ Protocolo $\rightarrow$ Autenticación $\rightarrow$ Contexto $\rightarrow$ Operación Mínima $\rightarrow$ API HTTP), garantizando que un contenedor activo no se confunda con un servicio disponible, y aislando fallas sin exponer secretos.
+El objetivo es diagnosticar la conectividad capa por capa (Configuración $\rightarrow$ Red $\rightarrow$ TCP $\rightarrow$ Protocolo $\rightarrow$ Autenticación y Autorización $\rightarrow$ Contexto $\rightarrow$ Operación Mínima $\rightarrow$ API HTTP), garantizando que un contenedor activo no se confunda con un servicio disponible, y aislando fallas sin exponer secretos.
 
 ---
 
@@ -36,15 +36,17 @@ hito-11-conectividad/
 │   ├── evaluar_conectividad.sh                # Runner para Linux / macOS
 │   ├── prueba_tcp.ts                         # Verificación de sockets TCP y análisis de listeners
 │   ├── prueba_clientes_nativos.ts             # Verificación con drivers oficiales y protocolos nativos
-│   └── prueba_api.ts                         # Verificación de endpoints HTTP y cadena completa
+│   ├── prueba_api.ts                         # Verificación de endpoints HTTP y cadena completa
+│   └── prueba_falla_controlada.ts             # Simulación híbrida in-process de falla 503 y retorno en API
 └── docs/
     ├── mapa_de_dependencias.md                # Mapa técnico detallado de cada producto
     ├── topologia_y_entornos.md                # Topología de red, puertos y diferencias host vs docker
     ├── matriz_de_conectividad.md              # Matriz de estados por capa y diagnóstico técnico
-    ├── diagnostico_de_fallas.md               # Análisis de errores y prueba de falla controlada
+    ├── diagnostico_de_fallas.md               # Análisis de errores y simulación híbrida de falla controlada
     ├── health_readiness.md                    # Estrategia de liveness, readiness y deep checks
     └── evidencia/
         ├── reporte_conectividad_inicial.md    # Reporte consolidado generado automáticamente
+        ├── ciclo_falla_recuperacion.md        # Evidencia autogenerada de simulación híbrida in-process
         ├── resultados_tcp.md                  # Evidencia y salidas de transporte TCP
         ├── resultados_clientes.md             # Evidencia y salidas de clientes nativos
         ├── resultados_api.md                  # Evidencia y salidas de rutas HTTP
@@ -85,6 +87,9 @@ pnpm eval:nativos
 
 # 4. Solo prueba de endpoints de la API:
 pnpm eval:api
+
+# 5. Simulación híbrida in-process de falla 503 y retorno en API:
+pnpm exec tsx ../hito-11-conectividad/scripts/prueba_falla_controlada.ts --output=../hito-11-conectividad/docs/evidencia/ciclo_falla_recuperacion.md
 ```
 
 ### Opción B. En Windows con PowerShell (desde `hito-11-conectividad/`)
@@ -117,8 +122,8 @@ chmod +x scripts/evaluar_conectividad.sh
 
 El sistema clasifica el resultado de cada prueba según los lineamientos de la cátedra (RNF9, 5.6):
 - **`UP` (OK):** La prueba terminó exitosamente en la capa evaluada. Existe conectividad, protocolo válido, contexto accesible y respuesta no destructiva correcta.
-- **`DOWN`:** La prueba falló por rechazo de puerto (`ECONNREFUSED`), timeout de socket (`ETIMEDOUT`) o error de conexión.
-- **`DEGRADED`:** El socket TCP está abierto pero la capa lógica no opera con normalidad (ej. keyspace no creado o credencial inválida).
+- **`DOWN`:** La prueba falló por rechazo de puerto (`ECONNREFUSED`), timeout de socket (`ETIMEDOUT`), credenciales inválidas (`Autenticación`), falta de permisos (`Autorización`) o error de conexión.
+- **`DEGRADED`:** El socket TCP está abierto pero la capa lógica no opera con normalidad (ej. keyspace o colección no creados, o conectividad parcial de listeners).
 - **`NOT_CONFIGURED` / `SKIP`:** La prueba no fue ejecutada debido a la ausencia intencional de credenciales opcionales o herramientas en el entorno. No equivale a servicio caído.
 - **`UNKNOWN`:** No se dispone de información técnica suficiente para dictaminar estado.
 
@@ -129,8 +134,9 @@ El sistema clasifica el resultado de cada prueba según los lineamientos de la c
 - [Mapa de Dependencias](docs/mapa_de_dependencias.md): Módulo, host, puerto, protocolo, contexto lógico, driver y endpoints asociados.
 - [Topología y Entornos](docs/topologia_y_entornos.md): Diagrama de arquitectura, diferencias entre `localhost` de host y red Docker, y puertos publicados.
 - [Matriz de Conectividad](docs/matriz_de_conectividad.md): Diagnóstico exhaustivo capa por capa para los 6 motores y la API.
-- [Diagnóstico de Fallas y Simulación](docs/diagnostico_de_fallas.md): Diferenciación semántica de errores y escenario de falla controlada reversible.
+- [Diagnóstico de Fallas y Simulación Híbrida](docs/diagnostico_de_fallas.md): Diferenciación semántica de errores y simulación híbrida in-process de falla controlada.
 - [Estrategia de Health & Readiness](docs/health_readiness.md): Análisis de liveness vs readiness, costos computacionales y por qué no encadenar chequeos profundos en cada request.
+- [Evidencia de Simulación Híbrida In-Process](docs/evidencia/ciclo_falla_recuperacion.md): Reporte autogenerado con respuestas HTTP y logs Pino del ciclo 200 (doble en memoria) -> 503 (adaptador Mongo real contra puerto sin listener) -> 200 (doble en memoria).
 - [Evidencia de Pruebas TCP](docs/evidencia/resultados_tcp.md): Salidas de conectividad de puertos y sockets.
 - [Evidencia de Clientes Nativos](docs/evidencia/resultados_clientes.md): Salidas de handshake, ping y lecturas acotadas con drivers.
 - [Evidencia de Rutas API](docs/evidencia/resultados_api.md): Salidas HTTP, correlación con `x-request-id` y tiempos de respuesta.
