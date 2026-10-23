@@ -493,7 +493,7 @@ async function ensureIrisImportFallbackIfNeeded(): Promise<void> {
   try {
     await import('@intersystems/intersystems-iris-native' as string)
   } catch {
-    const regHooks = (nodeModule as Record<string, unknown>).registerHooks
+    const regHooks = (nodeModule as unknown as Record<string, unknown>).registerHooks
     if (typeof regHooks === 'function') {
       try {
         ;(regHooks as (hooks: Record<string, unknown>) => void)({
