@@ -1,0 +1,5 @@
+# Excluir cualquier archivo local con secretos
+.env
+.env.local
+*.secret
+*.token

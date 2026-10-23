@@ -1,11 +1,10 @@
 import { performance } from 'node:perf_hooks'
-import {
-  createConnection,
+import type {
   IRISReference,
-  type Connection,
-  type Iris,
-  type IRISObject,
-  type IRISReturnType,
+  Connection,
+  Iris,
+  IRISObject,
+  IRISReturnType,
 } from '@intersystems/intersystems-iris-native'
 
 import { ApiError } from '../../../app/errors/api-error.js'
@@ -19,12 +18,14 @@ export class IrisObjectRepository implements ObjectRepository {
   private async run<T>(
     operation: string,
     context: OperationContext,
-    execute: (iris: Iris) => T,
+    execute: (iris: Iris, Reference: typeof IRISReference) => T,
   ): Promise<T> {
     const started = performance.now()
     let result = 'success'
     let connection: Connection | undefined
     try {
+      const { createConnection, IRISReference } =
+        await import('@intersystems/intersystems-iris-native')
       connection = createConnection({
         host: this.config.IRIS_HOST,
         port: this.config.IRIS_PORT,
@@ -34,7 +35,7 @@ export class IrisObjectRepository implements ObjectRepository {
         sharedmemory: false,
         timeout: this.config.DEPENDENCY_TIMEOUT_MS,
       })
-      return execute(connection.createIris())
+      return execute(connection.createIris(), IRISReference)
     } catch (error) {
       result = 'failure'
       if (error instanceof ApiError) throw error
@@ -54,20 +55,20 @@ export class IrisObjectRepository implements ObjectRepository {
   }
 
   find(code: string, context: OperationContext) {
-    return this.run('findObjectMatch', context, (iris) => {
+    return this.run('findObjectMatch', context, (iris, Reference) => {
       const match = openByCode(iris, code)
       if (!match) return null
-      return readMatch(match)
+      return readMatch(match, Reference)
     })
   }
 
   changeState(code: string, state: string, context: OperationContext) {
-    return this.run('changeObjectMatchState', context, (iris) => {
+    return this.run('changeObjectMatchState', context, (iris, Reference) => {
       const match = openByCode(iris, code)
       if (!match) return null
       ensureStatus(iris, match.invoke('CambiarEstado', state))
       ensureStatus(iris, match.invoke('%Save'))
-      return readMatch(match)
+      return readMatch(match, Reference)
     })
   }
 
@@ -76,7 +77,7 @@ export class IrisObjectRepository implements ObjectRepository {
     event: { code: string; type: string; minute: number; detail: string },
     context: OperationContext,
   ) {
-    return this.run('addObjectMatchEvent', context, (iris) => {
+    return this.run('addObjectMatchEvent', context, (iris, Reference) => {
       const match = openByCode(iris, code)
       if (!match) return null
       ensureStatus(
@@ -90,7 +91,7 @@ export class IrisObjectRepository implements ObjectRepository {
         ),
       )
       ensureStatus(iris, match.invoke('%Save'))
-      return readMatch(match)
+      return readMatch(match, Reference)
     })
   }
 }
@@ -138,11 +139,14 @@ function readPerson(person: IRISObject) {
   }
 }
 
-function readMatch(match: IRISObject): IrisMatch {
+function readMatch(
+  match: IRISObject,
+  Reference: typeof IRISReference,
+): IrisMatch {
   const referee = related(match, 'ArbitroPrincipal')
   const homeCoach = related(match, 'TecnicoLocal')
   const awayCoach = related(match, 'TecnicoVisitante')
-  const key = new IRISReference('', IRISReference.Type.STRING)
+  const key = new Reference('', Reference.Type.STRING)
   const events: IrisMatch['events'] = []
   for (;;) {
     const value = match.invokeObject('ObtenerSiguienteEvento', key)
