@@ -143,6 +143,7 @@ export function getDefaultApiRoutes(): ApiTestRoute[] {
 function classifyResult(
   route: ApiTestRoute,
   statusHttp: number,
+  bodyText = '',
 ): { resultSummary: ApiTestResult['resultSummary']; interpretation: string } {
   const statusMatches = statusHttp === route.expectedStatus
 
@@ -153,10 +154,17 @@ function classifyResult(
     }
   }
 
+  // R2-10 / R2-09 — Distinguir REQUEST_TIMEOUT de DEPENDENCY_UNAVAILABLE en 503
   if (statusHttp === 503) {
+    if (bodyText.includes('REQUEST_TIMEOUT')) {
+      return {
+        resultSummary: 'TIMEOUT',
+        interpretation: 'La operación superó el tiempo de espera (503 REQUEST_TIMEOUT).',
+      }
+    }
     return {
       resultSummary: 'DEPENDENCY_FAILED',
-      interpretation: 'Dependencia subyacente no disponible (503 Service Unavailable).',
+      interpretation: 'Dependencia subyacente no disponible (503 DEPENDENCY_UNAVAILABLE).',
     }
   }
 
@@ -217,6 +225,33 @@ export async function runLiveApiChecks(
   const results: ApiTestResult[] = []
   let activeToken = token || ''
 
+  // R2-04 / S04 — Pre-flight login si las rutas a probar son protegidas y no se proveyó token
+  if (
+    !activeToken &&
+    routes.some(
+      (r) =>
+        r.path !== '/health' &&
+        r.path !== '/docs/json' &&
+        r.path !== '/auth/login',
+    )
+  ) {
+    try {
+      const adminUsername = process.env.API_SEED_ADMIN_USERNAME || 'fixture-admin'
+      const adminPassword = process.env.API_SEED_ADMIN_PASSWORD || 'PasswordDemo12345!'
+      const loginRes = await fetch(`${baseUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: adminUsername, password: adminPassword }),
+      })
+      if (loginRes.status === 200 || loginRes.status === 201) {
+        const parsed = (await loginRes.json()) as any
+        if (parsed && typeof parsed.accessToken === 'string') {
+          activeToken = parsed.accessToken
+        }
+      }
+    } catch {}
+  }
+
   for (const route of routes) {
     const start = Date.now()
     const targetUrl = `${baseUrl}${route.path}`
@@ -233,6 +268,10 @@ export async function runLiveApiChecks(
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 4000)
 
+    let responseReceived: Response | null = null
+    let responseStatus: number | null = null
+    let responseRequestId = 'none'
+
     try {
       const fetchOptions: RequestInit = {
         method: route.method,
@@ -241,11 +280,14 @@ export async function runLiveApiChecks(
         ...(route.body !== undefined ? { body: JSON.stringify(route.body) } : {}),
       }
       const response = await fetch(targetUrl, fetchOptions)
+      responseReceived = response
+      responseStatus = response.status
+      responseRequestId = response.headers.get('x-request-id') || 'no-provisto'
 
       const text = await response.text()
       const responseTimeMs = Date.now() - start
-      const requestId = response.headers.get('x-request-id') || 'no-provisto'
-      const statusHttp = response.status
+      const requestId = responseRequestId
+      const statusHttp = responseStatus
 
       // F02 — Si la ruta es login y fue exitosa, capturar el accessToken en memoria para siguientes rutas
       if (route.path === '/auth/login' && (statusHttp === 200 || statusHttp === 201)) {
@@ -257,7 +299,7 @@ export async function runLiveApiChecks(
         } catch {}
       }
 
-      const { resultSummary, interpretation } = classifyResult(route, statusHttp)
+      const { resultSummary, interpretation } = classifyResult(route, statusHttp, text)
 
       // F09 — Sanitizar snippets para no exponer contraseñas ni tokens
       const sanitizedText = sanitizeSecrets(text)
@@ -278,17 +320,48 @@ export async function runLiveApiChecks(
     } catch (err: unknown) {
       const error = err as Error
       const responseTimeMs = Date.now() - start
-      results.push({
-        route,
-        statusHttp: 'UNREACHABLE',
-        expectedStatus: route.expectedStatus,
-        statusMatches: false,
-        responseTimeMs,
-        requestId: 'none',
-        resultSummary: 'API_UNREACHABLE',
-        interpretation: sanitizeSecrets(`No se pudo alcanzar el endpoint de la API: ${error.message}`),
-        responseSnippet: 'Sin respuesta (Connection Refused o Timeout)',
-      })
+      const isAbort = controller.signal.aborted || error.name === 'AbortError'
+
+      // R2-10 — Distinguir timeout en lectura del body (cuando ya hubo headers) de API inalcanzable
+      if (isAbort && responseStatus !== null) {
+        results.push({
+          route,
+          statusHttp: responseStatus,
+          expectedStatus: route.expectedStatus,
+          statusMatches: false,
+          responseTimeMs,
+          requestId: responseRequestId,
+          resultSummary: 'TIMEOUT',
+          interpretation: sanitizeSecrets(
+            `Timeout de lectura de respuesta tras recibir HTTP ${responseStatus} (Request ID: ${responseRequestId})`,
+          ),
+          responseSnippet: 'Timeout al leer cuerpo de respuesta HTTP',
+        })
+      } else if (isAbort) {
+        results.push({
+          route,
+          statusHttp: 'UNREACHABLE',
+          expectedStatus: route.expectedStatus,
+          statusMatches: false,
+          responseTimeMs,
+          requestId: 'none',
+          resultSummary: 'TIMEOUT',
+          interpretation: sanitizeSecrets(`Timeout de solicitud superado (4000ms): ${error.message}`),
+          responseSnippet: 'Timeout de conexión o espera de respuesta',
+        })
+      } else {
+        results.push({
+          route,
+          statusHttp: 'UNREACHABLE',
+          expectedStatus: route.expectedStatus,
+          statusMatches: false,
+          responseTimeMs,
+          requestId: 'none',
+          resultSummary: 'API_UNREACHABLE',
+          interpretation: sanitizeSecrets(`No se pudo alcanzar el endpoint de la API: ${error.message}`),
+          responseSnippet: 'Sin respuesta (Connection Refused)',
+        })
+      }
     } finally {
       clearTimeout(timer)
     }
@@ -337,6 +410,34 @@ export async function runInProcessApiChecks(
 
   const results: ApiTestResult[] = []
   let activeToken = token || ''
+
+  // R2-04 / S04 — Pre-flight login si las rutas a probar son protegidas y no se proveyó token
+  if (
+    !activeToken &&
+    routes.some(
+      (r) =>
+        r.path !== '/health' &&
+        r.path !== '/docs/json' &&
+        r.path !== '/auth/login',
+    )
+  ) {
+    try {
+      const adminUsername = process.env.API_SEED_ADMIN_USERNAME || 'fixture-admin'
+      const adminPassword = process.env.API_SEED_ADMIN_PASSWORD || 'PasswordDemo12345!'
+      const loginRes = await app.inject({
+        method: 'POST',
+        url: '/auth/login',
+        headers: { 'content-type': 'application/json' },
+        payload: JSON.stringify({ username: adminUsername, password: adminPassword }),
+      })
+      if (loginRes.statusCode === 200 || loginRes.statusCode === 201) {
+        const parsed = JSON.parse(loginRes.body)
+        if (parsed && typeof parsed.accessToken === 'string') {
+          activeToken = parsed.accessToken
+        }
+      }
+    } catch {}
+  }
 
   try {
     for (const route of routes) {
@@ -387,7 +488,7 @@ export async function runInProcessApiChecks(
         } catch {}
       }
 
-      const { resultSummary, interpretation } = classifyResult(route, statusHttp)
+      const { resultSummary, interpretation } = classifyResult(route, statusHttp, bodyText)
       const sanitizedSnippet = sanitizeSecrets(bodyText)
       const responseSnippet =
         sanitizedSnippet.length > 100 ? `${sanitizedSnippet.slice(0, 97)}...` : sanitizedSnippet
@@ -441,14 +542,37 @@ if (isMain) {
   const baseUrlArg = process.argv.find((a) => a.startsWith('--base-url='))
   const baseUrl = baseUrlArg ? baseUrlArg.split('=')[1] : undefined
 
+  const tokenArg = process.argv.find((a) => a.startsWith('--token='))
+  const token = tokenArg ? tokenArg.split('=')[1] : process.env.API_AUTH_TOKEN || undefined
+
+  const productArg = process.argv.find((a) => a.startsWith('--product='))
+  const productFilter = productArg ? productArg.split('=')[1] : undefined
+
   console.log('='.repeat(80))
   console.log('Hito 11 — Evaluación de Rutas de la API Integrada Fixture 2030')
   console.log(`Fecha/Hora: ${new Date().toISOString()}`)
   console.log(`Modo de ejecución: ${inProcess ? 'In-Process (Fastify inject)' : 'Live HTTP'}`)
+  if (productFilter) {
+    console.log(`Filtro de producto activo: "${productFilter}"`)
+  }
+  if (token) {
+    console.log('Token de sesión: provisto vía CLI/entorno')
+  }
   console.log('='.repeat(80))
   console.log('Ejecutando pruebas sobre los endpoints HTTP...\n')
 
-  const runner = inProcess ? runInProcessApiChecks() : runLiveApiChecks(baseUrl)
+  const defaultRoutes = getDefaultApiRoutes()
+  const targetRoutes = productFilter
+    ? defaultRoutes.filter(
+        (r) =>
+          r.expectedDependency.toLowerCase().includes(productFilter.toLowerCase()) ||
+          r.path.toLowerCase().includes(productFilter.toLowerCase()),
+      )
+    : defaultRoutes
+
+  const runner = inProcess
+    ? runInProcessApiChecks(targetRoutes, token)
+    : runLiveApiChecks(baseUrl, targetRoutes, token)
 
   runner.then((results) => {
     console.log(formatApiResultsTable(results))
@@ -457,6 +581,7 @@ if (isMain) {
     const notMatched = results.filter((r) => !r.statusMatches).length
     const authRequired = results.filter((r) => r.resultSummary === 'UNAUTHENTICATED').length
     const depFailed = results.filter((r) => r.resultSummary === 'DEPENDENCY_FAILED').length
+    const timeoutCount = results.filter((r) => r.resultSummary === 'TIMEOUT').length
     console.log(`- Rutas conformes con estado esperado: ${matched}`)
     console.log(`- Rutas no conformes / errores: ${notMatched}`)
     if (authRequired > 0) {
@@ -464,6 +589,9 @@ if (isMain) {
     }
     if (depFailed > 0) {
       console.log(`- Rutas con dependencia no disponible (503): ${depFailed}`)
+    }
+    if (timeoutCount > 0) {
+      console.log(`- Rutas con timeout (503 / lectura): ${timeoutCount}`)
     }
     console.log('='.repeat(80))
   })

@@ -12,7 +12,7 @@ export function sanitizeUrl(urlStr: string): string {
     return parsed.toString()
   } catch {
     // Si no es un URL estándar, redactar posibles credenciales vía regex
-    return urlStr.replace(/(:\/\/)([^:@\s]+):([^@\s]+)@/g, '$1$2:******@')
+    return urlStr.replace(/(:\/\/)([^:@'"]*):([^@'"]*)@/g, '$1$2:******@')
   }
 }
 
@@ -20,8 +20,8 @@ export function sanitizeSecrets(text: string): string {
   if (!text) return ''
   let sanitized = text
 
-  // 1. URLs con contraseñas (mongodb, redis, http, etc.)
-  sanitized = sanitized.replace(/(:\/\/)([^:@\s]+):([^@\s]+)@/g, '$1$2:******@')
+  // 1. URLs con contraseñas (mongodb, redis, http, etc.) con o sin username
+  sanitized = sanitized.replace(/(:\/\/)([^:@'"]*):([^@'"]*)@/g, '$1$2:******@')
 
   // 2. Tokens Bearer o accessToken en JSON
   sanitized = sanitized.replace(/Bearer\s+([A-Za-z0-9_\-.~+/]+=*)/gi, 'Bearer ******')

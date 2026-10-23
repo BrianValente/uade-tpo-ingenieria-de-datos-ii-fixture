@@ -29,7 +29,7 @@ flowchart LR
   ```
 - **Costo computacional:** Virtualmente nulo (< 1ms).
 - **Frecuencia admisible:** Alta (cada 5 a 10 segundos).
-- **Criterio de falla:** Si no responde dentro de 2000ms, el orquestador (Docker/K8s) reinicia el contenedor de la API.
+- **Entorno de ejecución:** La API se ejecuta en el entorno host de desarrollo (`pnpm dev` / `node dist/index.js`), sin un orquestador Kubernetes o reinicio automático en contenedor. En un despliegue contenerizado propuesto, un liveness probe fallido gatillaría el reinicio del proceso.
 
 ### B. Readiness Probe (`GET /ready`) — *Propuesta Arquitectónica / Futura Extensión*
 - **Propósito:** Indicar si la API está en condiciones de recibir y despachar tráfico real de usuarios hacia los motores NoSQL.
@@ -40,7 +40,7 @@ flowchart LR
 ### C. Diagnóstico Profundo por Dependencia (Deep Check / Suite Hito 11)
 - **Propósito:** Proporcionar visibilidad detallada y granular del estado de cada motor (MongoDB, Redis, Neo4j, Cassandra, InfluxDB, IRIS) en las capas de Transporte, Protocolo y Contexto.
 - **Herramienta:** Implementado en la suite de scripts reproducibles (`scripts/evaluar_conectividad.ts`).
-- **Estados reportados:** `UP`, `DOWN`, `DEGRADED`, `NOT_CONFIGURED`, `SKIP`.
+- **Estados reportados:** `UP`, `DOWN`, `DEGRADED`, `NOT_CONFIGURED`, `SKIP`, `UNKNOWN`.
 
 ---
 
@@ -59,10 +59,10 @@ El enunciado del Hito 11 establece explícitamente:
 
 ## 3. Especificación de Parámetros Operativos
 
-| Parámetro | Valor Recomendado | Justificación Técnica |
+| Parámetro | Valor Configurado | Justificación y Semántica Técnica |
 |:---|:---:|:---|
-| **Timeout por Dependencia (`DEPENDENCY_TIMEOUT_MS`)** | `2000ms` (2 segundos) | Evita retenciones prolongadas de hilos HTTP ante caídas de red; falla rápido para liberar recursos. |
-| **Request Timeout Global de la API** | `10000ms` (10 segundos) | Límite superior para operaciones complejas o combinadas antes de cortar la conexión. |
-| **Frecuencia de Diagnóstico Periódico** | Cada `30` a `60` segundos | Intervalo óptimo para telemetría sin generar sobrecarga sobre los motores. |
-| **Política de Reintentos** | Máximo 1 reintento con backoff lineal | Impide el efecto "thundering herd" contra una base que se está recuperando. |
-| **Estrategia ante Degradación** | Fallo controlado con status HTTP 503 (`DEPENDENCY_FAILED`) | En la API de Hito 10 (`src/app/errors/api-error.ts`), las fallas de dependencias o timeouts de adaptadores NoSQL se traducen en HTTP 503 Service Unavailable (con payload estructurado `{ statusCode: 503, error: "Service Unavailable", message: "..." }`). El código 504 Gateway Timeout queda reservado exclusivamente para la capa de reverse proxy o gateway perimetral si el proceso Node.js dejase de responder por completo. |
+| **Timeout por Dependencia (`DEPENDENCY_TIMEOUT_MS`)** | `2000ms` (2 segundos) | Límite individual de operación para los adaptadores de base de datos (MongoDB, Redis, Neo4j, Cassandra, InfluxDB, IRIS). Falla rápido ante caídas de red para liberar el socket HTTP. |
+| **Fastify Request Timeout (`API_REQUEST_TIMEOUT_MS`)** | `10000ms` (10 segundos) | Límite de Fastify a nivel de socket (`requestTimeout`) para la recepción de los bytes de la solicitud entrante. **No es un deadline de consulta a las bases de datos**, sino una protección de transporte contra clientes lentos (*slowloris*). |
+| **Frecuencia de Diagnóstico Periódico (Propuesta)** | Cada `30` a `60` segundos | Intervalo óptimo estimado para telemetría sin generar sobrecarga sobre los motores. |
+| **Política de Reintentos (Propuesta)** | Máximo 1 reintento con backoff lineal | Impide el efecto "thundering herd" contra una base que se está recuperando. |
+| **Contrato Real de Errores ante Falla de Dependencias** | HTTP 503 (`DEPENDENCY_UNAVAILABLE` o `REQUEST_TIMEOUT`) | Implementado en `hito-10-api` (`src/app/errors/api-error.ts` y `error-handler.ts`). Cuando un adaptador no puede comunicarse con su motor o agota `DEPENDENCY_TIMEOUT_MS`, la API responde con status HTTP 503 y payload: <br>`{ "code": "DEPENDENCY_UNAVAILABLE", "message": "Una dependencia no está disponible.", "requestId": "..." }`<br>o `{ "code": "REQUEST_TIMEOUT", "message": "La operación superó el tiempo de espera.", "requestId": "..." }`. *(Nota: `DEPENDENCY_FAILED` es una etiqueta de clasificación interna de la herramienta de evaluación, no un código retornado por el servidor API).* |

@@ -75,3 +75,5 @@ jobs:
         run: pnpm run typecheck:hito-11
       - name: Smoke Test Conectividad Hito 11 (TCP)
         run: pnpm run eval:tcp
+      - name: Smoke Test Rutas API Hito 11 (In-Process)
+        run: pnpm run eval:api --in-process

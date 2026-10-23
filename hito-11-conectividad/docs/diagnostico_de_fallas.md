@@ -39,8 +39,8 @@ flowchart TD
 - **Redis caído:** El comando lanza una excepción de socket (`ECONNREFUSED 127.0.0.1:6379`) y la API Fastify responde con código HTTP **503 Service Unavailable** o **401** si falla la validación de sesión.
 
 ### B. Neo4j: Partido Inexistente vs. Error de Conexión Bolt
-- **Partido inexistente:** La consulta Cypher parametrizada `MATCH (p:Partido {codigo: $codigo}) RETURN p.codigo, p.estado LIMIT 1` finaliza con éxito en ~4ms y devuelve 0 registros (`records.length === 0`). La API traduce esto a un HTTP **404 Not Found** ("Partido no encontrado").
-- **Error de conexión Bolt:** El driver no logra realizar el handshake (`ServiceUnavailable: Failed to connect to bolt://127.0.0.1:7687`). La API no inventa una ausencia ni devuelve 404; devuelve HTTP **503 Service Unavailable** (`DEPENDENCY_FAILED`) con `statusCode: 503` preservando el diagnóstico de infraestructura.
+- **Partido inexistente:** La consulta Cypher parametrizada `MATCH (p:Partido {id: $id}) RETURN p.id AS id, p.fase AS fase LIMIT 1` (con parámetro `{ id: 'F2030-999' }`) finaliza con éxito en ~4ms y devuelve 0 registros (`records.length === 0`). La API traduce esto a un HTTP **404 Not Found** ("Partido no encontrado").
+- **Error de conexión Bolt:** El driver no logra realizar el handshake (`ServiceUnavailable: Failed to connect to bolt://127.0.0.1:7687`). La API no inventa una ausencia ni devuelve 404; devuelve HTTP **503 Service Unavailable** con código estructurado `DEPENDENCY_UNAVAILABLE` preservando el diagnóstico de infraestructura.
 
 ### C. InfluxDB 3: Intervalo sin Puntos vs. Base Inexistente vs. Token Inválido
 - **Intervalo sin puntos:** El endpoint devuelve HTTP 200 con un arreglo vacío de mediciones `{ "teams": [] }`. El servicio funciona y la consulta es válida.
@@ -78,20 +78,39 @@ docker compose stop mongodb
   - Status HTTP devuelto: **503 Service Unavailable**.
   - Tiempo de respuesta: Acotado a ~2000ms por el `DEPENDENCY_TIMEOUT_MS`. No hay bloqueo indefinido ni reintentos infinitos (RNF5, RNF12).
   - Encabezado `x-request-id`: Generado y correlacionado (ej. `d71a932e-...`).
-  - Log sanitizado registrado en la API:
+  - Cuerpo de respuesta JSON entregado al cliente:
     ```json
     {
-      "level": 50,
-      "time": 1792713600000,
-      "reqId": "d71a932e-...",
-      "dependency": "mongodb",
-      "operation": "findOne",
-      "result": "error",
-      "statusCode": 503,
-      "durationMs": 2012,
-      "msg": "Dependencia MongoDB no disponible: connect ECONNREFUSED 127.0.0.1:27017"
+      "code": "DEPENDENCY_UNAVAILABLE",
+      "message": "Una dependencia no está disponible.",
+      "requestId": "d71a932e-..."
     }
     ```
+  - Logs estructurados emitidos por Fastify/Pino (con sanitización estricta sin mensajes crudos ni credenciales):
+    - **Evento 1 (Repositorio Mongo — log `info`):**
+      ```json
+      {
+        "level": 30,
+        "time": 1792713602012,
+        "reqId": "d71a932e-...",
+        "dependency": "MongoDB",
+        "operation": "findTeam",
+        "result": "failure",
+        "durationMs": 2011.8,
+        "msg": "Operación de dependencia"
+      }
+      ```
+    - **Evento 2 (Error Handler — log `error`):**
+      ```json
+      {
+        "level": 50,
+        "time": 1792713602015,
+        "reqId": "d71a932e-...",
+        "code": "DEPENDENCY_UNAVAILABLE",
+        "statusCode": 503,
+        "msg": "Solicitud rechazada"
+      }
+      ```
   - **Aislamiento de Módulos:** Rutas que no dependen de MongoDB (ej. `GET /health` o esquemas estáticos) continuaron operando normalmente.
 
 #### 4. Recuperación del Servicio

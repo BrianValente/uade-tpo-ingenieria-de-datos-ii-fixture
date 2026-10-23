@@ -42,7 +42,7 @@ Para garantizar honestidad experimental (RNF17) y una clasificación rigurosa (R
 | | Handshake Protocolo | `driver.verifyConnectivity()` | **UP** | ~10ms | Negociación de versión de protocolo Bolt completada. |
 | | Autenticación | Basic Auth con `NEO4J_USERNAME` y `NEO4J_PASSWORD` | **UP** / **NOT_CONF** | ~18ms | `NOT_CONFIGURED` si falta contraseña en .env; `UP` con credencial válida. |
 | | Contexto Lógico | Sesión explícita sobre base `neo4j` | **UP** | ~2ms | Base de datos de grafos seleccionada. |
-| | Operación Mínima | Cypher `RETURN 1 AS ping` y `MATCH (p:Partido {codigo: $codigo}) RETURN p.codigo, p.estado LIMIT 1` | **UP** | ~4ms | Consulta acotada de lectura Cypher parametrizada sobre la entidad del modelo. |
+| | Operación Mínima | Cypher `RETURN 1 AS ping` y `MATCH (p:Partido {id: $id}) RETURN p.id, p.fase LIMIT 1` | **UP** | ~4ms | Consulta acotada de lectura Cypher parametrizada sobre la entidad del modelo. |
 | | Cadena API HTTP | `GET /partidos/F2030-001` y `GET /partidos/F2030-001/eventos` | **UP** | ~15ms | Ficha de partido coordinada con MongoDB y eventos de grafo. |
 | **Cassandra** | Configuración | `CASSANDRA_HOST`, `CASSANDRA_PORT`, `CASSANDRA_KEYSPACE` | **UP** | <1ms | Datacenter `datacenter1` y keyspace configurados. |
 | | Transporte TCP | Socket TCP a `127.0.0.1:9042` | **UP** / **DOWN** | ~1ms / - | Listener nativo CQL activo. |

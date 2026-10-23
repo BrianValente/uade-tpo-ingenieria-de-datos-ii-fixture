@@ -69,8 +69,9 @@ export function buildSummaryMatrix(
         tcpState = matches[0]!.status
       } else if (matches.length > 1) {
         // Manejo explícito de productos con múltiples listeners (Bolt/HTTP, SuperServer/Web)
+        // R2-07 / S05 — Usar <br> en vez de pipe para evitar romper columnas en tablas Markdown
         const parts = matches.map((m) => `${m.endpoint.protocol}: ${m.status}`)
-        tcpState = parts.join(' | ')
+        tcpState = parts.join('<br>')
       } else {
         tcpState = 'N/A'
       }
@@ -114,18 +115,22 @@ export function buildSummaryMatrix(
           apiState = 'REQUIERE SESIÓN'
         } else if (matches.some((m) => m.resultSummary === 'DEPENDENCY_FAILED')) {
           apiState = 'DOWN (503)'
+        } else if (matches.some((m) => m.resultSummary === 'TIMEOUT')) {
+          apiState = 'TIMEOUT'
         } else {
           apiState = 'DOWN / ERROR'
         }
       }
     }
 
-    // Overall State Calculation (F06, F13, F03)
+    // Overall State Calculation (F06, F13, F03, R2-07)
     let overallState: MatrixEntry['overallState'] = 'UNKNOWN'
     let nextStep = 'Verificar configuración de entorno y levantar el servicio correspondiente.'
 
-    const tcpIsUp = tcpState.includes('UP')
-    const tcpIsDown = tcpState.includes('DOWN')
+    const matchesTcp = tcp ? tcp.filter((t) => t.endpoint.id.startsWith(prod.id)) : []
+    const tcpAllUp = matchesTcp.length > 0 && matchesTcp.every((m) => m.status === 'UP')
+    const tcpAllDown = matchesTcp.length > 0 && matchesTcp.every((m) => m.status === 'DOWN')
+    const tcpIsDegraded = matchesTcp.length > 1 && matchesTcp.some((m) => m.status === 'UP') && !tcpAllUp
 
     if (tcpState === 'NO PROBADO' && nativeState === 'NO PROBADO' && apiState === 'NO PROBADO') {
       overallState = 'UNKNOWN'
@@ -134,7 +139,7 @@ export function buildSummaryMatrix(
       if (apiState === 'UP') {
         overallState = 'UP'
         nextStep = 'Servicio HTTP activo y respondiendo rutas correctamente.'
-      } else if (apiState === 'API INALCANZABLE' || tcpIsDown) {
+      } else if (apiState === 'API INALCANZABLE' || tcpAllDown) {
         overallState = 'DOWN'
         nextStep = 'Iniciar la API con `pnpm dev` en el puerto configurado.'
       } else {
@@ -144,9 +149,13 @@ export function buildSummaryMatrix(
     } else {
       // Modo solo TCP ejecutado
       if (tcp && !native && !api) {
-        if (tcpIsUp) {
+        if (tcpAllUp) {
           overallState = 'UP'
-          nextStep = 'Listener TCP alcanzable; capas lógicas de driver y API no evaluadas.'
+          nextStep = 'Listener(s) TCP alcanzable(s); capas lógicas de driver y API no evaluadas.'
+        } else if (tcpIsDegraded) {
+          // R2-07 / S05 — Si Bolt es DOWN y HTTP es UP, marcar DEGRADED, no UP
+          overallState = 'DEGRADED'
+          nextStep = 'Conectividad TCP parcial: uno o más listeners no responden (revisar puertos de servicio).'
         } else {
           overallState = 'DOWN'
           nextStep = `Verificar puerto del contenedor y ejecutar docker compose up -d ${prod.id}.`
@@ -157,14 +166,17 @@ export function buildSummaryMatrix(
       } else if (nativeState === 'SKIP') {
         overallState = 'SKIP'
         nextStep = 'Prueba omitida intencionalmente o herramienta no disponible en el host.'
-      } else if (tcpIsDown || nativeState === 'DOWN') {
+      } else if (tcpAllDown || nativeState === 'DOWN') {
         overallState = 'DOWN'
         nextStep = `Revisar logs del contenedor y ejecutar docker compose up -d ${prod.id}.`
-      } else if (nativeState === 'DEGRADED') {
+      } else if (tcpIsDegraded || nativeState === 'DEGRADED') {
         overallState = 'DEGRADED'
-        nextStep = 'El puerto responde pero falta inicializar el contexto, keyspace o colección.'
+        nextStep = 'Listener TCP parcial o falta inicializar el contexto, keyspace o colección.'
       } else if (nativeState === 'UP') {
-        if (apiState === 'UP') {
+        if (tcpIsDegraded) {
+          overallState = 'DEGRADED'
+          nextStep = 'Driver nativo operativo pero uno de los listeners TCP (portal/secundario) no responde.'
+        } else if (apiState === 'UP') {
           overallState = 'UP'
           nextStep = 'Dependencia totalmente validada desde TCP hasta la API.'
         } else if (apiState === 'REQUIERE SESIÓN') {
@@ -233,6 +245,9 @@ export async function main() {
   const productArg = args.find((a) => a.startsWith('--product='))
   const productFilter = productArg ? productArg.split('=')[1] : undefined
 
+  const tokenArg = args.find((a) => a.startsWith('--token='))
+  const token = tokenArg ? tokenArg.split('=')[1] : process.env.API_AUTH_TOKEN || undefined
+
   const outputArg = args.find((a) => a.startsWith('--output='))
   const outputPath = outputArg ? outputArg.split('=')[1] : null
 
@@ -243,6 +258,9 @@ export async function main() {
   console.log(`Modos seleccionados: TCP=${runTcp}, NATIVOS=${runNative}, API=${runApi}`)
   if (productFilter) {
     console.log(`Filtro de producto activo: "${productFilter}"`)
+  }
+  if (token) {
+    console.log('Token de sesión: provisto vía CLI/entorno')
   }
   console.log('='.repeat(80))
 
@@ -270,7 +288,7 @@ export async function main() {
       ? routes.filter((r) => r.expectedDependency.toLowerCase().includes(productFilter.toLowerCase()) || r.path.toLowerCase().includes(productFilter.toLowerCase()))
       : routes
 
-    apiResults = inProcess ? await runInProcessApiChecks(filteredRoutes) : await runLiveApiChecks(undefined, filteredRoutes)
+    apiResults = inProcess ? await runInProcessApiChecks(filteredRoutes, token) : await runLiveApiChecks(undefined, filteredRoutes, token)
     console.log(formatApiResultsTable(apiResults))
   }
 

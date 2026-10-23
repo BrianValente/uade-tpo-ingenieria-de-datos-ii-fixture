@@ -214,6 +214,18 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
     return results
   }
 
+  if (/\s/.test(host)) {
+    results.push({
+      product: 'Redis',
+      layer: 'Configuración',
+      status: 'DOWN',
+      latencyMs: 0,
+      detail: 'Host de Redis contiene espacios en blanco o formato inválido',
+      diagnostic: 'Error de configuración: REDIS_HOST inválido.',
+    })
+    return results
+  }
+
   const port = portConfig.port
   const start = Date.now()
 
@@ -233,17 +245,32 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
     return results
   }
 
-  const client = createClientFn({
-    url: `redis://${password ? `:${encodeURIComponent(password)}@` : ''}${host}:${port}/${database}`,
-    socket: {
-      connectTimeout: TIMEOUT_MS,
-      reconnectStrategy: false,
-    },
-  })
-
-  client.on('error', () => {
-    // suprimir errores no capturados del emisor
-  })
+  let client: any = null
+  try {
+    const authPart = password ? `:${encodeURIComponent(password)}@` : ''
+    const redisUrl = `redis://${authPart}${host}:${port}/${database}`
+    client = createClientFn({
+      url: redisUrl,
+      socket: {
+        connectTimeout: TIMEOUT_MS,
+        reconnectStrategy: false,
+      },
+    })
+    client.on('error', () => {
+      // suprimir errores no capturados del emisor
+    })
+  } catch (cfgErr: unknown) {
+    const error = cfgErr as Error
+    results.push({
+      product: 'Redis',
+      layer: 'Configuración',
+      status: 'DOWN',
+      latencyMs: 0,
+      detail: sanitizeSecrets(`Error al instanciar cliente Redis: ${error.message}`),
+      diagnostic: 'Error de configuración o parámetros inválidos para el driver de Redis.',
+    })
+    return results
+  }
 
   try {
     await withTimeout(client.connect(), TIMEOUT_MS, 'Redis connect')
@@ -297,8 +324,15 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
       diagnostic: `No se pudo conectar al servidor RESP en ${host}:${port}.`,
     })
   } finally {
-    if (client && client.isOpen) {
-      await client.quit().catch(() => client.disconnect())
+    // S03: cerrar socket inmediatamente sin colgarse en client.quit() si el protocolo está bloqueado
+    if (client) {
+      try {
+        client.destroy()
+      } catch {
+        try {
+          client.disconnect()
+        } catch {}
+      }
     }
   }
 
@@ -389,19 +423,19 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
       const opLatency = Date.now() - opStart
       const pingVal = queryRes.records[0]?.get('ping')?.toNumber?.() ?? 1
 
-      // F11 — Consulta parametrizada sobre etiqueta real del modelo: :Partido
+      // R2-06 — Consulta parametrizada sobre el modelo real: MATCH (p:Partido {id: $id}) RETURN p.id AS id, p.fase AS fase
       const partidoRes: any = await withTimeout(
         session.run(
-          'MATCH (p:Partido {codigo: $codigo}) RETURN p.codigo AS codigo, p.estado AS estado LIMIT 1',
-          { codigo: 'F2030-001' },
+          'MATCH (p:Partido {id: $id}) RETURN p.id AS id, p.fase AS fase LIMIT 1',
+          { id: 'F2030-001' },
         ),
         TIMEOUT_MS,
         'Neo4j Cypher partido query',
       )
 
       const foundPartido = partidoRes.records.length > 0
-        ? `Partido ${partidoRes.records[0].get('codigo')} encontrado`
-        : 'Código F2030-001 ausente (ausencia controlada en grafo)'
+        ? `Partido ${partidoRes.records[0].get('id')} encontrado`
+        : 'Partido F2030-001 ausente (ausencia controlada en grafo)'
 
       results.push({
         product: 'Neo4j (Bolt)',
@@ -418,7 +452,7 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
         status: 'UP',
         latencyMs: opLatency,
         detail: `Cypher ping retorno: ${pingVal}. Consulta :Partido parametrizada: ${foundPartido}.`,
-        diagnostic: 'Consulta Cypher parametrizada sobre etiqueta :Partido ejecutada sin alterar datos.',
+        diagnostic: 'Consulta Cypher parametrizada sobre etiqueta :Partido y propiedad id ejecutada sin alterar datos.',
       })
     } finally {
       await session.close()
@@ -512,17 +546,22 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
     )
     const version = systemRes.first()?.get('release_version') ?? 'desconocida'
 
-    // F05 — Comprobar contexto y existencia de la tabla comentarios_por_partido
+    // R2-01 / S02 — Cargar metadatos de tabla mediante getTable() asíncrono (evita caché fría vacía)
     let keyspaceOk = false
     let tableOk = false
     try {
       const meta = client.metadata.keyspaces[keyspace]
       if (meta) {
         keyspaceOk = true
-        tableOk = Boolean(meta.tables['comentarios_por_partido'])
+        const table = await withTimeout(
+          client.metadata.getTable(keyspace, 'comentarios_por_partido'),
+          TIMEOUT_MS,
+          'Cassandra getTable',
+        )
+        tableOk = Boolean(table)
       }
     } catch {
-      keyspaceOk = false
+      tableOk = false
     }
 
     const opLatency = Date.now() - opStart
@@ -906,41 +945,86 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
       diagnostic: `Autenticado en namespace "${namespace}".`,
     })
 
-    // F06 — Lectura acotada del modelo Fixture.Partido
+    // R2-02 / S01 — Lectura acotada del modelo Fixture.Partido con validación estricta de %Status y %SQLCODE
     const opStart = Date.now()
     const iris = connection.createIris()
 
-    let partidoFound = false
     try {
       const statement = iris.classMethodObject('%SQL.Statement', '%New')
-      statement.invoke('%Prepare', 'SELECT ID, Codigo FROM Fixture.Partido WHERE Codigo = ?')
+      if (!statement) {
+        throw new Error('No se pudo instanciar objeto %SQL.Statement en IRIS')
+      }
+
+      const prepStatus = statement.invoke('%Prepare', 'SELECT ID, Codigo FROM Fixture.Partido WHERE Codigo = ?')
+      // En InterSystems IRIS, un status exitoso es 1
+      if (prepStatus !== 1 && prepStatus !== '1' && prepStatus !== true) {
+        throw new Error(`Fallo en %Prepare de Fixture.Partido (%Status: ${prepStatus})`)
+      }
+
       const rows = statement.invokeObject('%Execute', 'F2030-IRIS-0011')
-      partidoFound = Boolean(rows && rows.invokeBoolean('%Next'))
-    } catch {
-      partidoFound = false
+      if (!rows) {
+        throw new Error('Fallo al ejecutar consulta en IRIS: resultset nulo')
+      }
+
+      let sqlCode = 0
+      try {
+        const rawCode = typeof rows.getProperty === 'function' ? rows.getProperty('%SQLCODE') : rows['%SQLCODE']
+        if (rawCode !== undefined && rawCode !== null) {
+          sqlCode = Number(rawCode)
+        }
+      } catch {}
+
+      if (sqlCode < 0) {
+        let msg = ''
+        try {
+          msg = typeof rows.getProperty === 'function' ? rows.getProperty('%Message') : rows['%Message']
+        } catch {}
+        throw new Error(`Error SQL en IRIS (SQLCODE ${sqlCode}): ${msg || 'error de consulta o clase no encontrada'}`)
+      }
+
+      const partidoFound = Boolean(rows && typeof rows.invokeBoolean === 'function' && rows.invokeBoolean('%Next'))
+      const opLatency = Date.now() - opStart
+
+      results.push({
+        product: 'InterSystems IRIS (SuperServer)',
+        layer: 'Contexto',
+        status: 'UP',
+        latencyMs: opLatency,
+        detail: `Namespace "${namespace}" activo y clase Fixture.Partido consultada`,
+        diagnostic: 'Contexto de objetos IRIS validado con consulta de clase persistente.',
+      })
+
+      results.push({
+        product: 'InterSystems IRIS (SuperServer)',
+        layer: 'Operación mínima',
+        status: 'UP',
+        latencyMs: opLatency,
+        detail: partidoFound
+          ? 'Partido F2030-IRIS-0011 recuperado mediante modelo de objetos'
+          : 'Consulta ejecutada con éxito; entidad F2030-IRIS-0011 ausente (ausencia controlada)',
+        diagnostic: 'Operación no destructiva completada con el driver nativo IRIS.',
+      })
+    } catch (queryErr: unknown) {
+      const qErr = queryErr as Error
+      const opLatency = Date.now() - opStart
+      results.push({
+        product: 'InterSystems IRIS (SuperServer)',
+        layer: 'Contexto',
+        status: 'DEGRADED',
+        latencyMs: opLatency,
+        detail: sanitizeSecrets(`Fallo al consultar clase Fixture.Partido: ${qErr.message}`),
+        diagnostic: 'El SuperServer está activo pero la clase o la consulta SQL falló.',
+      })
+
+      results.push({
+        product: 'InterSystems IRIS (SuperServer)',
+        layer: 'Operación mínima',
+        status: 'SKIP',
+        latencyMs: 0,
+        detail: 'Operación omitida por fallo en consulta a Fixture.Partido',
+        diagnostic: 'No se puede verificar la entidad si la consulta o clase falló.',
+      })
     }
-
-    const opLatency = Date.now() - opStart
-
-    results.push({
-      product: 'InterSystems IRIS (SuperServer)',
-      layer: 'Contexto',
-      status: 'UP',
-      latencyMs: opLatency,
-      detail: `Namespace "${namespace}" activo y clase Fixture.Partido consultada`,
-      diagnostic: 'Contexto de objetos IRIS validado con consulta de clase persistente.',
-    })
-
-    results.push({
-      product: 'InterSystems IRIS (SuperServer)',
-      layer: 'Operación mínima',
-      status: 'UP',
-      latencyMs: opLatency,
-      detail: partidoFound
-        ? 'Partido F2030-IRIS-0011 recuperado mediante modelo de objetos'
-        : 'Consulta ejecutada; entidad F2030-IRIS-0011 ausente (ausencia controlada)',
-      diagnostic: 'Operación no destructiva completada con el driver nativo IRIS.',
-    })
   } catch (err: unknown) {
     const error = err as Error
     results.push({
