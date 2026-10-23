@@ -1,6 +1,5 @@
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
-import * as nodeModule from 'node:module'
 import { sanitizeSecrets } from './sanitizer.js'
 
 export interface ApiTestRoute {
@@ -489,45 +488,10 @@ export async function runLiveApiChecks(
   return results
 }
 
-async function ensureIrisImportFallbackIfNeeded(): Promise<void> {
-  try {
-    await import('@intersystems/intersystems-iris-native' as string)
-  } catch {
-    const regHooks = (nodeModule as unknown as Record<string, unknown>).registerHooks
-    if (typeof regHooks === 'function') {
-      try {
-        ;(regHooks as (hooks: Record<string, unknown>) => void)({
-          resolve(specifier: string, context: unknown, nextResolve: (s: string, c: unknown) => unknown) {
-            if (specifier === '@intersystems/intersystems-iris-native') {
-              return { url: 'fallback:iris-native-unavailable', shortCircuit: true }
-            }
-            return nextResolve(specifier, context)
-          },
-          load(url: string, context: unknown, nextLoad: (u: string, c: unknown) => unknown) {
-            if (url === 'fallback:iris-native-unavailable') {
-              return {
-                format: 'module',
-                shortCircuit: true,
-                source: [
-                  'export function createConnection() { throw new Error("IRIS native addon unavailable on this platform"); }',
-                  'export class IRISReference { static Type = { STRING: 0 }; constructor() {} getString() { return ""; } }',
-                  'export default { createConnection, IRISReference };',
-                ].join('\n'),
-              }
-            }
-            return nextLoad(url, context)
-          },
-        })
-      } catch {}
-    }
-  }
-}
-
 export async function runInProcessApiChecks(
   routes: ApiTestRoute[] = getDefaultApiRoutes(),
   token?: string,
 ): Promise<ApiTestResult[]> {
-  await ensureIrisImportFallbackIfNeeded()
   const serverMod = (await import('../../hito-10-api/src/app/server.js' as string)) as any
   const envMod = (await import('../../hito-10-api/src/config/environment.js' as string)) as any
   const authMod = (await import('../../hito-10-api/src/modules/auth/auth.module.js' as string)) as any
