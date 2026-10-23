@@ -692,22 +692,19 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
     )
     const version = systemRes.first()?.get('release_version') ?? 'desconocida'
 
-    // R2-01 / S02 — Cargar metadatos de tabla mediante getTable() asíncrono (evita caché fría vacía)
+    // R2-01 / S02 / U02 — Cargar metadatos de tabla mediante getTable() asíncrono (evita caché fría vacía)
+    // sin ocultar rechazos de autorización (0x2100) ni timeouts de metadatos como tabla inexistente.
     let keyspaceOk = false
     let tableOk = false
-    try {
-      const meta = client.metadata.keyspaces[keyspace]
-      if (meta) {
-        keyspaceOk = true
-        const table = await withTimeout(
-          client.metadata.getTable(keyspace, 'comentarios_por_partido'),
-          TIMEOUT_MS,
-          'Cassandra getTable',
-        )
-        tableOk = Boolean(table)
-      }
-    } catch {
-      tableOk = false
+    const meta = client.metadata?.keyspaces?.[keyspace]
+    if (meta) {
+      keyspaceOk = true
+      const table = await withTimeout(
+        client.metadata.getTable(keyspace, 'comentarios_por_partido'),
+        TIMEOUT_MS,
+        'Cassandra getTable',
+      )
+      tableOk = Boolean(table)
     }
 
     const contextLatency = Date.now() - stageStart
@@ -797,6 +794,20 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
         `${classified.reasonLabel} en protocolo nativo CQL (${host}:${port}, keyspace "${keyspace}").`,
       ),
     })
+
+    if (
+      handshakeCompleted &&
+      (classified.layer === 'Autorización' || classified.layer === 'Contexto')
+    ) {
+      results.push({
+        product: 'Cassandra (CQL)',
+        layer: 'Operación mínima',
+        status: 'SKIP',
+        latencyMs: 0,
+        detail: `Lectura de comentarios omitida por fallo previo en capa de ${classified.layer}`,
+        diagnostic: `No se ejecutó consulta CQL porque la verificación de ${classified.layer.toLowerCase()} sobre "${keyspace}" falló.`,
+      })
+    }
   } finally {
     await client.shutdown().catch(() => {})
   }

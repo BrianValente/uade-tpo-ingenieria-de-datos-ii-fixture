@@ -8,8 +8,9 @@ import { Writable } from 'node:stream'
 import { sanitizeSecrets } from './sanitizer.js'
 
 export interface ControlledCycleStageResult {
-  stage: '1_INITIAL_UP' | '2_CONTROLLED_FAILURE' | '3_RECOVERY_UP'
+  stage: '1_INITIAL_SIMULATED_OK' | '2_REAL_ADAPTER_FAILURE' | '3_RECOVERY_SIMULATED_OK'
   title: string
+  mechanism: string
   statusHttp: number
   requestId: string
   latencyMs: number
@@ -65,7 +66,7 @@ export async function runControlledFailureCycle(): Promise<{
   })
 
   // Instancia real de MongoDocumentRepository apuntando a un puerto local sin listener (27099)
-  // con DEPENDENCY_TIMEOUT_MS=500ms para ejecutar el código real de falla del adaptador Mongo
+  // con DEPENDENCY_TIMEOUT_MS=500ms para ejercer el fallo de conexión real del driver Mongo en la Etapa 2
   const realDownMongoRepo = new MongoDocumentRepository(
     readDataEnvironment({
       MONGO_HOST: '127.0.0.1',
@@ -74,7 +75,7 @@ export async function runControlledFailureCycle(): Promise<{
     }),
   )
 
-  let mongoHealthy = true
+  let useSimulatedHealthyDouble = true
   // Token opaco de 43 caracteres base64url conforme con sessionHeadersSchema (/^Bearer [A-Za-z0-9_-]{43}$/i)
   const validToken = randomBytes(32).toString('base64url')
   const testUser = {
@@ -83,6 +84,7 @@ export async function runControlledFailureCycle(): Promise<{
     role: 'admin' as const,
   }
 
+  // Doble de autenticación en memoria para permitir alcanzar la ruta protegida sin Redis/Mongo activos
   const authModule = {
     service: {
       async login() {
@@ -109,10 +111,11 @@ export async function runControlledFailureCycle(): Promise<{
 
   const documentsRepo = {
     async findTeam(code: string, context: any) {
-      if (!mongoHealthy) {
-        // Ejecuta el método real de MongoDocumentRepository contra el puerto detenido
+      if (!useSimulatedHealthyDouble) {
+        // Etapa 2: Ejecuta el método real de MongoDocumentRepository contra el puerto local sin listener
         return realDownMongoRepo.findTeam(code, context)
       }
+      // Etapas 1 y 3: Doble en memoria con entidad fija (no consulta ni reconecta a MongoDB real)
       const started = performance.now()
       try {
         if (code === 'ARG') {
@@ -133,15 +136,16 @@ export async function runControlledFailureCycle(): Promise<{
           {
             dependency: 'MongoDB',
             operation: 'findTeam',
-            result: 'success',
+            result: 'simulated_double_success',
+            source: 'in-memory-double',
             durationMs: performance.now() - started,
           },
-          'Operación de dependencia',
+          'Operación simulada en doble de prueba (sin conexión a MongoDB)',
         )
       }
     },
     async listPlayers(teamId: string, page: number, limit: number, context: any) {
-      if (!mongoHealthy) {
+      if (!useSimulatedHealthyDouble) {
         return realDownMongoRepo.listPlayers(teamId, page, limit, context)
       }
       return { items: [], total: 0 }
@@ -183,8 +187,8 @@ export async function runControlledFailureCycle(): Promise<{
   const stages: ControlledCycleStageResult[] = []
 
   try {
-    // Etapa 1: Estado inicial operativo
-    mongoHealthy = true
+    // Etapa 1: Respuesta inicial servida por doble en memoria
+    useSimulatedHealthyDouble = true
     capturedLogLines.length = 0
     const start1 = Date.now()
     const res1 = await app.inject({
@@ -196,8 +200,9 @@ export async function runControlledFailureCycle(): Promise<{
     })
     const lat1 = Date.now() - start1
     stages.push({
-      stage: '1_INITIAL_UP',
-      title: '1. Estado Inicial Operativo (Dependencia MongoDB UP)',
+      stage: '1_INITIAL_SIMULATED_OK',
+      title: '1. Estado Inicial Simulado en API (Doble en memoria -> HTTP 200 OK)',
+      mechanism: 'Doble en memoria (entidad ARG fija y sesión simulada; sin conexión a MongoDB)',
       statusHttp: res1.statusCode,
       requestId: String(res1.headers['x-request-id'] || ''),
       latencyMs: lat1,
@@ -205,8 +210,8 @@ export async function runControlledFailureCycle(): Promise<{
       pinoLogs: [...capturedLogLines],
     })
 
-    // Etapa 2: Falla controlada de la dependencia MongoDB (ejecutando MongoDocumentRepository real contra puerto sin listener)
-    mongoHealthy = false
+    // Etapa 2: Falla de conexión real ejecutando MongoDocumentRepository contra puerto local sin listener (127.0.0.1:27099)
+    useSimulatedHealthyDouble = false
     capturedLogLines.length = 0
     const start2 = Date.now()
     const res2 = await app.inject({
@@ -218,8 +223,11 @@ export async function runControlledFailureCycle(): Promise<{
     })
     const lat2 = Date.now() - start2
     stages.push({
-      stage: '2_CONTROLLED_FAILURE',
-      title: '2. Falla Controlada de Dependencia (MongoDB DOWN -> HTTP 503 DEPENDENCY_UNAVAILABLE)',
+      stage: '2_REAL_ADAPTER_FAILURE',
+      title:
+        '2. Falla de Conexión Real en Adaptador (MongoDocumentRepository contra 127.0.0.1:27099 -> HTTP 503 DEPENDENCY_UNAVAILABLE)',
+      mechanism:
+        'Adaptador real MongoDocumentRepository + driver mongodb contra 127.0.0.1:27099 sin listener (timeout 500ms)',
       statusHttp: res2.statusCode,
       requestId: String(res2.headers['x-request-id'] || ''),
       latencyMs: lat2,
@@ -227,8 +235,8 @@ export async function runControlledFailureCycle(): Promise<{
       pinoLogs: [...capturedLogLines],
     })
 
-    // Etapa 3: Recuperación y reintento posterior sin reiniciar la API
-    mongoHealthy = true
+    // Etapa 3: Retorno de la capa HTTP al conmutar nuevamente al doble en memoria (sin reiniciar Fastify)
+    useSimulatedHealthyDouble = true
     capturedLogLines.length = 0
     const start3 = Date.now()
     const res3 = await app.inject({
@@ -240,8 +248,10 @@ export async function runControlledFailureCycle(): Promise<{
     })
     const lat3 = Date.now() - start3
     stages.push({
-      stage: '3_RECOVERY_UP',
-      title: '3. Recuperación de Dependencia y Reintento Exitoso (MongoDB UP -> HTTP 200 OK)',
+      stage: '3_RECOVERY_SIMULATED_OK',
+      title: '3. Retorno Simulado en API al Conmutar Doble (Doble en memoria -> HTTP 200 OK)',
+      mechanism:
+        'Conmutación al doble en memoria sin reiniciar Fastify (no reconecta ni lee MongoDB real)',
       statusHttp: res3.statusCode,
       requestId: String(res3.headers['x-request-id'] || ''),
       latencyMs: lat3,
@@ -267,28 +277,34 @@ export function formatControlledCycleMarkdown(data: {
   stages: ControlledCycleStageResult[]
 }): string {
   const lines: string[] = [
-    '# Evidencia de Ciclo Controlado de Falla y Recuperación — Hito 11',
+    '# Evidencia de Simulación Híbrida In-Process de Falla y Retorno en la API — Hito 11',
     '',
     `**Fecha de generación:** ${data.timestamp}  `,
     `**Entorno:** ${data.environment}  `,
     `**Commit base:** \`${data.gitCommit}\`  `,
     `**Comando ejecutado:** \`pnpm --dir hito-10-api exec tsx ../hito-11-conectividad/scripts/prueba_falla_controlada.ts --output=../hito-11-conectividad/docs/evidencia/ciclo_falla_recuperacion.md\`  `,
-    `**Tipo de prueba:** Ejecución controlada reproducible in-process sobre instancia real de Fastify (\`buildServer\`), \`MongoDocumentRepository\` real (ante puerto desconectado en etapa 2) y manejador de errores del Hito 10 (\`registerErrorHandler\`).  `,
+    `**Naturaleza de la prueba:** **Simulación híbrida in-process** sobre instancia real de Fastify (\`buildServer\`) y \`registerErrorHandler\`.  `,
     '',
-    '## Resumen del Ciclo Ejecutado',
+    '## Alcance y Límites de la Simulación Híbrida (RNF17, RNF18)',
     '',
-    '| Etapa | Endpoint | HTTP Status | Request ID (`x-request-id`) | Latencia | Resultado |',
-    '|:---|:---|:---:|:---|:---:|:---|',
+    '- **Partes simuladas (dobles en memoria):** La autorización Bearer (`authModule`) y las respuestas `200 OK` de las **Etapas 1 y 3** son servidas por dobles en memoria que devuelven una entidad `ARG` fija y registran un evento explícitamente rotulado como `source: "in-memory-double"`. **No leen ni reconectan una instancia real de MongoDB.**',
+    '- **Parte ejercida contra adaptador y driver reales:** Únicamente la **Etapa 2** invoca una instancia real de `MongoDocumentRepository` (y el driver oficial `mongodb`) apuntando al puerto local sin listener `127.0.0.1:27099` (`DEPENDENCY_TIMEOUT_MS=500ms`), provocando un `MongoServerSelectionError` (`ECONNREFUSED`) real que atraviesa `DataService` y `registerErrorHandler` hasta responder `HTTP 503 DEPENDENCY_UNAVAILABLE`.',
+    '- **Límite explícito de la conclusión:** Esta prueba certifica exclusivamente el contrato HTTP de degradación controlada (`503 DEPENDENCY_UNAVAILABLE`), la correlación de `x-request-id`, el formato de logs Pino y que el servidor Fastify continúa procesando peticiones tras un rechazo del adaptador. **No comprueba restauración del servicio MongoDB, lectura de datos persistidos ni conservación de volúmenes** (cuya verificación requiere un motor MongoDB activo según la guía operativa de `docs/diagnostico_de_fallas.md` §3.2).',
+    '',
+    '## Resumen del Ciclo Híbrido Ejecutado',
+    '',
+    '| Etapa | Endpoint | Mecanismo Activo | HTTP Status | Request ID (`x-request-id`) | Latencia | Resultado Observado |',
+    '|:---|:---|:---|:---:|:---|:---:|:---|',
   ]
 
   for (const s of data.stages) {
     const label = s.statusHttp === 200 ? '**200 OK**' : `**${s.statusHttp} Service Unavailable**`
     const summary =
       s.statusHttp === 200
-        ? 'Lectura exitosa de entidad `ARG` en MongoDB'
-        : 'Degradación controlada (`DEPENDENCY_UNAVAILABLE`)'
+        ? 'Respuesta 200 OK desde doble en memoria (entidad `ARG` fija; sin lectura real a MongoDB)'
+        : 'Degradación controlada (`DEPENDENCY_UNAVAILABLE`) tras rechazo TCP real en `MongoDocumentRepository`'
     lines.push(
-      `| ${s.title} | \`GET /equipos/ARG\` | ${label} | \`${s.requestId}\` | ${s.latencyMs}ms | ${summary} |`,
+      `| ${s.title} | \`GET /equipos/ARG\` | ${s.mechanism} | ${label} | \`${s.requestId}\` | ${s.latencyMs}ms | ${summary} |`,
     )
   }
 
@@ -296,6 +312,7 @@ export function formatControlledCycleMarkdown(data: {
 
   for (const s of data.stages) {
     lines.push(`### ${s.title}`, '')
+    lines.push(`- **Mecanismo activo:** ${s.mechanism}`)
     lines.push(`- **Status HTTP:** \`${s.statusHttp}\``)
     lines.push(`- **Header \`x-request-id\`:** \`${s.requestId}\``)
     lines.push(`- **Latencia medida:** \`${s.latencyMs}ms\``)

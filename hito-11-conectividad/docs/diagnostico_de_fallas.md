@@ -51,29 +51,41 @@ flowchart TD
 - **Portal Web (52773):** Utiliza HTTP y permite administrar la instancia mediante navegador. Que el portal responda no garantiza que el SuperServer binario acepte conexiones de clientes nativos.
 - **SuperServer (1972):** Utiliza el protocolo binario de IRIS (`@intersystems/intersystems-iris-native`). Además de autenticar en el namespace `USER`, la verificación de contexto valida el `%Status` de `%Prepare` y lee `%SQLCODE` mediante `rows.getNumber('%SQLCODE')` y `%Message` mediante `rows.getString('%Message')` tanto después de `%Execute` como después de `rows.invokeBoolean('%Next')`, separando estrictamente una ausencia controlada (`%SQLCODE` en `0` o `100` con `%Next = false`) de un error SQL (`%SQLCODE < 0`).
 
-### E. MongoDB: Handshake Exitoso vs. Fallo Posterior de Autorización (`code: 13`)
-- Cuando el servidor MongoDB acepta la conexión y responde `{ ok: 1 }` al comando `ping` en `authSource`, la capa de **Handshake** queda certificada como **UP**. Si posteriormente `listCollections` o `findOne` sobre la base `fixture2030` es rechazado con `MongoServerError: not authorized` (`code: 13`, `codeName: 'Unauthorized'`), el clasificador `classifyNativeError` registra la falla en la capa de **Autorización** (`DOWN`) y marca **Operación mínima** como `SKIP`, sin sobrescribir ni contradecir el `Handshake: UP`.
+### E. MongoDB y Cassandra: Handshake Exitoso vs. Fallo Posterior de Autorización (`code: 13` / `0x2100`)
+- En **MongoDB**, cuando el servidor acepta la conexión y responde `{ ok: 1 }` al comando `ping` en `authSource`, la capa de **Handshake** queda certificada como **UP**. Si posteriormente `listCollections` sobre `fixture2030` es rechazado con `MongoServerError: not authorized` (`code: 13`, `codeName: 'Unauthorized'`), el clasificador `classifyNativeError` registra la falla en la capa de **Autorización** (`DOWN`) y marca **Operación mínima** como `SKIP`, sin contradecir el `Handshake: UP`.
+- En **Cassandra**, si el handshake CQL tiene éxito pero `client.metadata.getTable()` es rechazado por permisos (`code: 0x2100` / `UnauthorizedException`) o expira por timeout, la excepción se propaga al clasificador para reportar `Autorización: DOWN` (o `Contexto: DOWN` en caso de timeout), reservando el estado `Contexto: DEGRADED (tabla no creada)` exclusivamente para cuando la consulta de metadatos finaliza con éxito y devuelve `null`.
 
 ---
 
-## 3. Escenario de Falla Controlada y Recuperación Reversible (RF20, RF21, 5.7)
+## 3. Escenario de Falla Controlada y Simulación Híbrida (RF20, RF21, 5.7, RNF17, RNF18)
 
-### 3.1 Evidencia Ejecutada y Reproducible en Entorno Local (`scripts/prueba_falla_controlada.ts`)
+### 3.1 Simulación Híbrida In-Process Ejecutada (`scripts/prueba_falla_controlada.ts`)
 
-Para comprobar de forma 100% reproducible el ciclo completo **Estado inicial UP → Falla controlada 503 (`DEPENDENCY_UNAVAILABLE`) → Recuperación posterior 200 OK** sobre el servidor Fastify real (`buildServer`), el manejador de errores (`registerErrorHandler`) y el adaptador real `MongoDocumentRepository`, se ejecutó el script automatizado `scripts/prueba_falla_controlada.ts`. El reporte íntegro autogenerado se encuentra en [`docs/evidencia/ciclo_falla_recuperacion.md`](./evidencia/ciclo_falla_recuperacion.md).
+En cumplimiento de la sección §5.7 del enunciado (que habilita realizar una simulación controlada cuando no se cuenta con todos los contenedores activos en el host), se ejecutó el script reproducible `scripts/prueba_falla_controlada.ts`. El reporte íntegro autogenerado se encuentra en [`docs/evidencia/ciclo_falla_recuperacion.md`](./evidencia/ciclo_falla_recuperacion.md).
 
-- **Fecha/Hora de ejecución:** `2026-10-23T12:12:57.240Z`
+- **Naturaleza de la prueba:** **Simulación híbrida in-process** sobre instancia real de Fastify (`buildServer`) y `registerErrorHandler`.
+- **Fecha/Hora de ejecución:** `2026-10-23T15:22:57.360Z`
 - **Entorno:** `win32 (x64) — Node.js v25.9.0`
-- **Commit base:** `f65b6ec`
+- **Commit base:** `e3f382c`
 - **Comando ejecutado:**
   ```bash
   pnpm --dir hito-10-api exec tsx ../hito-11-conectividad/scripts/prueba_falla_controlada.ts --output=../hito-11-conectividad/docs/evidencia/ciclo_falla_recuperacion.md
   ```
 
-#### Etapa 1 — Condición Inicial Operativa (Dependencia MongoDB UP)
-- **Petición:** `GET /equipos/ARG` (con token de sesión Bearer válido de 43 caracteres).
-- **Status HTTP:** `200 OK` (latencia: `26ms`).
-- **Header `x-request-id`:** `5a57f7ec-01b0-46ee-bcfa-b6405038f7ae`.
+#### Alcance y Límites Explícitos de la Simulación Híbrida
+1. **Partes simuladas mediante dobles en memoria (Etapas 1 y 3):**
+   - La autorización Bearer (`authModule`) y las respuestas `200 OK` de las **Etapas 1 y 3** son provistas por dobles en memoria que devuelven una entidad `ARG` estática y emiten un registro de log explícitamente rotulado con `"result": "simulated_double_success"` y `"source": "in-memory-double"`.
+   - **Estas etapas no se conectan, no leen ni reconectan una instancia real de MongoDB.**
+2. **Parte ejercida contra el adaptador y driver reales (Etapa 2):**
+   - Únicamente en la **Etapa 2** se invoca una instancia real de `MongoDocumentRepository` (y el driver oficial `mongodb`) apuntando al puerto local sin listener `127.0.0.1:27099` (`DEPENDENCY_TIMEOUT_MS=500ms`), provocando un `MongoServerSelectionError` (`ECONNREFUSED`) real que es traducido por `DataService` y `registerErrorHandler` en una respuesta HTTP `503 Service Unavailable` (`DEPENDENCY_UNAVAILABLE`).
+3. **Lo que esta prueba demuestra vs. lo que queda pendiente con contenedores activos:**
+   - **Demuestra:** Que el servidor Fastify (`buildServer`) y su manejador de errores capturan el fallo de conexión real del adaptador documental dentro del timeout configurado (`~520ms`), responden `HTTP 503` con `code: "DEPENDENCY_UNAVAILABLE"` y `x-request-id` correlacionado en cuerpo y logs Pino, y mantienen vivo el proceso HTTP para peticiones subsiguientes.
+   - **No demuestra (pendiente de ejecución contra motor MongoDB real):** Esta simulación **no comprueba la restauración real del servicio MongoDB, la lectura de documentos desde una base real ni la conservación de datos persistidos en volúmenes tras un reinicio**; dicha comprobación requiere ejecutar el procedimiento operativo de §3.2 sobre un entorno con el contenedor MongoDB activo.
+
+#### Etapa 1 — Estado Inicial Simulado en API (Doble en memoria → HTTP 200 OK)
+- **Mecanismo activo:** Doble en memoria (entidad `ARG` fija y sesión simulada; sin conexión a MongoDB).
+- **Status HTTP:** `200 OK` (latencia: `218ms`).
+- **Header `x-request-id`:** `f2aa6f94-9fd1-42b1-b5a7-1469c8e81522`.
 - **Cuerpo HTTP recibido:**
   ```json
   {
@@ -89,45 +101,44 @@ Para comprobar de forma 100% reproducible el ciclo completo **Estado inicial UP 
   ```
 - **Logs estructurados Pino capturados:**
   ```json
-  {"level":30,"time":1792757576716,"pid":16152,"hostname":"DESKTOP-ABP7874","reqId":"5a57f7ec-01b0-46ee-bcfa-b6405038f7ae","dependency":"MongoDB","operation":"findTeam","result":"success","durationMs":0.009000000000014552,"msg":"Operación de dependencia"}
-  {"level":30,"time":1792757576720,"pid":16152,"hostname":"DESKTOP-ABP7874","reqId":"5a57f7ec-01b0-46ee-bcfa-b6405038f7ae","method":"GET","route":"/equipos/:codigo","statusCode":200,"durationMs":5.014900000000125,"msg":"Solicitud finalizada"}
+  {"level":30,"time":1792768976834,"pid":2592,"hostname":"DESKTOP-ABP7874","reqId":"f2aa6f94-9fd1-42b1-b5a7-1469c8e81522","dependency":"MongoDB","operation":"findTeam","result":"simulated_double_success","source":"in-memory-double","durationMs":0.009299999997892883,"msg":"Operación simulada en doble de prueba (sin conexión a MongoDB)"}
+  {"level":30,"time":1792768976837,"pid":2592,"hostname":"DESKTOP-ABP7874","reqId":"f2aa6f94-9fd1-42b1-b5a7-1469c8e81522","method":"GET","route":"/equipos/:codigo","statusCode":200,"durationMs":5.269099999997707,"msg":"Solicitud finalizada"}
   ```
 
-#### Etapa 2 — Falla Controlada de la Dependencia (MongoDB DOWN → HTTP 503)
-En esta etapa la petición `GET /equipos/ARG` se delega a una instancia real de `MongoDocumentRepository` apuntando a un puerto local sin listener activo (`127.0.0.1:27099`, con `DEPENDENCY_TIMEOUT_MS=500ms`), provocando un `MongoServerSelectionError` (`ECONNREFUSED`) real en el driver oficial `mongodb`:
-- **Status HTTP:** `503 Service Unavailable` (latencia acotada: `519ms`).
-- **Header `x-request-id`:** `ed52f060-badf-481f-b1d8-fc40fbf29d15`.
+#### Etapa 2 — Falla de Conexión Real en Adaptador (`MongoDocumentRepository` contra `127.0.0.1:27099` → HTTP 503)
+- **Mecanismo activo:** Adaptador real `MongoDocumentRepository` + driver `mongodb` contra `127.0.0.1:27099` sin listener (`DEPENDENCY_TIMEOUT_MS=500ms`).
+- **Status HTTP:** `503 Service Unavailable` (latencia acotada: `520ms`).
+- **Header `x-request-id`:** `75e22946-bebf-40c2-98ff-302b39a83b7e`.
 - **Cuerpo HTTP recibido:**
   ```json
   {
     "code": "DEPENDENCY_UNAVAILABLE",
     "message": "Una dependencia no está disponible.",
-    "requestId": "ed52f060-badf-481f-b1d8-fc40fbf29d15"
+    "requestId": "75e22946-bebf-40c2-98ff-302b39a83b7e"
   }
   ```
-- **Logs estructurados Pino capturados (con correlación exacta de `reqId` y sin exponer secretos):**
-  ```json
-  {"level":30,"time":1792757577238,"pid":16152,"hostname":"DESKTOP-ABP7874","reqId":"ed52f060-badf-481f-b1d8-fc40fbf29d15","dependency":"MongoDB","operation":"findTeam","result":"failure","durationMs":517.6034,"msg":"Operación de dependencia"}
-  {"level":50,"time":1792757577238,"pid":16152,"hostname":"DESKTOP-ABP7874","reqId":"ed52f060-badf-481f-b1d8-fc40fbf29d15","code":"DEPENDENCY_UNAVAILABLE","statusCode":503,"msg":"Solicitud rechazada"}
-  {"level":30,"time":1792757577239,"pid":16152,"hostname":"DESKTOP-ABP7874","reqId":"ed52f060-badf-481f-b1d8-fc40fbf29d15","method":"GET","route":"/equipos/:codigo","statusCode":503,"durationMs":518.739,"msg":"Solicitud finalizada"}
-  ```
-
-#### Etapa 3 — Recuperación del Servicio y Reintento Posterior (MongoDB UP → HTTP 200 OK)
-Restablecida la disponibilidad de la dependencia documental sin reiniciar la instancia de Fastify:
-- **Petición:** `GET /equipos/ARG`.
-- **Status HTTP:** `200 OK` (latencia: `1ms`).
-- **Header `x-request-id`:** `c7a5ee6d-086a-4c6d-8f87-39f5f58f573a`.
 - **Logs estructurados Pino capturados:**
   ```json
-  {"level":30,"time":1792757577240,"pid":16152,"hostname":"DESKTOP-ABP7874","reqId":"c7a5ee6d-086a-4c6d-8f87-39f5f58f573a","dependency":"MongoDB","operation":"findTeam","result":"success","durationMs":0.0037999999999556167,"msg":"Operación de dependencia"}
-  {"level":30,"time":1792757577240,"pid":16152,"hostname":"DESKTOP-ABP7874","reqId":"c7a5ee6d-086a-4c6d-8f87-39f5f58f573a","method":"GET","route":"/equipos/:codigo","statusCode":200,"durationMs":0.26490000000012515,"msg":"Solicitud finalizada"}
+  {"level":30,"time":1792768977357,"pid":2592,"hostname":"DESKTOP-ABP7874","reqId":"75e22946-bebf-40c2-98ff-302b39a83b7e","dependency":"MongoDB","operation":"findTeam","result":"failure","durationMs":519.1098999999995,"msg":"Operación de dependencia"}
+  {"level":50,"time":1792768977358,"pid":2592,"hostname":"DESKTOP-ABP7874","reqId":"75e22946-bebf-40c2-98ff-302b39a83b7e","code":"DEPENDENCY_UNAVAILABLE","statusCode":503,"msg":"Solicitud rechazada"}
+  {"level":30,"time":1792768977358,"pid":2592,"hostname":"DESKTOP-ABP7874","reqId":"75e22946-bebf-40c2-98ff-302b39a83b7e","method":"GET","route":"/equipos/:codigo","statusCode":503,"durationMs":520.2936000000009,"msg":"Solicitud finalizada"}
+  ```
+
+#### Etapa 3 — Retorno Simulado en API al Conmutar Doble (Doble en memoria → HTTP 200 OK)
+- **Mecanismo activo:** Conmutación al doble en memoria sin reiniciar Fastify (no reconecta ni lee MongoDB real).
+- **Status HTTP:** `200 OK` (latencia: `1ms`).
+- **Header `x-request-id`:** `cfb049c4-8aa7-4092-b837-ec5fb552a8a3`.
+- **Logs estructurados Pino capturados:**
+  ```json
+  {"level":30,"time":1792768977359,"pid":2592,"hostname":"DESKTOP-ABP7874","reqId":"cfb049c4-8aa7-4092-b837-ec5fb552a8a3","dependency":"MongoDB","operation":"findTeam","result":"simulated_double_success","source":"in-memory-double","durationMs":0.004400000001623994,"msg":"Operación simulada en doble de prueba (sin conexión a MongoDB)"}
+  {"level":30,"time":1792768977359,"pid":2592,"hostname":"DESKTOP-ABP7874","reqId":"cfb049c4-8aa7-4092-b837-ec5fb552a8a3","method":"GET","route":"/equipos/:codigo","statusCode":200,"durationMs":0.29209999999875436,"msg":"Solicitud finalizada"}
   ```
 
 ---
 
 ### 3.2 Procedimiento Operativo de Referencia con Docker Compose (Guía Operativa No Ejecutada en este Host)
 
-*(Nota: Los siguientes pasos constituyen el procedimiento operativo de referencia para reproducir manualmente la caída y recuperación de contenedores en un entorno con el stack Docker Compose activo; no corresponden a una ejecución en este host donde los contenedores se encuentran detenidos).*
+*(Nota: Los siguientes pasos constituyen el procedimiento operativo de referencia para verificar en vivo la detención, restauración y conservación de volúmenes de MongoDB en un entorno con el stack Docker Compose activo; esta verificación end-to-end contra contenedores reales no fue ejecutada en este host).*
 
 1. **Verificación inicial con stack activo:**
    ```bash
@@ -141,9 +152,7 @@ Restablecida la disponibilidad de la dependencia documental sin reiniciar la ins
    ```bash
    pnpm --dir hito-10-api eval:conectividad -- --product=mongodb
    ```
-   - `GET /health` continúa respondiendo `200 OK` (liveness intacto).
-   - Las rutas que dependen de MongoDB devuelven `503 Service Unavailable` con `code: "DEPENDENCY_UNAVAILABLE"` dentro de la cota `DEPENDENCY_TIMEOUT_MS`.
-4. **Restauración del contenedor y verificación posterior:**
+4. **Restauración del contenedor y verificación posterior de lectura persistida:**
    ```bash
    docker compose start mongodb
    pnpm --dir hito-10-api eval:conectividad -- --product=mongodb
