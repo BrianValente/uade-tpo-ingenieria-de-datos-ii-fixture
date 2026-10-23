@@ -140,17 +140,27 @@ export function getDefaultApiRoutes(): ApiTestRoute[] {
   ]
 }
 
+function isProtectedRoute(route: ApiTestRoute): boolean {
+  return (
+    route.path !== '/health' &&
+    route.path !== '/docs/json' &&
+    route.path !== '/auth/login'
+  )
+}
+
 function classifyResult(
   route: ApiTestRoute,
   statusHttp: number,
   bodyText = '',
+  preflightNote = '',
 ): { resultSummary: ApiTestResult['resultSummary']; interpretation: string } {
   const statusMatches = statusHttp === route.expectedStatus
 
   if (statusHttp === 401) {
+    const baseMsg = 'Petición rechazada: requiere sesión válida o credenciales no configuradas.'
     return {
       resultSummary: 'UNAUTHENTICATED',
-      interpretation: 'Petición rechazada: requiere sesión válida o credenciales no configuradas.',
+      interpretation: preflightNote ? `${baseMsg} (${preflightNote})` : baseMsg,
     }
   }
 
@@ -214,6 +224,76 @@ function classifyResult(
   }
 }
 
+interface FetchDeadlineOutcome {
+  status: number | null
+  requestId: string
+  text: string
+  timedOut: boolean
+  error: Error | null
+}
+
+/**
+ * R3-01 / T01 — Ejecuta una petición HTTP con timeout duro que cubre tanto la conexión/headers
+ * como la lectura completa del cuerpo (response.text()), abortando el stream si vence el plazo.
+ */
+async function fetchWithDeadline(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<FetchDeadlineOutcome> {
+  const controller = new AbortController()
+  let responseRef: Response | null = null
+  let responseStatus: number | null = null
+  let responseRequestId = 'none'
+  let timedOut = false
+  let timer: NodeJS.Timeout | undefined
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      timedOut = true
+      controller.abort()
+      if (responseRef?.body) {
+        responseRef.body.cancel().catch(() => {})
+      }
+      const abortErr = new Error(`Timeout de solicitud superado (${timeoutMs}ms)`)
+      abortErr.name = 'AbortError'
+      reject(abortErr)
+    }, timeoutMs)
+  })
+
+  const workPromise = (async () => {
+    const response = await fetch(url, { ...init, signal: controller.signal })
+    responseRef = response
+    responseStatus = response.status
+    responseRequestId = response.headers.get('x-request-id') || 'no-provisto'
+    const text = await response.text()
+    return text
+  })()
+
+  try {
+    const text = await Promise.race([workPromise, timeoutPromise])
+    return {
+      status: responseStatus,
+      requestId: responseRequestId,
+      text,
+      timedOut: false,
+      error: null,
+    }
+  } catch (err: unknown) {
+    const error = err instanceof Error ? err : new Error(String(err))
+    const isAbort = timedOut || controller.signal.aborted || error.name === 'AbortError'
+    return {
+      status: responseStatus,
+      requestId: responseRequestId,
+      text: '',
+      timedOut: isAbort,
+      error,
+    }
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
+}
+
 export async function runLiveApiChecks(
   baseUrl = (
     process.env.API_URL ||
@@ -224,33 +304,61 @@ export async function runLiveApiChecks(
 ): Promise<ApiTestResult[]> {
   const results: ApiTestResult[] = []
   let activeToken = token || ''
+  let preflightNote = ''
+  let preflightTimedOut = false
 
-  // R2-04 / S04 — Pre-flight login si las rutas a probar son protegidas y no se proveyó token
-  if (
-    !activeToken &&
-    routes.some(
-      (r) =>
-        r.path !== '/health' &&
-        r.path !== '/docs/json' &&
-        r.path !== '/auth/login',
+  const hasExplicitLoginRoute = routes.some((r) => r.path === '/auth/login')
+  const hasProtectedRoutes = routes.some((r) => isProtectedRoute(r))
+
+  // R2-04 / S04 / R3-01 / T01 — Pre-flight login acotado con deadline si las rutas a probar son
+  // protegidas, no incluyen ya /auth/login en la lista y no se proveyó token externo.
+  if (!activeToken && !hasExplicitLoginRoute && hasProtectedRoutes) {
+    const preflightTimeoutMs = Math.min(
+      Math.max(Number(process.env.DEPENDENCY_TIMEOUT_MS) || 1500, 200),
+      1500,
     )
-  ) {
-    try {
-      const adminUsername = process.env.API_SEED_ADMIN_USERNAME || 'fixture-admin'
-      const adminPassword = process.env.API_SEED_ADMIN_PASSWORD || 'PasswordDemo12345!'
-      const loginRes = await fetch(`${baseUrl}/auth/login`, {
+    const adminUsername = process.env.API_SEED_ADMIN_USERNAME || 'fixture-admin'
+    const adminPassword = process.env.API_SEED_ADMIN_PASSWORD || 'PasswordDemo12345!'
+
+    const preflight = await fetchWithDeadline(
+      `${baseUrl}/auth/login`,
+      {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: adminUsername, password: adminPassword }),
-      })
-      if (loginRes.status === 200 || loginRes.status === 201) {
-        const parsed = (await loginRes.json()) as any
+      },
+      preflightTimeoutMs,
+    )
+
+    if (preflight.timedOut) {
+      preflightTimedOut = true
+      preflightNote =
+        preflight.status !== null
+          ? `Pre-flight POST /auth/login excedió timeout de lectura (${preflightTimeoutMs}ms) tras HTTP ${preflight.status}`
+          : `Pre-flight POST /auth/login excedió timeout (${preflightTimeoutMs}ms)`
+    } else if (preflight.error) {
+      preflightNote = sanitizeSecrets(
+        `Pre-flight POST /auth/login falló: ${preflight.error.message}`,
+      )
+    } else if (preflight.status === 200 || preflight.status === 201) {
+      try {
+        const parsed = JSON.parse(preflight.text) as Record<string, unknown>
         if (parsed && typeof parsed.accessToken === 'string') {
           activeToken = parsed.accessToken
+        } else {
+          preflightNote = 'Pre-flight POST /auth/login no devolvió accessToken válido'
         }
+      } catch {
+        preflightNote = 'Pre-flight POST /auth/login devolvió JSON inválido'
       }
-    } catch {}
+    } else {
+      preflightNote = `Pre-flight POST /auth/login retornó HTTP ${preflight.status}`
+    }
   }
+
+  // Si el pre-flight ya agotó su deadline contra un servidor colgado, acotamos el timeout de ruta a 2000ms
+  // para garantizar que el total (1500ms + 2000ms = 3500ms) nunca bloquee la suite; en caso normal mantenemos 4000ms.
+  const routeTimeoutMs = preflightTimedOut ? 2000 : 4000
 
   for (const route of routes) {
     const start = Date.now()
@@ -264,42 +372,42 @@ export async function runLiveApiChecks(
       headers.Authorization = `Bearer ${activeToken}`
     }
 
-    // F08 — Timeout integral que cubre conexión y lectura del cuerpo
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 4000)
+    const fetchOptions: RequestInit = {
+      method: route.method,
+      headers,
+      ...(route.body !== undefined ? { body: JSON.stringify(route.body) } : {}),
+    }
 
-    let responseReceived: Response | null = null
-    let responseStatus: number | null = null
-    let responseRequestId = 'none'
+    const outcome = await fetchWithDeadline(targetUrl, fetchOptions, routeTimeoutMs)
+    const responseTimeMs = Date.now() - start
+    const noteForRoute = isProtectedRoute(route) ? preflightNote : ''
 
-    try {
-      const fetchOptions: RequestInit = {
-        method: route.method,
-        headers,
-        signal: controller.signal,
-        ...(route.body !== undefined ? { body: JSON.stringify(route.body) } : {}),
-      }
-      const response = await fetch(targetUrl, fetchOptions)
-      responseReceived = response
-      responseStatus = response.status
-      responseRequestId = response.headers.get('x-request-id') || 'no-provisto'
-
-      const text = await response.text()
-      const responseTimeMs = Date.now() - start
-      const requestId = responseRequestId
-      const statusHttp = responseStatus
+    if (!outcome.timedOut && !outcome.error && outcome.status !== null) {
+      const statusHttp = outcome.status
+      const requestId = outcome.requestId
+      const text = outcome.text
 
       // F02 — Si la ruta es login y fue exitosa, capturar el accessToken en memoria para siguientes rutas
-      if (route.path === '/auth/login' && (statusHttp === 200 || statusHttp === 201)) {
-        try {
-          const parsed = JSON.parse(text)
-          if (parsed && typeof parsed.accessToken === 'string') {
-            activeToken = parsed.accessToken
-          }
-        } catch {}
+      if (route.path === '/auth/login') {
+        if (statusHttp === 200 || statusHttp === 201) {
+          try {
+            const parsed = JSON.parse(text) as Record<string, unknown>
+            if (parsed && typeof parsed.accessToken === 'string') {
+              activeToken = parsed.accessToken
+              preflightNote = ''
+            }
+          } catch {}
+        } else {
+          preflightNote = `POST /auth/login retornó HTTP ${statusHttp}`
+        }
       }
 
-      const { resultSummary, interpretation } = classifyResult(route, statusHttp, text)
+      const { resultSummary, interpretation } = classifyResult(
+        route,
+        statusHttp,
+        text,
+        noteForRoute,
+      )
 
       // F09 — Sanitizar snippets para no exponer contraseñas ni tokens
       const sanitizedText = sanitizeSecrets(text)
@@ -317,53 +425,63 @@ export async function runLiveApiChecks(
         interpretation,
         responseSnippet,
       })
-    } catch (err: unknown) {
-      const error = err as Error
-      const responseTimeMs = Date.now() - start
-      const isAbort = controller.signal.aborted || error.name === 'AbortError'
-
+    } else if (outcome.timedOut && outcome.status !== null) {
       // R2-10 — Distinguir timeout en lectura del body (cuando ya hubo headers) de API inalcanzable
-      if (isAbort && responseStatus !== null) {
-        results.push({
-          route,
-          statusHttp: responseStatus,
-          expectedStatus: route.expectedStatus,
-          statusMatches: false,
-          responseTimeMs,
-          requestId: responseRequestId,
-          resultSummary: 'TIMEOUT',
-          interpretation: sanitizeSecrets(
-            `Timeout de lectura de respuesta tras recibir HTTP ${responseStatus} (Request ID: ${responseRequestId})`,
-          ),
-          responseSnippet: 'Timeout al leer cuerpo de respuesta HTTP',
-        })
-      } else if (isAbort) {
-        results.push({
-          route,
-          statusHttp: 'UNREACHABLE',
-          expectedStatus: route.expectedStatus,
-          statusMatches: false,
-          responseTimeMs,
-          requestId: 'none',
-          resultSummary: 'TIMEOUT',
-          interpretation: sanitizeSecrets(`Timeout de solicitud superado (4000ms): ${error.message}`),
-          responseSnippet: 'Timeout de conexión o espera de respuesta',
-        })
-      } else {
-        results.push({
-          route,
-          statusHttp: 'UNREACHABLE',
-          expectedStatus: route.expectedStatus,
-          statusMatches: false,
-          responseTimeMs,
-          requestId: 'none',
-          resultSummary: 'API_UNREACHABLE',
-          interpretation: sanitizeSecrets(`No se pudo alcanzar el endpoint de la API: ${error.message}`),
-          responseSnippet: 'Sin respuesta (Connection Refused)',
-        })
+      if (route.path === '/auth/login') {
+        preflightNote = `POST /auth/login excedió timeout de lectura tras HTTP ${outcome.status}`
       }
-    } finally {
-      clearTimeout(timer)
+      const suffix = noteForRoute ? ` (${noteForRoute})` : ''
+      results.push({
+        route,
+        statusHttp: outcome.status,
+        expectedStatus: route.expectedStatus,
+        statusMatches: false,
+        responseTimeMs,
+        requestId: outcome.requestId,
+        resultSummary: 'TIMEOUT',
+        interpretation: sanitizeSecrets(
+          `Timeout de lectura de respuesta tras recibir HTTP ${outcome.status} (Request ID: ${outcome.requestId})${suffix}`,
+        ),
+        responseSnippet: 'Timeout al leer cuerpo de respuesta HTTP',
+      })
+    } else if (outcome.timedOut) {
+      if (route.path === '/auth/login') {
+        preflightNote = `POST /auth/login excedió timeout (${routeTimeoutMs}ms)`
+      }
+      const errMsg = outcome.error?.message || `Timeout (${routeTimeoutMs}ms)`
+      const suffix = noteForRoute ? ` (${noteForRoute})` : ''
+      results.push({
+        route,
+        statusHttp: 'UNREACHABLE',
+        expectedStatus: route.expectedStatus,
+        statusMatches: false,
+        responseTimeMs,
+        requestId: 'none',
+        resultSummary: 'TIMEOUT',
+        interpretation: sanitizeSecrets(
+          `Timeout de solicitud superado (${routeTimeoutMs}ms): ${errMsg}${suffix}`,
+        ),
+        responseSnippet: 'Timeout de conexión o espera de respuesta',
+      })
+    } else {
+      if (route.path === '/auth/login') {
+        preflightNote = `POST /auth/login inalcanzable`
+      }
+      const errMsg = outcome.error?.message || 'Error desconocido'
+      const suffix = noteForRoute ? ` (${noteForRoute})` : ''
+      results.push({
+        route,
+        statusHttp: 'UNREACHABLE',
+        expectedStatus: route.expectedStatus,
+        statusMatches: false,
+        responseTimeMs,
+        requestId: 'none',
+        resultSummary: 'API_UNREACHABLE',
+        interpretation: sanitizeSecrets(
+          `No se pudo alcanzar el endpoint de la API: ${errMsg}${suffix}`,
+        ),
+        responseSnippet: 'Sin respuesta (Connection Refused)',
+      })
     }
   }
 
@@ -410,36 +528,53 @@ export async function runInProcessApiChecks(
 
   const results: ApiTestResult[] = []
   let activeToken = token || ''
+  let preflightNote = ''
 
-  // R2-04 / S04 — Pre-flight login si las rutas a probar son protegidas y no se proveyó token
-  if (
-    !activeToken &&
-    routes.some(
-      (r) =>
-        r.path !== '/health' &&
-        r.path !== '/docs/json' &&
-        r.path !== '/auth/login',
-    )
-  ) {
-    try {
-      const adminUsername = process.env.API_SEED_ADMIN_USERNAME || 'fixture-admin'
-      const adminPassword = process.env.API_SEED_ADMIN_PASSWORD || 'PasswordDemo12345!'
-      const loginRes = await app.inject({
-        method: 'POST',
-        url: '/auth/login',
-        headers: { 'content-type': 'application/json' },
-        payload: JSON.stringify({ username: adminUsername, password: adminPassword }),
-      })
-      if (loginRes.statusCode === 200 || loginRes.statusCode === 201) {
-        const parsed = JSON.parse(loginRes.body)
-        if (parsed && typeof parsed.accessToken === 'string') {
-          activeToken = parsed.accessToken
-        }
-      }
-    } catch {}
-  }
+  const hasExplicitLoginRoute = routes.some((r) => r.path === '/auth/login')
+  const hasProtectedRoutes = routes.some((r) => isProtectedRoute(r))
 
   try {
+    // R2-04 / S04 / R3-01 / T01 — Pre-flight login dentro de try/finally y con deadline acotado
+    if (!activeToken && !hasExplicitLoginRoute && hasProtectedRoutes) {
+      const preflightTimeoutMs = Math.min(
+        Math.max(Number(process.env.DEPENDENCY_TIMEOUT_MS) || 1500, 200),
+        1500,
+      )
+      let preflightTimer: NodeJS.Timeout | undefined
+      try {
+        const adminUsername = process.env.API_SEED_ADMIN_USERNAME || 'fixture-admin'
+        const adminPassword = process.env.API_SEED_ADMIN_PASSWORD || 'PasswordDemo12345!'
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          preflightTimer = setTimeout(
+            () => reject(new Error(`Timeout de ${preflightTimeoutMs}ms en pre-flight inject`)),
+            preflightTimeoutMs,
+          )
+        })
+        const injectPromise = app.inject({
+          method: 'POST',
+          url: '/auth/login',
+          headers: { 'content-type': 'application/json' },
+          payload: JSON.stringify({ username: adminUsername, password: adminPassword }),
+        })
+        const loginRes: any = await Promise.race([injectPromise, timeoutPromise])
+        if (loginRes.statusCode === 200 || loginRes.statusCode === 201) {
+          const parsed = JSON.parse(loginRes.body)
+          if (parsed && typeof parsed.accessToken === 'string') {
+            activeToken = parsed.accessToken
+          } else {
+            preflightNote = 'Pre-flight POST /auth/login no devolvió accessToken válido'
+          }
+        } else {
+          preflightNote = `Pre-flight POST /auth/login retornó HTTP ${loginRes.statusCode}`
+        }
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        preflightNote = sanitizeSecrets(`Pre-flight POST /auth/login falló: ${error.message}`)
+      } finally {
+        if (preflightTimer) clearTimeout(preflightTimer)
+      }
+    }
+
     for (const route of routes) {
       const start = Date.now()
       const headers: Record<string, string> = {
@@ -453,8 +588,8 @@ export async function runInProcessApiChecks(
       // F16 — Payload tipado como string para evitar errores de compilación TS
       const payloadStr = route.body !== undefined ? JSON.stringify(route.body) : undefined
 
-      // F08 — Timeout en inject
-      let timer: NodeJS.Timeout
+      // F08 / R3-01 — Timeout en inject con manejo seguro de rechazo
+      let timer: NodeJS.Timeout | undefined
       const timeoutPromise = new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new Error('Timeout de 4000ms superado en inject')), 4000)
       })
@@ -466,47 +601,75 @@ export async function runInProcessApiChecks(
         ...(payloadStr !== undefined ? { payload: payloadStr } : {}),
       })
 
-      let response: any
+      const noteForRoute = isProtectedRoute(route) ? preflightNote : ''
+
       try {
-        response = await Promise.race([injectPromise, timeoutPromise])
-      } finally {
-        clearTimeout(timer!)
-      }
+        const response: any = await Promise.race([injectPromise, timeoutPromise])
+        const responseTimeMs = Date.now() - start
+        const requestId = String(response.headers['x-request-id'] || 'no-provisto')
+        const statusHttp = response.statusCode
+        const bodyText = typeof response.body === 'string' ? response.body : ''
 
-      const responseTimeMs = Date.now() - start
-      const requestId = String(response.headers['x-request-id'] || 'no-provisto')
-      const statusHttp = response.statusCode
-      const bodyText = typeof response.body === 'string' ? response.body : ''
-
-      // F02 — Captura y propagación de accessToken en modo in-process
-      if (route.path === '/auth/login' && (statusHttp === 200 || statusHttp === 201)) {
-        try {
-          const parsed = JSON.parse(bodyText)
-          if (parsed && typeof parsed.accessToken === 'string') {
-            activeToken = parsed.accessToken
+        // F02 — Captura y propagación de accessToken en modo in-process
+        if (route.path === '/auth/login') {
+          if (statusHttp === 200 || statusHttp === 201) {
+            try {
+              const parsed = JSON.parse(bodyText)
+              if (parsed && typeof parsed.accessToken === 'string') {
+                activeToken = parsed.accessToken
+                preflightNote = ''
+              }
+            } catch {}
+          } else {
+            preflightNote = `POST /auth/login retornó HTTP ${statusHttp}`
           }
-        } catch {}
+        }
+
+        const { resultSummary, interpretation } = classifyResult(
+          route,
+          statusHttp,
+          bodyText,
+          noteForRoute,
+        )
+        const sanitizedSnippet = sanitizeSecrets(bodyText)
+        const responseSnippet =
+          sanitizedSnippet.length > 100 ? `${sanitizedSnippet.slice(0, 97)}...` : sanitizedSnippet
+
+        results.push({
+          route,
+          statusHttp,
+          expectedStatus: route.expectedStatus,
+          statusMatches: statusHttp === route.expectedStatus,
+          responseTimeMs,
+          requestId,
+          resultSummary,
+          interpretation,
+          responseSnippet,
+        })
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        const responseTimeMs = Date.now() - start
+        const suffix = noteForRoute ? ` (${noteForRoute})` : ''
+        results.push({
+          route,
+          statusHttp: 'UNREACHABLE',
+          expectedStatus: route.expectedStatus,
+          statusMatches: false,
+          responseTimeMs,
+          requestId: 'none',
+          resultSummary: 'TIMEOUT',
+          interpretation: sanitizeSecrets(`Fallo o timeout en inyección in-process: ${error.message}${suffix}`),
+          responseSnippet: 'Timeout en Fastify inject',
+        })
+      } finally {
+        if (timer) clearTimeout(timer)
       }
-
-      const { resultSummary, interpretation } = classifyResult(route, statusHttp, bodyText)
-      const sanitizedSnippet = sanitizeSecrets(bodyText)
-      const responseSnippet =
-        sanitizedSnippet.length > 100 ? `${sanitizedSnippet.slice(0, 97)}...` : sanitizedSnippet
-
-      results.push({
-        route,
-        statusHttp,
-        expectedStatus: route.expectedStatus,
-        statusMatches: statusHttp === route.expectedStatus,
-        responseTimeMs,
-        requestId,
-        resultSummary,
-        interpretation,
-        responseSnippet,
-      })
     }
   } finally {
-    await app.close()
+    await Promise.race([
+      app.close().catch(() => {}),
+      new Promise<void>((r) => setTimeout(r, 1000)),
+    ])
   }
 
   return results

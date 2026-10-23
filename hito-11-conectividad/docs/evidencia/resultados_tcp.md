@@ -1,17 +1,19 @@
 # Evidencia de Evaluación TCP — Hito 11
 
-**Fecha de ejecución:** Octubre 2026  
-**Entorno de ejecución:** Host Local (Notebook de Desarrollo)  
+**Fecha de ejecución:** `2026-10-23T12:10:13.548Z`  
+**Entorno de ejecución:** `win32 (x64) — Node.js v25.9.0`  
+**Commit base:** `f65b6ec`  
+**Comando ejecutado:** `pnpm --dir hito-10-api eval:tcp`  
 **Herramienta utilizada:** `scripts/prueba_tcp.ts` vía `node:net` con timeout de 2000ms  
 
 ---
 
-## 1. Salida de Ejecución
+## 1. Salida Real Ejecutada en Entorno Host (Sin Contenedores Docker Activos)
 
 ```text
 ================================================================================
 Hito 11 — Prueba de Conectividad TCP a los Productos del Fixture 2030
-Fecha/Hora: 2026-10-18T14:36:31.856Z
+Fecha/Hora: 2026-10-23T12:10:13.548Z
 ================================================================================
 Iniciando chequeo de sockets TCP...
 
@@ -35,25 +37,27 @@ Resumen:
 
 ---
 
-## 2. Salida de Ejecución con Entorno Docker Activo (Referencia de Estado Saludable)
+## 2. Salida de Referencia Teórica / Ilustrativa con Entorno Docker Activo (No Ejecutada en este Host)
+
+*(Bloque ilustrativo de referencia no ejecutado en este host: muestra la salida esperada de `scripts/prueba_tcp.ts` cuando los contenedores Docker de los seis motores se encuentran iniciados con `docker compose up -d`).*
 
 ```text
 ================================================================================
-Hito 11 — Prueba de Conectividad TCP a los Productos del Fixture 2030
+Hito 11 — Prueba de Conectividad TCP a los Productos del Fixture 2030 (Referencia Ilustrativa)
 ================================================================================
 Iniciando chequeo de sockets TCP...
 
 | Producto / Listener | Host:Puerto | Protocolo | Estado | Latencia | Diagnóstico Técnico |
 |:---|:---|:---|:---:|:---:|:---|
-| MongoDB | `127.0.0.1:27017` | MongoDB Wire Protocol | **UP (OK)** | 1ms | Conexión TCP establecida: listener activo en el host y puerto probado. |
-| Redis | `127.0.0.1:6379` | RESP | **UP (OK)** | 1ms | Conexión TCP establecida: listener activo en el host y puerto probado. |
-| Neo4j (Bolt) | `127.0.0.1:7687` | Bolt | **UP (OK)** | 1ms | Conexión TCP establecida: listener activo en el host y puerto probado. |
-| Neo4j (HTTP) | `127.0.0.1:7474` | HTTP | **UP (OK)** | 1ms | Conexión TCP establecida: listener activo en el host y puerto probado. |
-| Cassandra (CQL) | `127.0.0.1:9042` | CQL | **UP (OK)** | 2ms | Conexión TCP establecida: listener activo en el host y puerto probado. |
-| InfluxDB 3 Core (HTTP) | `127.0.0.1:8181` | HTTP | **UP (OK)** | 1ms | Conexión TCP establecida: listener activo en el host y puerto probado. |
-| InterSystems IRIS (SuperServer) | `127.0.0.1:1972` | SuperServer | **UP (OK)** | 1ms | Conexión TCP establecida: listener activo en el host y puerto probado. |
-| InterSystems IRIS (Web/Portal) | `127.0.0.1:52773` | HTTP | **UP (OK)** | 1ms | Conexión TCP establecida: listener activo en el host y puerto probado. |
-| API Integrada Fixture 2030 | `127.0.0.1:8000` | HTTP | **UP (OK)** | 1ms | Conexión TCP establecida: listener activo en el host y puerto probado. |
+| MongoDB | `127.0.0.1:27017` | MongoDB Wire Protocol | **UP (OK)** | 1ms | Existe un listener activo y accesible en el host y puerto probado. |
+| Redis | `127.0.0.1:6379` | RESP | **UP (OK)** | 1ms | Existe un listener activo y accesible en el host y puerto probado. |
+| Neo4j (Bolt) | `127.0.0.1:7687` | Bolt | **UP (OK)** | 1ms | Existe un listener activo y accesible en el host y puerto probado. |
+| Neo4j (HTTP) | `127.0.0.1:7474` | HTTP | **UP (OK)** | 1ms | Existe un listener activo y accesible en el host y puerto probado. |
+| Cassandra (CQL) | `127.0.0.1:9042` | CQL | **UP (OK)** | 2ms | Existe un listener activo y accesible en el host y puerto probado. |
+| InfluxDB 3 Core (HTTP) | `127.0.0.1:8181` | HTTP | **UP (OK)** | 1ms | Existe un listener activo y accesible en el host y puerto probado. |
+| InterSystems IRIS (SuperServer) | `127.0.0.1:1972` | SuperServer | **UP (OK)** | 1ms | Existe un listener activo y accesible en el host y puerto probado. |
+| InterSystems IRIS (Web/Portal) | `127.0.0.1:52773` | HTTP | **UP (OK)** | 1ms | Existe un listener activo y accesible en el host y puerto probado. |
+| API Integrada Fixture 2030 | `127.0.0.1:8000` | HTTP | **UP (OK)** | 1ms | Existe un listener activo y accesible en el host y puerto probado. |
 
 Resumen:
 - Listeners alcanzables (UP): 9

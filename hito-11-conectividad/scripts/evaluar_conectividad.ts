@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import { resolve, dirname } from 'node:path'
 import { writeFile, mkdir } from 'node:fs/promises'
+import { execSync } from 'node:child_process'
 
 import {
   runTcpChecks,
@@ -38,6 +39,17 @@ export interface MatrixEntry {
   apiState: string
   overallState: 'UP' | 'DOWN' | 'DEGRADED' | 'NOT_CONFIGURED' | 'SKIP' | 'UNKNOWN'
   nextStep: string
+}
+
+function getGitCommitSha(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+  } catch {
+    return 'unknown'
+  }
 }
 
 export function buildSummaryMatrix(
@@ -241,6 +253,7 @@ export async function main() {
   const runTcp = runAll || args.includes('--tcp')
   const runNative = runAll || args.includes('--nativos')
   const runApi = runAll || args.includes('--api')
+  const inProcess = args.includes('--in-process')
 
   const productArg = args.find((a) => a.startsWith('--product='))
   const productFilter = productArg ? productArg.split('=')[1] : undefined
@@ -251,11 +264,15 @@ export async function main() {
   const outputArg = args.find((a) => a.startsWith('--output='))
   const outputPath = outputArg ? outputArg.split('=')[1] : null
 
+  const timestamp = new Date().toISOString()
+  const gitCommit = getGitCommitSha()
+
   console.log('='.repeat(80))
   console.log('Hito 11 — Diagnóstico de Conectividad a los Productos del Fixture 2030')
-  console.log(`Fecha de evaluación: ${new Date().toISOString()}`)
+  console.log(`Fecha de evaluación: ${timestamp}`)
+  console.log(`Commit base: ${gitCommit}`)
   console.log(`Plataforma / SO: ${process.platform} (${process.arch}) — Node.js ${process.version}`)
-  console.log(`Modos seleccionados: TCP=${runTcp}, NATIVOS=${runNative}, API=${runApi}`)
+  console.log(`Modos seleccionados: TCP=${runTcp}, NATIVOS=${runNative}, API=${runApi} (${inProcess ? 'in-process' : 'live-http'})`)
   if (productFilter) {
     console.log(`Filtro de producto activo: "${productFilter}"`)
   }
@@ -281,7 +298,6 @@ export async function main() {
   }
 
   if (runApi) {
-    const inProcess = args.includes('--in-process')
     console.log(`\n[3/3] Ejecutando Pruebas de Endpoints de la API (${inProcess ? 'Modo In-Process' : 'Modo Live HTTP'})...`)
     const routes = getDefaultApiRoutes()
     const filteredRoutes = productFilter
@@ -311,11 +327,15 @@ export async function main() {
     const fullOutPath = resolve(process.cwd(), outputPath)
     await mkdir(dirname(fullOutPath), { recursive: true })
 
+    const cliFlags = args.map((a) => (a.startsWith('--token=') ? '--token=******' : a)).join(' ')
     const markdownDoc = [
       '# Reporte de Evaluación de Conectividad — Hito 11',
       '',
-      `**Fecha de generación:** ${new Date().toISOString()}  `,
+      `**Fecha de generación:** ${timestamp}  `,
       `**Entorno:** ${process.platform} (${process.arch}) — Node.js ${process.version}  `,
+      `**Commit base:** \`${gitCommit}\`  `,
+      `**Comando ejecutado:** \`pnpm --dir hito-10-api eval:conectividad -- ${cliFlags}\`  `,
+      `**Modo API:** ${inProcess ? 'In-Process (`app.inject`)' : 'Live HTTP (`fetch`)'}  `,
       '',
       '## Matriz Consolidada de Conectividad',
       '',
@@ -325,7 +345,7 @@ export async function main() {
       nativeResults ? '## Detalle de Protocolos y Clientes Nativos\n\n' + formatNativeResultsTable(nativeResults) + '\n' : '',
       apiResults ? '## Detalle de Verificación desde la API\n\n' + formatApiResultsTable(apiResults) + '\n' : '',
       '---',
-      '*Reporte generado automáticamente por la suite de evaluación del Hito 11. Todas las credenciales y secretos fueron redactados.*',
+      '*Reporte generado automáticamente por la suite de evaluación del Hito 11 (`evaluar_conectividad.ts`) sin edición manual posterior. Todas las credenciales y secretos fueron redactados.*',
     ].filter(Boolean).join('\n')
 
     await writeFile(fullOutPath, markdownDoc, 'utf8')

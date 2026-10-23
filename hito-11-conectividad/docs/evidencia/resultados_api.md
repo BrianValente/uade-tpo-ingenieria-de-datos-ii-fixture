@@ -1,53 +1,56 @@
 # Evidencia de Evaluación desde la API — Hito 11
 
-**Fecha de ejecución:** Octubre 2026  
+**Fecha de ejecución:** `2026-10-23T12:10:13.548Z`  
+**Entorno de ejecución:** `win32 (x64) — Node.js v25.9.0`  
+**Commit base:** `f65b6ec`  
+**Comando ejecutado:** `pnpm --dir hito-10-api eval:api -- --in-process`  
 **Herramienta utilizada:** `scripts/prueba_api.ts` vía Fastify HTTP / In-Process Inject  
 **Rutas evaluadas:** Rutas de negocio y de sistema integradas en el Hito 10  
 
 ---
 
-## 1. Salida de Ejecución Observada en Entorno Host (Sin Contenedores)
+## 1. Salida Real Ejecutada en Entorno Host (Sin Contenedores Docker Activos)
 
 ```text
 ================================================================================
 Hito 11 — Evaluación de Rutas de la API Integrada Fixture 2030
-Fecha/Hora: 2026-10-23T00:24:27.468Z
+Fecha/Hora: 2026-10-23T12:10:13.548Z
 Modo de ejecución: In-Process (Fastify inject)
 ================================================================================
 Ejecutando pruebas sobre los endpoints HTTP...
 
 | Operación / Endpoint | Dependencia | Status HTTP | Esperado | Conforme | Latencia | Request ID | Diagnóstico e Interpretación |
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---|
-| `GET /health` | Ninguna (Solo proceso HTTP) | **200 OK** | 200 | SÍ | 2ms | `6ffb7b41...` | Operación completada exitosamente a través de la cadena completa. |
-| `GET /docs/json` | Ninguna (Esquemas estáticos Zod) | **200 OK** | 200 | SÍ | 32ms | `86c3d45d...` | Operación completada exitosamente a través de la cadena completa. |
-| `POST /auth/login` | MongoDB (Colección accounts) + Redis (Tokens de sesión) | **500** | 200 | NO | 2ms | `dc6ea054...` | Error interno del servidor API (HTTP 500). |
-| `GET /equipos/ARG` | MongoDB (Colección equipos) | **401** | 200 | NO | 2ms | `5f6cdc7e...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. |
-| `GET /equipos/ZZZ` | MongoDB | **401** | 404 | NO | 0ms | `a42bbaa7...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. |
-| `GET /equipos/CODIGO_INVALIDO_MUY_LARGO` | Zod Validator (Sin llamada a base) | **400** | 400 | SÍ | 1ms | `a3eb32d0...` | Error de validación sintáctica esperado: esquema Zod interceptó el parámetro inválido (400). |
-| `GET /equipos/ARG/jugadores?page=1&limit=5` | MongoDB (Colección jugadores) | **401** | 200 | NO | 2ms | `842915c4...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. |
-| `GET /partidos/F2030-001` | Neo4j (Nodo Partido) + MongoDB (Equipos) | **401** | 200 | NO | 2ms | `ba1de562...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. |
-| `GET /partidos/F2030-001/eventos?limit=10` | Neo4j (Relaciones en Grafo) | **401** | 200 | NO | 1ms | `f853e861...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. |
-| `GET /partidos/F2030-001/comentarios?minute=2030-06-13T20:01:00.000Z&limit=10` | Cassandra (Keyspace fixture2030_comentarios) | **401** | 200 | NO | 1ms | `4f9890be...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. |
-| `GET /partidos/F2030-001/estadisticas?start=2030-06-13T20:00:00.000Z&end=2030-06-13T22:00:00.000Z` | InfluxDB 3 (Base fixture2030_h8_lab_detalle) | **401** | 200 | NO | 1ms | `49fcff5e...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. |
-| `GET /partidos/F2030-IRIS-0011/detalle` | InterSystems IRIS (Namespace USER) | **401** | 200 | NO | 0ms | `2aff4eba...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. |
+| `GET /health` | Ninguna (Solo proceso HTTP) | **200 OK** | 200 | SÍ | 24ms | `6c25d120...` | Operación completada exitosamente a través de la cadena completa. |
+| `GET /docs/json` | Ninguna (Esquemas estáticos Zod) | **200 OK** | 200 | SÍ | 22ms | `bf8962af...` | Operación completada exitosamente a través de la cadena completa. |
+| `POST /auth/login` | MongoDB (Colección accounts) + Redis (Tokens de sesión) | **503** | 200 | NO | 2016ms | `5e85a202...` | Dependencia subyacente no disponible (503 DEPENDENCY_UNAVAILABLE). |
+| `GET /equipos/ARG` | MongoDB (Colección equipos) | **401** | 200 | NO | 1ms | `457e87ae...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. (POST /auth/login retornó HTTP 503) |
+| `GET /equipos/ZZZ` | MongoDB | **401** | 404 | NO | 0ms | `26813c64...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. (POST /auth/login retornó HTTP 503) |
+| `GET /equipos/CODIGO_INVALIDO_MUY_LARGO` | Zod Validator (Sin llamada a base) | **400** | 400 | SÍ | 1ms | `13d13044...` | Error de validación sintáctica esperado: esquema Zod interceptó el parámetro inválido (400). |
+| `GET /equipos/ARG/jugadores?page=1&limit=5` | MongoDB (Colección jugadores) | **401** | 200 | NO | 1ms | `bb043d94...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. (POST /auth/login retornó HTTP 503) |
+| `GET /partidos/F2030-001` | Neo4j (Nodo Partido) + MongoDB (Equipos) | **401** | 200 | NO | 1ms | `f685f66a...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. (POST /auth/login retornó HTTP 503) |
+| `GET /partidos/F2030-001/eventos?limit=10` | Neo4j (Relaciones en Grafo) | **401** | 200 | NO | 0ms | `7a778cf2...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. (POST /auth/login retornó HTTP 503) |
+| `GET /partidos/F2030-001/comentarios?minute=2030-06-13T20:01:00.000Z&limit=10` | Cassandra (Keyspace fixture2030_comentarios) | **401** | 200 | NO | 1ms | `14a4ed72...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. (POST /auth/login retornó HTTP 503) |
+| `GET /partidos/F2030-001/estadisticas?start=2030-06-13T20:00:00.000Z&end=2030-06-13T22:00:00.000Z` | InfluxDB 3 (Base fixture2030_h8_lab_detalle) | **401** | 200 | NO | 1ms | `6a0a6d36...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. (POST /auth/login retornó HTTP 503) |
+| `GET /partidos/F2030-IRIS-0011/detalle` | InterSystems IRIS (Namespace USER) | **401** | 200 | NO | 0ms | `34eca219...` | Petición rechazada: requiere sesión válida o credenciales no configuradas. (POST /auth/login retornó HTTP 503) |
 
 Resumen:
 - Rutas conformes con estado esperado: 3
 - Rutas no conformes / errores: 9
 - Rutas que requieren sesión (401): 8
+- Rutas con dependencia no disponible (503): 1
 ================================================================================
 ```
 
 ---
 
-## 2. Salida de Referencia Teórica / Simulación Ilustrativa con Sesión y Motores Activos
+## 2. Salida de Referencia Teórica / Ilustrativa con Sesión y Motores Activos (No Ejecutada en este Host)
 
-*(Línea base ilustrativa esperada tras inicializar los seis motores de base de datos con `docker compose up -d` y ejecutar el seed de cuentas con `pnpm seed:users`)*
+*(Bloque ilustrativo de referencia no ejecutado en este host: muestra la salida esperada de `scripts/prueba_api.ts` tras inicializar los seis motores de base de datos con `docker compose up -d` y ejecutar el seed de cuentas con `pnpm seed:users`).*
 
 ```text
 ================================================================================
-Hito 11 — Evaluación de Rutas de la API Integrada Fixture 2030
-Fecha/Hora: 2026-10-23T00:30:00.000Z (Línea base ilustrativa de integración plena)
+Hito 11 — Evaluación de Rutas de la API Integrada Fixture 2030 (Referencia Ilustrativa)
 Modo de ejecución: Live HTTP / In-Process con sesión autenticada
 ================================================================================
 Ejecutando pruebas sobre los endpoints HTTP...

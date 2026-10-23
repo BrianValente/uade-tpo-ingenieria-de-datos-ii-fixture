@@ -12,7 +12,13 @@ import { parsePort } from './prueba_tcp.js'
 
 export interface NativeCheckResult {
   product: string
-  layer: 'Configuración' | 'Handshake' | 'Autenticación' | 'Contexto' | 'Operación mínima'
+  layer:
+    | 'Configuración'
+    | 'Handshake'
+    | 'Autenticación'
+    | 'Autorización'
+    | 'Contexto'
+    | 'Operación mínima'
   status: 'UP' | 'DOWN' | 'NOT_CONFIGURED' | 'SKIP' | 'DEGRADED'
   latencyMs: number
   detail: string
@@ -30,6 +36,95 @@ function withTimeout<T>(promise: Promise<T>, ms: number, opName: string): Promis
     }, ms)
   })
   return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer))
+}
+
+/**
+ * T04 / S08 — Clasifica errores de clientes nativos según la etapa alcanzada y códigos/mensajes
+ * del driver para no colapsar fallas posteriores al handshake (Autenticación, Autorización,
+ * Contexto u Operación mínima) bajo `layer: 'Handshake'`.
+ */
+export function classifyNativeError(
+  err: unknown,
+  currentStage: NativeCheckResult['layer'],
+  handshakeCompleted: boolean,
+): { layer: NativeCheckResult['layer']; reasonLabel: string; isAmbiguousPreHandshake: boolean } {
+  const anyErr = (err ?? {}) as Record<string, unknown>
+  const code = anyErr.code
+  const codeName = typeof anyErr.codeName === 'string' ? anyErr.codeName : ''
+  const name = typeof anyErr.name === 'string' ? anyErr.name : 'Error'
+  const message = typeof anyErr.message === 'string' ? anyErr.message : String(err)
+  const combined = `${name} ${codeName} ${String(code ?? '')} ${message}`
+
+  // 1. Errores explícitos de Autorización / Permisos (ej. Mongo code 13 Unauthorized, Redis NOPERM, Neo4j Forbidden, Cassandra 0x2100)
+  if (
+    code === 13 ||
+    code === 0x2100 ||
+    /^Unauthorized$/i.test(codeName) ||
+    /not authorized on|not authorized to execute|noperm|permission denied|insufficient privileges|security\.forbidden|unauthorizedexception|access denied for/i.test(
+      combined,
+    ) ||
+    (handshakeCompleted && /unauthorized|forbidden/i.test(combined))
+  ) {
+    return {
+      layer: 'Autorización',
+      reasonLabel: 'Fallo de autorización / permisos insuficientes',
+      isAmbiguousPreHandshake: false,
+    }
+  }
+
+  // 2. Errores explícitos de Autenticación / Credenciales (ej. Mongo code 18 AuthenticationFailed, Redis WRONGPASS/NOAUTH, Neo4j Security.Unauthorized, Cassandra 0x0100)
+  if (
+    code === 18 ||
+    code === 0x0100 ||
+    /^AuthenticationFailed$/i.test(codeName) ||
+    /authentication failed|auth failed|bad auth|wrongpass|noauth|invalid password|invalid credentials|security\.unauthorized|badcredentials|access denied/i.test(
+      combined,
+    )
+  ) {
+    return {
+      layer: 'Autenticación',
+      reasonLabel: 'Fallo de autenticación / credenciales rechazadas',
+      isAmbiguousPreHandshake: false,
+    }
+  }
+
+  // 3. Errores explícitos de Contexto (base/keyspace/namespace inexistente)
+  if (
+    code === 26 ||
+    /^NamespaceNotFound$/i.test(codeName) ||
+    /keyspace .* does not exist|database .* does not exist|database .* not found|namespace .* does not exist/i.test(
+      combined,
+    )
+  ) {
+    return {
+      layer: 'Contexto',
+      reasonLabel: 'Fallo de contexto (base de datos, keyspace o namespace inexistente)',
+      isAmbiguousPreHandshake: false,
+    }
+  }
+
+  // 4. Si el handshake ya fue completado exitosamente, preservar la etapa en curso (Contexto u Operación mínima)
+  if (handshakeCompleted) {
+    const activeStage = currentStage === 'Handshake' ? 'Contexto' : currentStage
+    return {
+      layer: activeStage,
+      reasonLabel: `Fallo en etapa "${activeStage}" posterior al handshake`,
+      isAmbiguousPreHandshake: false,
+    }
+  }
+
+  // 5. Falla previa a completar el handshake
+  const isNetworkOrTimeout =
+    /econnrefused|etimedout|ehostunreach|enotfound|socket|timeout|server selection timed out/i.test(
+      combined,
+    )
+  return {
+    layer: currentStage,
+    reasonLabel: isNetworkOrTimeout
+      ? 'Fallo de conexión o handshake de protocolo'
+      : 'Fallo durante establecimiento de sesión inicial',
+    isAmbiguousPreHandshake: true,
+  }
 }
 
 // ============================================================================
@@ -64,7 +159,10 @@ export async function testMongoNative(): Promise<NativeCheckResult[]> {
   const realUri = `mongodb://${realAuthPart}${host}:${port}/${database}?authSource=${authSource}`
 
   const start = Date.now()
+  let stageStart = start
   let client: any = null
+  let currentStage: NativeCheckResult['layer'] = 'Handshake'
+  let handshakeCompleted = false
 
   try {
     let MongoClientClass: any
@@ -99,6 +197,7 @@ export async function testMongoNative(): Promise<NativeCheckResult[]> {
       'MongoDB ping',
     )
     if (pingRes && pingRes.ok === 1) {
+      handshakeCompleted = true
       results.push({
         product: 'MongoDB',
         layer: 'Handshake',
@@ -110,8 +209,9 @@ export async function testMongoNative(): Promise<NativeCheckResult[]> {
     }
 
     // Layer: Contexto (F12 — verificar existencia real de la colección mediante metadatos)
+    currentStage = 'Contexto'
+    stageStart = Date.now()
     const db = client.db(database)
-    const opStart = Date.now()
 
     const collections = await withTimeout(
       db.listCollections({ name: 'equipos' }).toArray(),
@@ -119,7 +219,7 @@ export async function testMongoNative(): Promise<NativeCheckResult[]> {
       'MongoDB listCollections',
     )
     const collectionExists = Array.isArray(collections) && collections.length > 0
-    const contextLatency = Date.now() - opStart
+    const contextLatency = Date.now() - stageStart
 
     if (collectionExists) {
       results.push({
@@ -132,13 +232,14 @@ export async function testMongoNative(): Promise<NativeCheckResult[]> {
       })
 
       // Layer: Operación mínima (F12 — diferenciar ausencia de ARG respecto a colección vacía o inexistente)
-      const readStart = Date.now()
+      currentStage = 'Operación mínima'
+      stageStart = Date.now()
       const team = await withTimeout(
         db.collection('equipos').findOne({ codigo: 'ARG' }),
         TIMEOUT_MS,
         'MongoDB findOne',
       )
-      const opLatency = Date.now() - readStart
+      const opLatency = Date.now() - stageStart
 
       results.push({
         product: 'MongoDB',
@@ -170,18 +271,37 @@ export async function testMongoNative(): Promise<NativeCheckResult[]> {
       })
     }
   } catch (err: unknown) {
-    const error = err as Error
-    const latency = Date.now() - start
+    const error = err instanceof Error ? err : new Error(String(err))
+    const latency = Date.now() - stageStart
+    const classified = classifyNativeError(err, currentStage, handshakeCompleted)
+    const hypothesisNote = classified.isAmbiguousPreHandshake
+      ? ' Hipótesis técnica: listener inaccesible, firewall o rechazo temprano durante negociación inicial.'
+      : ''
+
     results.push({
       product: 'MongoDB',
-      layer: 'Handshake',
+      layer: classified.layer,
       status: 'DOWN',
       latencyMs: latency,
-      detail: sanitizeSecrets(`Error de conexión: ${error.name} - ${error.message}`),
+      detail: sanitizeSecrets(`${classified.reasonLabel}: ${error.name} - ${error.message}`),
       diagnostic: sanitizeSecrets(
-        `Fallo al conectar o autenticar con MongoDB en ${host}:${port}. URI objetivo: ${sanitizedUri}.`,
+        `${classified.reasonLabel} en MongoDB (${host}:${port}, base "${database}"). URI objetivo: ${sanitizedUri}.${hypothesisNote}`,
       ),
     })
+
+    if (
+      handshakeCompleted &&
+      (classified.layer === 'Autorización' || classified.layer === 'Contexto')
+    ) {
+      results.push({
+        product: 'MongoDB',
+        layer: 'Operación mínima',
+        status: 'SKIP',
+        latencyMs: 0,
+        detail: `Lectura omitida por fallo previo en capa de ${classified.layer}`,
+        diagnostic: `No se ejecutó findOne porque la verificación de ${classified.layer.toLowerCase()} sobre "${database}" falló.`,
+      })
+    }
   } finally {
     if (client) {
       await client.close().catch(() => {})
@@ -228,6 +348,9 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
 
   const port = portConfig.port
   const start = Date.now()
+  let stageStart = start
+  let currentStage: NativeCheckResult['layer'] = 'Handshake'
+  let handshakeCompleted = false
 
   let createClientFn: any
   try {
@@ -278,6 +401,7 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
 
     // Layer: Handshake / Ping RESP (F08 — con timeout de comando)
     const pingReply = await withTimeout(client.ping(), TIMEOUT_MS, 'Redis PING')
+    handshakeCompleted = true
     results.push({
       product: 'Redis',
       layer: 'Handshake',
@@ -288,6 +412,8 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
     })
 
     // Layer: Contexto
+    currentStage = 'Contexto'
+    stageStart = Date.now()
     results.push({
       product: 'Redis',
       layer: 'Contexto',
@@ -298,11 +424,12 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
     })
 
     // Layer: Operación mínima y comprobación de ausencia vs caída (F07 / R13 — Solo lectura)
-    const opStart = Date.now()
+    currentStage = 'Operación mínima'
+    stageStart = Date.now()
     const probeKey = 'fixture2030:test:nonexistent_probe_key'
     const missingValue = await withTimeout(client.get(probeKey), TIMEOUT_MS, 'Redis GET')
     const probeTtl = await withTimeout(client.ttl(probeKey), TIMEOUT_MS, 'Redis TTL')
-    const opLatency = Date.now() - opStart
+    const opLatency = Date.now() - stageStart
 
     results.push({
       product: 'Redis',
@@ -314,14 +441,17 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
         'Operación de solo lectura completada: una clave ausente retorna null y TTL -2 sin alterar el estado de Redis.',
     })
   } catch (err: unknown) {
-    const error = err as Error
+    const error = err instanceof Error ? err : new Error(String(err))
+    const classified = classifyNativeError(err, currentStage, handshakeCompleted)
     results.push({
       product: 'Redis',
-      layer: 'Handshake',
+      layer: classified.layer,
       status: 'DOWN',
-      latencyMs: Date.now() - start,
-      detail: sanitizeSecrets(`Fallo de conexión Redis: ${error.message}`),
-      diagnostic: `No se pudo conectar al servidor RESP en ${host}:${port}.`,
+      latencyMs: Date.now() - stageStart,
+      detail: sanitizeSecrets(`${classified.reasonLabel}: ${error.message}`),
+      diagnostic: sanitizeSecrets(
+        `${classified.reasonLabel} en servidor RESP (${host}:${port}, db #${database}).`,
+      ),
     })
   } finally {
     // S03: cerrar socket inmediatamente sin colgarse en client.quit() si el protocolo está bloqueado
@@ -391,6 +521,9 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
   }
 
   const start = Date.now()
+  let stageStart = start
+  let currentStage: NativeCheckResult['layer'] = 'Handshake'
+  let handshakeCompleted = false
   const boltPort = portConfig.port
   const uri = `bolt://${host}:${boltPort}`
   const driver = neo4jLib.driver(
@@ -402,6 +535,7 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
   try {
     await withTimeout(driver.verifyConnectivity(), TIMEOUT_MS, 'Neo4j verifyConnectivity')
     const connectLatency = Date.now() - start
+    handshakeCompleted = true
 
     results.push({
       product: 'Neo4j (Bolt)',
@@ -412,18 +546,30 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
       diagnostic: `Handshake Bolt establecido en ${uri} como usuario "${username}".`,
     })
 
+    currentStage = 'Contexto'
+    stageStart = Date.now()
     const session = driver.session({ database: 'neo4j' })
     try {
-      const opStart = Date.now()
       const queryRes: any = await withTimeout(
         session.run('RETURN 1 AS ping'),
         TIMEOUT_MS,
         'Neo4j Cypher ping',
       )
-      const opLatency = Date.now() - opStart
+      const contextLatency = Date.now() - stageStart
       const pingVal = queryRes.records[0]?.get('ping')?.toNumber?.() ?? 1
 
+      results.push({
+        product: 'Neo4j (Bolt)',
+        layer: 'Contexto',
+        status: 'UP',
+        latencyMs: contextLatency,
+        detail: 'Base de datos "neo4j" seleccionada correctamente',
+        diagnostic: 'Contexto de grafo accesible y permisos de consulta comprobados.',
+      })
+
       // R2-06 — Consulta parametrizada sobre el modelo real: MATCH (p:Partido {id: $id}) RETURN p.id AS id, p.fase AS fase
+      currentStage = 'Operación mínima'
+      stageStart = Date.now()
       const partidoRes: any = await withTimeout(
         session.run(
           'MATCH (p:Partido {id: $id}) RETURN p.id AS id, p.fase AS fase LIMIT 1',
@@ -432,19 +578,12 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
         TIMEOUT_MS,
         'Neo4j Cypher partido query',
       )
+      const opLatency = Date.now() - stageStart
 
-      const foundPartido = partidoRes.records.length > 0
-        ? `Partido ${partidoRes.records[0].get('id')} encontrado`
-        : 'Partido F2030-001 ausente (ausencia controlada en grafo)'
-
-      results.push({
-        product: 'Neo4j (Bolt)',
-        layer: 'Contexto',
-        status: 'UP',
-        latencyMs: opLatency,
-        detail: 'Base de datos "neo4j" seleccionada correctamente',
-        diagnostic: 'Contexto de grafo accesible y permisos de consulta comprobados.',
-      })
+      const foundPartido =
+        partidoRes.records.length > 0
+          ? `Partido ${partidoRes.records[0].get('id')} encontrado`
+          : 'Partido F2030-001 ausente (ausencia controlada en grafo)'
 
       results.push({
         product: 'Neo4j (Bolt)',
@@ -452,20 +591,22 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
         status: 'UP',
         latencyMs: opLatency,
         detail: `Cypher ping retorno: ${pingVal}. Consulta :Partido parametrizada: ${foundPartido}.`,
-        diagnostic: 'Consulta Cypher parametrizada sobre etiqueta :Partido y propiedad id ejecutada sin alterar datos.',
+        diagnostic:
+          'Consulta Cypher parametrizada sobre etiqueta :Partido y propiedad id ejecutada sin alterar datos.',
       })
     } finally {
       await session.close()
     }
   } catch (err: unknown) {
-    const error = err as Error
+    const error = err instanceof Error ? err : new Error(String(err))
+    const classified = classifyNativeError(err, currentStage, handshakeCompleted)
     results.push({
       product: 'Neo4j (Bolt)',
-      layer: 'Handshake',
+      layer: classified.layer,
       status: 'DOWN',
-      latencyMs: Date.now() - start,
-      detail: sanitizeSecrets(`Fallo Bolt: ${error.message}`),
-      diagnostic: `No se pudo establecer sesión Bolt en ${uri}.`,
+      latencyMs: Date.now() - stageStart,
+      detail: sanitizeSecrets(`${classified.reasonLabel}: ${error.message}`),
+      diagnostic: sanitizeSecrets(`${classified.reasonLabel} en sesión Bolt (${uri}).`),
     })
   } finally {
     await driver.close().catch(() => {})
@@ -515,6 +656,9 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
 
   const port = portConfig.port
   const start = Date.now()
+  let stageStart = start
+  let currentStage: NativeCheckResult['layer'] = 'Handshake'
+  let handshakeCompleted = false
 
   // F05 — Configurar keyspace directamente en el cliente
   const client = new cassandraLib.Client({
@@ -528,6 +672,7 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
   try {
     await withTimeout(client.connect(), TIMEOUT_MS, 'Cassandra connect')
     const connectLatency = Date.now() - start
+    handshakeCompleted = true
 
     results.push({
       product: 'Cassandra (CQL)',
@@ -538,7 +683,8 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
       diagnostic: `Listener CQL alcanzable en ${host}:${port} (datacenter: ${datacenter}).`,
     })
 
-    const opStart = Date.now()
+    currentStage = 'Contexto'
+    stageStart = Date.now()
     const systemRes: any = await withTimeout(
       client.execute('SELECT release_version FROM system.local'),
       TIMEOUT_MS,
@@ -564,19 +710,21 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
       tableOk = false
     }
 
-    const opLatency = Date.now() - opStart
+    const contextLatency = Date.now() - stageStart
 
     if (keyspaceOk && tableOk) {
       results.push({
         product: 'Cassandra (CQL)',
         layer: 'Contexto',
         status: 'UP',
-        latencyMs: opLatency,
+        latencyMs: contextLatency,
         detail: `Keyspace "${keyspace}" y tabla "comentarios_por_partido" verificados`,
         diagnostic: 'Contexto de keyspace y tabla de comentarios validado en metadatos.',
       })
 
       // F05 — Lectura preparada con partición real: partido_id, bucket_minuto, grupo
+      currentStage = 'Operación mínima'
+      stageStart = Date.now()
       const cqlQuery = `SELECT partido_id, bucket_minuto, grupo, comentario_id, contenido
         FROM comentarios_por_partido
         WHERE partido_id = ? AND bucket_minuto = ? AND grupo = ? LIMIT 1`
@@ -588,6 +736,7 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
         'Cassandra comentarios read',
       )
       const rowsCount = cqlRes.rowLength ?? cqlRes.rows?.length ?? 0
+      const opLatency = Date.now() - stageStart
 
       results.push({
         product: 'Cassandra (CQL)',
@@ -602,7 +751,7 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
         product: 'Cassandra (CQL)',
         layer: 'Contexto',
         status: 'DEGRADED',
-        latencyMs: opLatency,
+        latencyMs: contextLatency,
         detail: `Keyspace "${keyspace}" presente pero tabla "comentarios_por_partido" no creada`,
         diagnostic: 'El cluster responde pero la tabla de comentarios no ha sido inicializada.',
       })
@@ -620,7 +769,7 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
         product: 'Cassandra (CQL)',
         layer: 'Contexto',
         status: 'DEGRADED',
-        latencyMs: opLatency,
+        latencyMs: contextLatency,
         detail: `Keyspace "${keyspace}" no encontrado en el nodo (versión ${version})`,
         diagnostic: 'El cluster responde pero el keyspace configurado no existe aún.',
       })
@@ -635,15 +784,18 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
       })
     }
   } catch (err: unknown) {
-    const error = err as Error
+    const error = err instanceof Error ? err : new Error(String(err))
     const cleanMsg = error.message.split('\n')[0]
+    const classified = classifyNativeError(err, currentStage, handshakeCompleted)
     results.push({
       product: 'Cassandra (CQL)',
-      layer: 'Handshake',
+      layer: classified.layer,
       status: 'DOWN',
-      latencyMs: Date.now() - start,
-      detail: sanitizeSecrets(`Fallo CQL: ${cleanMsg}`),
-      diagnostic: `No se pudo conectar al protocolo nativo CQL en ${host}:${port}.`,
+      latencyMs: Date.now() - stageStart,
+      detail: sanitizeSecrets(`${classified.reasonLabel}: ${cleanMsg}`),
+      diagnostic: sanitizeSecrets(
+        `${classified.reasonLabel} en protocolo nativo CQL (${host}:${port}, keyspace "${keyspace}").`,
+      ),
     })
   } finally {
     await client.shutdown().catch(() => {})
@@ -665,7 +817,6 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
 
   // 1. Health check HTTP (F08 — Timeout cubre toda la lectura del cuerpo)
   const healthUrl = `${rawUrl.replace(/\/$/, '')}/health`
-  let healthOk = false
 
   try {
     const controller = new AbortController()
@@ -676,7 +827,6 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
       const latency = Date.now() - start
 
       if (response.ok) {
-        healthOk = true
         results.push({
           product: 'InfluxDB 3 Core',
           layer: 'Handshake',
@@ -711,7 +861,7 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
     return results
   }
 
-  // 2. Autenticación y Contexto (F04 — Consulta SQL autenticada en /api/v3/query_sql)
+  // 2. Autenticación, Autorización y Contexto (F04 / T04 — Consulta SQL autenticada en /api/v3/query_sql)
   if (!token) {
     results.push({
       product: 'InfluxDB 3 Core',
@@ -770,14 +920,23 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
           detail: 'Consulta temporal SQL parametrizada ejecutada en estadisticas_equipo',
           diagnostic: 'Operación temporal mínima completada con éxito sin alterar datos.',
         })
-      } else if (qResponse.status === 401 || qResponse.status === 403) {
+      } else if (qResponse.status === 401) {
         results.push({
           product: 'InfluxDB 3 Core',
           layer: 'Autenticación',
           status: 'DOWN',
           latencyMs: qLatency,
-          detail: `Token rechazado por InfluxDB (HTTP ${qResponse.status})`,
-          diagnostic: 'El endpoint de consulta rechazó el token configurado por falta de permisos o caducidad.',
+          detail: `Token rechazado por InfluxDB (HTTP 401 Unauthorized)`,
+          diagnostic: 'El endpoint de consulta rechazó el token por ser inválido o haber expirado.',
+        })
+      } else if (qResponse.status === 403) {
+        results.push({
+          product: 'InfluxDB 3 Core',
+          layer: 'Autorización',
+          status: 'DOWN',
+          latencyMs: qLatency,
+          detail: `Permisos insuficientes en InfluxDB (HTTP 403 Forbidden)`,
+          diagnostic: `El token fue autenticado pero carece de permisos para consultar la base "${database}".`,
         })
       } else if (qResponse.status === 404 || responseText.includes('database not found')) {
         results.push({
@@ -819,6 +978,47 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
 // ============================================================================
 // 6. INTERSYSTEMS IRIS
 // ============================================================================
+
+/**
+ * R3-02 / T02 — Lee %SQLCODE y %Message desde un IRISObject del addon nativo
+ * `@intersystems/intersystems-iris-native` usando la API real `getNumber` / `getString`.
+ * Nunca asume `0` por defecto si la lectura falla o no devuelve un número válido.
+ */
+function readIrisSqlStatus(rows: any, phase: string): { sqlCode: number; message: string } {
+  if (!rows || typeof rows.getNumber !== 'function') {
+    throw new Error(
+      `El objeto resultset de IRIS no expone getNumber('%SQLCODE') tras ${phase}`,
+    )
+  }
+
+  const rawCode = rows.getNumber('%SQLCODE')
+  if (rawCode === null || rawCode === undefined || Number.isNaN(Number(rawCode))) {
+    throw new Error(
+      `Lectura de %SQLCODE inválida (${String(rawCode)}) en IRISObject tras ${phase}`,
+    )
+  }
+
+  const sqlCode = Number(rawCode)
+  let message = ''
+  if (typeof rows.getString === 'function') {
+    try {
+      const rawMsg = rows.getString('%Message')
+      if (typeof rawMsg === 'string') {
+        message = rawMsg
+      }
+    } catch {}
+  }
+
+  // En InterSystems IRIS SQL: 0 = éxito con fila disponible, 100 = fin de datos / sin filas, < 0 = error SQL
+  if (sqlCode < 0 || (sqlCode !== 0 && sqlCode !== 100)) {
+    throw new Error(
+      `Error SQL en IRIS tras ${phase} (SQLCODE ${sqlCode}): ${message || 'error de ejecución o esquema'}`,
+    )
+  }
+
+  return { sqlCode, message }
+}
+
 export async function testIrisNative(): Promise<NativeCheckResult[]> {
   const host = process.env.IRIS_HOST || '127.0.0.1'
   const superPortConfig = parsePort(
@@ -945,7 +1145,7 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
       diagnostic: `Autenticado en namespace "${namespace}".`,
     })
 
-    // R2-02 / S01 — Lectura acotada del modelo Fixture.Partido con validación estricta de %Status y %SQLCODE
+    // R2-02 / S01 / R3-02 / T02 — Lectura acotada del modelo Fixture.Partido con validación estricta de %Status y %SQLCODE
     const opStart = Date.now()
     const iris = connection.createIris()
 
@@ -955,10 +1155,17 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
         throw new Error('No se pudo instanciar objeto %SQL.Statement en IRIS')
       }
 
-      const prepStatus = statement.invoke('%Prepare', 'SELECT ID, Codigo FROM Fixture.Partido WHERE Codigo = ?')
-      // En InterSystems IRIS, un status exitoso es 1
-      if (prepStatus !== 1 && prepStatus !== '1' && prepStatus !== true) {
-        throw new Error(`Fallo en %Prepare de Fixture.Partido (%Status: ${prepStatus})`)
+      const prepStatus = statement.invoke(
+        '%Prepare',
+        'SELECT ID, Codigo FROM Fixture.Partido WHERE Codigo = ?',
+      )
+      const isStatusErr =
+        typeof iris.classMethodBoolean === 'function'
+          ? Boolean(iris.classMethodBoolean('%SYSTEM.Status', 'IsError', prepStatus))
+          : false
+      // En InterSystems IRIS, un %Status exitoso es 1
+      if (isStatusErr || (prepStatus !== 1 && prepStatus !== '1' && prepStatus !== true)) {
+        throw new Error(`Fallo en %Prepare de Fixture.Partido (%Status: ${String(prepStatus)})`)
       }
 
       const rows = statement.invokeObject('%Execute', 'F2030-IRIS-0011')
@@ -966,23 +1173,18 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
         throw new Error('Fallo al ejecutar consulta en IRIS: resultset nulo')
       }
 
-      let sqlCode = 0
-      try {
-        const rawCode = typeof rows.getProperty === 'function' ? rows.getProperty('%SQLCODE') : rows['%SQLCODE']
-        if (rawCode !== undefined && rawCode !== null) {
-          sqlCode = Number(rawCode)
-        }
-      } catch {}
+      // Verificar %SQLCODE inmediatamente después de %Execute usando getNumber('%SQLCODE')
+      readIrisSqlStatus(rows, '%Execute')
 
-      if (sqlCode < 0) {
-        let msg = ''
-        try {
-          msg = typeof rows.getProperty === 'function' ? rows.getProperty('%Message') : rows['%Message']
-        } catch {}
-        throw new Error(`Error SQL en IRIS (SQLCODE ${sqlCode}): ${msg || 'error de consulta o clase no encontrada'}`)
+      if (typeof rows.invokeBoolean !== 'function') {
+        throw new Error('El objeto resultset de IRIS no expone invokeBoolean("%Next")')
       }
 
-      const partidoFound = Boolean(rows && typeof rows.invokeBoolean === 'function' && rows.invokeBoolean('%Next'))
+      const partidoFound = Boolean(rows.invokeBoolean('%Next'))
+
+      // Verificar %SQLCODE inmediatamente después de %Next para separar ausencia válida (0/100) de error (< 0)
+      readIrisSqlStatus(rows, '%Next')
+
       const opLatency = Date.now() - opStart
 
       results.push({
@@ -1005,7 +1207,7 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
         diagnostic: 'Operación no destructiva completada con el driver nativo IRIS.',
       })
     } catch (queryErr: unknown) {
-      const qErr = queryErr as Error
+      const qErr = queryErr instanceof Error ? queryErr : new Error(String(queryErr))
       const opLatency = Date.now() - opStart
       results.push({
         product: 'InterSystems IRIS (SuperServer)',
@@ -1026,14 +1228,17 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
       })
     }
   } catch (err: unknown) {
-    const error = err as Error
+    const error = err instanceof Error ? err : new Error(String(err))
+    const classified = classifyNativeError(err, 'Handshake', false)
     results.push({
       product: 'InterSystems IRIS (SuperServer)',
-      layer: 'Handshake',
+      layer: classified.layer,
       status: 'DOWN',
       latencyMs: Date.now() - start,
       detail: sanitizeSecrets(`Fallo SuperServer: ${error.message}`),
-      diagnostic: `Error al conectar con IRIS SuperServer en ${host}:${superPortConfig.port}.`,
+      diagnostic: sanitizeSecrets(
+        `Error al conectar con IRIS SuperServer en ${host}:${superPortConfig.port} (namespace "${namespace}").`,
+      ),
     })
   } finally {
     if (connection) {
