@@ -1,0 +1,13 @@
+# Ignorar archivos con credenciales y entornos locales (RNF8)
+.env
+.env.*
+!.env.example
+config/.env
+config/*.local.*
+
+# Ignorar dependencias y salidas temporales
+node_modules/
+dist/
+*.log
+tmp/
+datos-o-generadores/generated/

@@ -1,0 +1,16 @@
+{
+  "name": "fixture2030-hito-12-carga-optimizacion",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "preparar": "npx tsx scripts/preparar_datos.ts",
+    "linea-base": "npx tsx scripts/ejecutar_linea_base.ts",
+    "carga": "npx tsx scripts/ejecutar_carga.ts",
+    "optimizada": "npx tsx scripts/ejecutar_prueba_optimizada.ts",
+    "validar": "npx tsx scripts/validar_integridad.ts",
+    "limpiar": "npx tsx scripts/limpiar_datos_de_prueba.ts",
+    "typecheck": "tsc --noEmit",
+    "smoke": "npx tsx scripts/ejecutar_carga.ts --smoke"
+  }
+}
