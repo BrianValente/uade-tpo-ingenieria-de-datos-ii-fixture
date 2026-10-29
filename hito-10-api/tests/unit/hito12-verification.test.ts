@@ -29,7 +29,9 @@ describe('Hito 12 - Verificación de Integridad de Payloads (H12-01, RF15, RNF4)
       dorsal: 10,
       position: 'Delantero',
     }
-    const duplicateItems = Array.from({ length: 24 }, () => ({ ...singlePlayer }))
+    const duplicateItems = Array.from({ length: 24 }, () => ({
+      ...singlePlayer,
+    }))
 
     const valid = verifyPayloadIntegrity('team_players', 'ARG', {
       items: duplicateItems,
@@ -81,7 +83,12 @@ describe('Hito 12 - Verificación de Integridad de Payloads (H12-01, RF15, RNF4)
   it('rechaza eventos con IDs duplicados o pertenecientes a otro partido', () => {
     const validEvents = [
       { id: 'EVT-01', partidoId: 'F2030-001', tipo: 'GOL', minuto: 12 },
-      { id: 'EVT-02', partidoId: 'F2030-001', tipo: 'TARJETA_AMARILLA', minuto: 34 },
+      {
+        id: 'EVT-02',
+        partidoId: 'F2030-001',
+        tipo: 'TARJETA_AMARILLA',
+        minuto: 34,
+      },
     ]
     expect(
       verifyPayloadIntegrity('match_events', 'F2030-001', {

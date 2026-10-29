@@ -11,8 +11,8 @@ Antes de introducir cualquier cambio en la lógica de acceso a datos, dimensiona
 
 | Atributo de Trazabilidad | Valor Observado |
 |:---|:---|
-| **Fecha y hora de ejecución** | `2026-10-24T05:37:27.018Z` |
-| **Commit base del repositorio** | `d350d50` (rama `feature/hito-12-carga-optimizacion`, partido desde `main` post-Hito 11) |
+| **Fecha y hora de ejecución** | `2026-10-29T23:25:34.080Z` |
+| **Commit base del repositorio** | `abaec7c` (rama `feature/hito-12-carga-optimizacion`, estado del árbol: `clean`) |
 | **Comando de reproducción** | `pnpm --dir hito-10-api h12:linea-base` (`scripts/ejecutar_linea_base.ts`) |
 | **Sistema Operativo y Arquitectura** | Windows 11 (`win32 x64`, kernel `10.0.22631`) |
 | **Procesador y Memoria del Host** | AMD Ryzen 5 5600U with Radeon Graphics — 12 CPUs lógicas, 7,31 GiB RAM total |

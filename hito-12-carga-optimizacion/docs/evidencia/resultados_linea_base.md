@@ -1,10 +1,10 @@
 # Resultados de Prueba de Carga — Línea Base (Hito 12)
 
 - **Modo ejecutado:** `baseline`
-- **Fecha de ejecución:** `2026-10-24T05:37:27.018Z`
-- **Commit Git:** `d350d50` (rama `feature/hito-12-carga-optimizacion`)
+- **Fecha de ejecución:** `2026-10-29T23:25:34.080Z`
+- **Commit Git:** `abaec7c` (rama `feature/hito-12-carga-optimizacion`, estado del árbol: `clean`)
 - **Hardware / SO:** win32 (x64) — AMD Ryzen 5 5600U with Radeon Graphics (12 CPUs lógicas, 7.31 GiB RAM) — Node.js `v22.18.0`
-- **Versiones observadas:** MongoDB (`db version v7.0.40`), Neo4j (`no-disponible`), Redis (`Redis server v=8.10.2 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=9afb359f90603816`)
+- **Versiones observadas:** MongoDB (`db version v7.0.40`), Neo4j (`Cypher-Shell 2026.10.1`), Redis (`Redis server v=8.10.2 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=9afb359f90603816`)
 
 ---
 
@@ -14,17 +14,17 @@
 |:---|---:|
 | Usuarios virtuales concurrentes | **24** |
 | Sesiones virtuales pre-sembradas en Redis | **20** |
-| Período de calentamiento (excluido de métricas) | 3 s (5 ops, media 2367.296 ms) |
+| Período de calentamiento (excluido de métricas) | 3 s (291 ops, media 41.065 ms) |
 | Rampa de incremento (Ramp-up) | 4 s |
 | Período de sostenimiento (Steady-state) | 12 s |
-| Duración total medida | **18.165 s** |
+| Duración total medida | **16.155 s** |
 | Semilla PRNG determinística (`H12_SEED`) | `203012` |
-| Operaciones medidas generadas | **635** |
-| Operaciones exitosas (`HTTP 200`) | **566** |
-| Operaciones con error | **69** (10.87 %) |
-| Respuestas con integridad de payload validada | **566 / 566** |
-| Throughput global sostenido | **34.96 ops/s** |
-| Volumen HTTP transferido | 1895.71 KiB |
+| Operaciones medidas generadas | **3584** |
+| Operaciones exitosas (`HTTP 200`) | **3584** |
+| Operaciones con error | **0** (0 %) |
+| Respuestas con integridad de payload validada | **3584 / 3584** |
+| Throughput global sostenido | **221.85 ops/s** |
+| Volumen HTTP transferido | 11496.80 KiB |
 
 ---
 
@@ -32,9 +32,9 @@
 
 | Segmento | Muestras | Mín (ms) | Media (ms) | Desv. Est. (ms) | p50 / Mediana (ms) | p90 (ms) | p95 (ms) | p99 (ms) | Máx (ms) |
 |:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| **Global (Todas las operaciones)** | 635 | 11.374 | 606.008 | 801.069 | **267.811** | 2014.118 | **2039.774** | **3922.693** | 5149.397 |
-| **Claves Calientes (Hotspot 80 %)** | 505 | 11.374 | 584.31 | 709.366 | **269.839** | 2014.118 | **2039.031** | **2328.07** | 3929.072 |
-| **Claves Frías (Long-tail 20 %)** | 125 | 11.784 | 516.567 | 657.876 | **260.139** | 1592.509 | **2019.902** | **2065.464** | 3897.346 |
+| **Global (Todas las operaciones)** | 3584 | 8.066 | 96.701 | 70.494 | **79.224** | 164.868 | **231.733** | **423.238** | 587.841 |
+| **Claves Calientes (Hotspot 80 %)** | 2848 | 8.066 | 95.867 | 69.926 | **78.999** | 162.205 | **229.864** | **422.329** | 587.841 |
+| **Claves Frías (Long-tail 20 %)** | 736 | 12.261 | 99.926 | 72.559 | **80.873** | 176.909 | **240.029** | **437.832** | 587.557 |
 
 ### Histograma de Latencias E2E
 
@@ -42,11 +42,11 @@
 |:---|---:|---:|
 | `< 2 ms` | 0 | 0.0 % |
 | `2 - 5 ms` | 0 | 0.0 % |
-| `5 - 10 ms` | 0 | 0.0 % |
-| `10 - 25 ms` | 27 | 4.3 % |
-| `25 - 50 ms` | 22 | 3.5 % |
-| `50 - 100 ms` | 30 | 4.7 % |
-| `>= 100 ms` | 556 | 87.6 % |
+| `5 - 10 ms` | 1 | 0.0 % |
+| `10 - 25 ms` | 98 | 2.7 % |
+| `25 - 50 ms` | 579 | 16.2 % |
+| `50 - 100 ms` | 1779 | 49.6 % |
+| `>= 100 ms` | 1127 | 31.4 % |
 
 ---
 
@@ -54,10 +54,10 @@
 
 | Endpoint | Fuentes | Ops | Éxitos | Errores | Throughput (ops/s) | Mín (ms) | Media (ms) | p50 (ms) | p95 (ms) | p99 (ms) | Máx (ms) |
 |:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| `GET /partidos/:id` | Redis + Neo4j + MongoDB | 265 | 218 | 47 | **14.59** | 207.241 | 912.519 | **423.882** | **2050.251** | **5003.734** | 5149.397 |
-| `GET /equipos/:codigo/jugadores?page=1&limit=24` | Redis + MongoDB | 182 | 182 | 0 | **10.02** | 18.586 | 172.43 | **197.952** | **298.205** | **335.868** | 376.821 |
-| `GET /partidos/:id/eventos?limit=20` | Redis + Neo4j | 136 | 114 | 22 | **7.49** | 126.633 | 779.396 | **291.269** | **2071.892** | **5000.532** | 5008.58 |
-| `GET /equipos/:codigo` | Redis + MongoDB | 52 | 52 | 0 | **2.86** | 11.374 | 108.027 | **114.668** | **220.775** | **252.942** | 252.942 |
+| `GET /partidos/:id` | Redis + Neo4j + MongoDB | 1435 | 1435 | 0 | **88.83** | 19.09 | 103.056 | **85.771** | **236.94** | **422.329** | 530.928 |
+| `GET /equipos/:codigo/jugadores?page=1&limit=24` | Redis + MongoDB | 1082 | 1082 | 0 | **66.98** | 12.439 | 115.805 | **95.927** | **296.273** | **490.29** | 587.841 |
+| `GET /partidos/:id/eventos?limit=20` | Redis + Neo4j | 721 | 721 | 0 | **44.63** | 16.888 | 67.134 | **53.918** | **168.794** | **263.477** | 357.417 |
+| `GET /equipos/:codigo` | Redis + MongoDB | 346 | 346 | 0 | **21.42** | 8.066 | 72.212 | **61.558** | **163.065** | **281.01** | 320.948 |
 
 ---
 
@@ -65,29 +65,29 @@
 
 | Capa / Dependencia | Operaciones Ejecutadas | Configuración Relevante | Media (ms) | p50 (ms) | p95 (ms) | p99 (ms) | Máx (ms) | Observaciones |
 |:---|---:|:---|---:|---:|---:|---:|---:|:---|
-| **Cliente Generador (HTTP E2E)** | 635 | 24 VUs concurrentes (`fetch`) | 606.008 | 267.811 | **2039.774** | **3922.693** | 5149.397 | Incluye socket cliente, HTTP y parseo JSON |
-| **API Fastify (Handler interno)** | 630 | Zod validation + serialización | 537.086 | 223.592 | **2021.539** | **2314.905** | 3916.198 | Tiempo interno `reply.elapsedTime` |
-| **Redis (Sesiones Lua)** | 635 | Escrituras renovación: 635 (omitidas: 0) | 30.667 | 29.442 | **63.309** | **86.632** | 169.832 | Autorización Bearer en cada request |
+| **Cliente Generador (HTTP E2E)** | 3584 | 24 VUs concurrentes (`fetch`) | 96.701 | 79.224 | **231.733** | **423.238** | 587.841 | Incluye socket cliente, HTTP y parseo JSON |
+| **API Fastify (Handler interno)** | 3584 | Zod validation + serialización | 78.59 | 63.513 | **203.312** | **350.016** | 525.169 | Tiempo interno `reply.elapsedTime` |
+| **Redis (Sesiones Lua)** | 3584 | Escrituras renovación: 3584 (omitidas: 0) | 16.77 | 11.654 | **46.026** | **119.094** | 214.584 | Autorización Bearer en cada request |
 | **Redis (Caché Read-Aside)** | 0 | Activo: `false` — Hit Ratio: **0 %** (0 hits / 0 misses) | 0 | 0 | **0** | **0** | 0 | Escrituras a caché: 0 |
-| **MongoDB 7.0 (Driver)** | 1034 | `maxPoolSize=5` | 56.871 | 54.171 | **122.45** | **161.847** | 206.594 | Fallos: 0 |
-| **Neo4j 5.x (Driver Bolt)** | 401 | `maxConnectionPoolSize=5` | 770.355 | 232.004 | **2012.273** | **5410.765** | 5752.42 | Fallos: 69 |
+| **MongoDB 7.0 (Driver)** | 6462 | `maxPoolSize=5` | 38.412 | 31.643 | **97.895** | **196.568** | 283.255 | Fallos: 0 |
+| **Neo4j 5.x (Driver Bolt)** | 2156 | `maxConnectionPoolSize=5` | 29.878 | 22.213 | **77.987** | **136.831** | 216.376 | Fallos: 0 |
 
 ---
 
 ## 5. Recursos del Entorno y Contenedores Docker (RF5, RF6, RNF9)
 
 ### Proceso Node.js (API + Generador)
-- **Memoria RSS (Antes -> Después):** `154.92 MiB` -> `160.52 MiB`
-- **Heap V8 Usado (Antes -> Después):** `57.21 MiB` -> `78.06 MiB`
-- **Tiempo de CPU consumido en ventana medida:** User `3265 ms`, System `266 ms`
+- **Memoria RSS (Antes -> Después):** `157.63 MiB` -> `259.21 MiB`
+- **Heap V8 Usado (Antes -> Después):** `75.03 MiB` -> `166.34 MiB`
+- **Tiempo de CPU consumido en ventana medida:** User `4812 ms`, System `671 ms`
 
 ### Contenedores Docker (`docker stats --no-stream`)
 
 | Contenedor | CPU % | Uso de Memoria | Mem % | Red I/O | Bloque I/O |
 |:---|---:|---:|---:|---:|---:|
-| `fixture2030-mongodb-1` | 1.17% | 217.8MiB / 3.483GiB | 6.11% | 357kB / 1.77MB | 75.7MB / 7.14MB |
-| `fixture2030-neo4j-1` | 75.75% | 913.9MiB / 3.483GiB | 25.62% | 520kB / 508kB | 122MB / 413MB |
-| `fixture2030-redis-1` | 0.32% | 22.5MiB / 3.483GiB | 0.63% | 499kB / 266kB | 16.6MB / 0B |
+| `fixture2030-mongodb-1` | 0.88% | 238.3MiB / 3.483GiB | 6.68% | 2.03MB / 12.5MB | 744MB / 41.6MB |
+| `fixture2030-neo4j-1` | 38.89% | 644.6MiB / 3.483GiB | 18.07% | 2.12MB / 3.23MB | 574MB / 212MB |
+| `fixture2030-redis-1` | 0.39% | 32.36MiB / 3.483GiB | 0.91% | 2.4MB / 1.52MB | 123MB / 541kB |
 
 ---
 *Reporte generado automáticamente sin intervención manual ni exposición de credenciales (RNF8, RNF14).*

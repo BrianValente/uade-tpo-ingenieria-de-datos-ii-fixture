@@ -29,16 +29,16 @@ Ambas corridas se ejecutaron bajo el mismo escenario reproducible (`24` usuarios
 
 | Indicador Clave | Línea Base (`baseline`) | Prueba Optimizada (`optimized`) | Variación |
 | :--- | ---: | ---: | ---: |
-| **Throughput Global** | `34.96 ops/s` (`635` ops) | **`276.94 ops/s`** (`4.439` ops) | **`+692.2 %` ($7,92\times$)** |
-| **Tasa de Error HTTP** | `10.87 %` (`69` fallos: 64 `HTTP 503` + 5 `CLIENT_TIMEOUT`) | **`0.00 %`** (`0` errores) | **`-10.87 pp` (`-100 %`)** |
-| **Latencia Media E2E (`avg`)** | `606.01 ms` | **`77.88 ms`** | **`-87.1 %`** |
-| **Latencia Mediana E2E (`p50`)** | `267.81 ms` | **`65.83 ms`** | **`-75.4 %`** |
-| **Latencia Percentil 95 (`p95`)** | `2039.77 ms` | **`159.28 ms`** | **`-92.2 %` ($12,81\times$)** |
-| **Latencia Percentil 99 (`p99`)** | `3922.69 ms` | **`245.07 ms`** | **`-93.8 %` ($16,01\times$)** |
-| **Consultas Driver MongoDB** | `1.034` llamadas | **`118` llamadas** | **`-88.6 %`** |
-| **Consultas Driver Neo4j** | `401` llamadas | **`60` llamadas** | **`-85.0 %`** |
-| **Cache Hit Ratio (Read-Aside Redis)** | `0.00 %` (sin caché) | **`96.53 %`** (`4.285` hits / `154` misses) | **`+96.53 pp`** |
-| **Renovaciones de Sesión Ahorradas** | `0` | **`4.439` escrituras (`HSET`+`EXPIRE`)** | **`100 %` en ventana $<60\text{ s}$** |
+| **Throughput Global** | `221.85 ops/s` (`3.584` ops) | **`840.34 ops/s`** (`5.000` ops) | **`+278.8 %` ($3,79\times$)** |
+| **Tasa de Error HTTP** | `0.00 %` (`0` errores) | **`0.00 %`** (`0` errores) | **`0.00 pp` (100 % éxito e integridad)** |
+| **Latencia Media E2E (`avg`)** | `96.70 ms` | **`20.86 ms`** | **`-78.4 %`** |
+| **Latencia Mediana E2E (`p50`)** | `79.22 ms` | **`17.64 ms`** | **`-77.7 %`** |
+| **Latencia Percentil 95 (`p95`)** | `231.73 ms` | **`33.98 ms`** | **`-85.3 %` ($6,82\times$)** |
+| **Latencia Percentil 99 (`p99`)** | `423.24 ms` | **`96.89 ms`** | **`-77.1 %` ($4,37\times$)** |
+| **Consultas Driver MongoDB** | `6.462` llamadas | **`38` llamadas** | **`-99.4 %`** |
+| **Consultas Driver Neo4j** | `2.156` llamadas | **`15` llamadas** | **`-99.3 %`** |
+| **Cache Hit Ratio (Read-Aside Redis)** | `0.00 %` (sin caché) | **`98.96 %`** (`4.948` hits / `52` misses) | **`+98.96 pp`** |
+| **Renovaciones de Sesión Ahorradas** | `0` | **`5.000` escrituras (`HSET`+`EXPIRE`)** | **`100 %` en ventana $<60\text{ s}$** |
 
 ---
 

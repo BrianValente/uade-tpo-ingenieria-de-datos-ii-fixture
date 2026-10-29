@@ -383,10 +383,21 @@ export async function validateDataIntegrity(
     let cacheTtlValidCount = 0
     let cacheContentConsistentCount = 0
     let cacheCorruptionDetail: string | null = null
+    const activeCacheKeys: string[] = []
 
     for (const ck of cacheKeys) {
       const pttl = await redisClient.pTTL(ck)
-      if (pttl > 0) cacheTtlValidCount++
+      if (pttl === -1) {
+        cacheCorruptionDetail = `Clave ${ck} sin TTL configurado`
+        activeCacheKeys.push(ck)
+      } else if (pttl > 0) {
+        cacheTtlValidCount++
+        activeCacheKeys.push(ck)
+      } else {
+        // Expiró naturalmente entre scan y verificación
+        continue
+      }
+
       const raw = await redisClient.get(ck)
       if (!raw) continue
 
@@ -508,9 +519,9 @@ export async function validateDataIntegrity(
     }
 
     const cachePassed = isPostCarga
-      ? cacheKeys.length > 0 &&
-        cacheTtlValidCount === cacheKeys.length &&
-        cacheContentConsistentCount === cacheKeys.length
+      ? activeCacheKeys.length > 0 &&
+        cacheTtlValidCount === activeCacheKeys.length &&
+        cacheContentConsistentCount === activeCacheKeys.length
       : cacheKeys.length === 0
 
     checks.push({
@@ -518,10 +529,10 @@ export async function validateDataIntegrity(
       category: 'Consistencia Fuente Operacional <-> Proyección Caché',
       description: `Todas las proyecciones cacheadas coinciden exactamente con MongoDB y Neo4j (${validationTarget})`,
       expected: isPostCarga
-        ? `Al menos 1 clave cacheada; 100% con TTL > 0 y contenido íntegro verificado contra MongoDB y Neo4j`
+        ? `Al menos 1 clave activa cacheada; 100% con TTL > 0 y contenido íntegro verificado contra MongoDB y Neo4j`
         : '0 claves de caché en Redis post-limpieza',
       observed: isPostCarga
-        ? `${cacheKeys.length} claves en caché; ${cacheTtlValidCount} con TTL > 0; ${cacheContentConsistentCount} íntegras${cacheCorruptionDetail ? ` (${cacheCorruptionDetail})` : ''}`
+        ? `${activeCacheKeys.length} claves activas en caché; ${cacheTtlValidCount} con TTL > 0; ${cacheContentConsistentCount} íntegras${cacheCorruptionDetail ? ` (${cacheCorruptionDetail})` : ''}`
         : `${cacheKeys.length} claves de caché en Redis`,
       passed: cachePassed,
     })
