@@ -498,7 +498,7 @@ export async function startBenchmarkServer(
           .limit(limit)
           .toArray(),
       )
-      if (rows.length === 0 && page === 1) {
+      if (rows.length === 0) {
         const teamExists = await trackMongo<Record<string, unknown> | null>(() =>
           mongoDb
             .collection('equipos')

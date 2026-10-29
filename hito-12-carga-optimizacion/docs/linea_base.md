@@ -31,7 +31,7 @@ Los datos completos y las muestras crudas se encuentran versionados en [`evidenc
 - **Duración efectiva medida:** `18,165 s` (16 s de ventana objetivo más el tiempo de drenaje de las peticiones en vuelo al cierre).
 - **Operaciones medidas generadas:** **635 solicitudes HTTP**.
 - **Operaciones exitosas (`HTTP 200`):** **566 solicitudes** (`89,13 %`), todas con integridad de estructura y contenido verificada (`566 / 566`).
-- **Operaciones fallidas (`HTTP 503`):** **69 solicitudes** (**`10,87 %` de tasa de error**), concentradas exclusivamente en las rutas que dependen de Neo4j (`47` en `GET /partidos/:id` y `22` en `GET /partidos/:id/eventos`).
+- **Operaciones fallidas:** **69 solicitudes** (**`10,87 %` de tasa de error**), desglosadas en **64 respuestas `HTTP 503`** (`DEPENDENCY_UNAVAILABLE` por saturación de pool en Neo4j) y **5 `CLIENT_TIMEOUT`** (`AbortSignal.timeout` de 5 s en el generador). Concentradas en rutas dependientes de Neo4j (`47` en `/partidos/:id` y `22` en `/partidos/:id/eventos`).
 - **Throughput global sostenido:** **`34,96 ops/s`**.
 
 ### 2.2. Distribución de Latencia Extremo a Extremo (E2E)
@@ -46,7 +46,7 @@ Los datos completos y las muestras crudas se encuentran versionados en [`evidenc
 
 ### 2.3. Desglose por Perfil de Endpoint HTTP
 
-| Endpoint | Motores | Solicitudes | Éxitos (`200`) | Errores (`503`) | Throughput (ops/s) | p50 (ms) | p95 (ms) | p99 (ms) | Máx (ms) |
+| Endpoint | Motores | Solicitudes | Éxitos (`200`) | Fallos (`503` + `TIMEOUT`) | Throughput (ops/s) | p50 (ms) | p95 (ms) | p99 (ms) | Máx (ms) |
 |:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|
 | `GET /partidos/:id` | Redis + Neo4j + MongoDB | 265 | 218 | **47** | **14,59** | 423,882 | **2050,251** | 5003,734 | 5149,397 |
 | `GET /equipos/:codigo/jugadores` | Redis + MongoDB | 182 | 182 | 0 | **10,02** | 197,952 | **298,205** | 335,868 | 376,821 |
@@ -61,7 +61,7 @@ La instrumentación interna permitió aislar cuánto tiempo y cuántas operacion
 
 | Capa / Producto | Operaciones Registradas | p50 (ms) | p95 (ms) | p99 (ms) | Fallos | Diagnóstico de Comportamiento en Línea Base |
 |:---|---:|---:|---:|---:|---:|:---|
-| **Generador de Carga (Cliente HTTP)** | 635 | 267,811 | 2039,774 | 3922,693 | 69 (`503`) | El generador mantuvo 24 VUs activos sin saturar CPU local; esperó a los sockets HTTP de la API. |
+| **Generador de Carga (Cliente HTTP)** | 635 | 267,811 | 2039,774 | 3922,693 | 69 (64 `503` + 5 `TIMEOUT`) | El generador mantuvo 24 VUs activos sin saturar CPU local; esperó a los sockets HTTP de la API. |
 | **Servidor API Fastify (`onResponse`)** | 630 | 223,592 | 2021,539 | 2314,905 | - | El 92 % del tiempo de respuesta transcurre dentro del handler esperando a los drivers NoSQL. |
 | **Redis — Sesiones Lua** | 635 | 29,442 | 63,309 | 86,632 | 0 | **635 escrituras `HSET` + `EXPIRE`** (una en cada request `GET`). Contenedor en `0,32 %` CPU y `22,5 MiB` RAM. |
 | **MongoDB 7.0 — Driver** | **1.034** | 54,171 | 122,450 | 161,847 | 0 | **Amplificación de consultas ($1,63\times$):** 1.034 operaciones para 635 requests HTTP, encoladas tras `maxPoolSize=5`. |
@@ -72,4 +72,4 @@ La instrumentación interna permitió aislar cuánto tiempo y cuántas operacion
 ## 4. Observaciones sobre la Estabilidad de la Prueba (§5.4)
 
 1. **Reproducibilidad y estabilidad funcional:** Los tres contenedores Docker se mantuvieron `healthy` durante y después de la prueba. Ningún proceso sufrió caídas (*crashes*) ni corrupción de datos.
-2. **Degradación bajo concurrencia sostenida:** La tasa de error del **`10,87 %` (`HTTP 503`)** demuestra empíricamente que la configuración base del Hito 10 (diseñada para validación funcional secuencial con pools de tamaño 5 y sin caché) **no soporta 24 usuarios concurrentes** sin rechazar solicitudes por agotamiento del pool de Neo4j y encolamiento en MongoDB.
+2. **Degradación bajo concurrencia sostenida:** La tasa de error del **`10,87 %` (64 `HTTP 503` y 5 `CLIENT_TIMEOUT`)** demuestra empíricamente que la configuración base del Hito 10 (diseñada para validación funcional secuencial con pools de tamaño 5 y sin caché) **no soporta 24 usuarios concurrentes** sin rechazar solicitudes por agotamiento del pool de Neo4j y encolamiento en MongoDB.

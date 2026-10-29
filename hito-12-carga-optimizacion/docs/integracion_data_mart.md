@@ -11,98 +11,129 @@
 > *«¿Cómo evolucionan, por partido, selección, confederación, sede e intervalo de 15 minutos de juego, la intensidad deportiva (goles, tarjetas, cambios, posesión media, tiros al arco y pases completados) junto con el volumen de interacción social (comentarios publicados, likes y respuestas), para comparar el impacto deportivo y de audiencia entre fases y sedes del Mundial 2030?»*
 
 ### 1.1. ¿Por qué esta pregunta requiere un Data Mart en lugar de consultar las fuentes operacionales en vivo?
-En la arquitectura operacional del Fixture 2030, los datos necesarios para responder esta pregunta están repartidos en **cuatro motores NoSQL con modelos heterogéneos**:
-1. **MongoDB (`equipos`, `jugadores`):** contiene la confederación (`CONMEBOL`, `UEFA`, etc.) y el origen de clasificación de cada selección.
-2. **Neo4j (`:Partido`, `:Sede`, `:Evento`, `:Equipo`):** contiene la fase del torneo, la sede/región y los eventos deportivos (`Gol`, `Tarjeta amarilla`, `Cambio`) con su minuto.
-3. **InfluxDB 3 Core (`estadisticas_equipo`, `resumenes_minuto_equipo`):** contiene las series temporales de `posesion_pct`, `tiros_acumulados` y `pases_intervalo` capturadas cada 10 segundos y resumidas por minuto.
-4. **Apache Cassandra (`comentarios_por_partido`):** almacena los comentarios particionados en 16 *buckets* por `(partido_id, bucket_minuto, grupo)`.
+En la arquitectura operacional del Fixture 2030, los datos necesarios para responder esta pregunta están repartidos en **cuatro motores NoSQL con modelos y propósitos operacionales heterogéneos**:
+1. **MongoDB (`equipos`, `jugadores`):** contiene el catálogo maestro de selecciones, confederación (`CONMEBOL`, `UEFA`, etc.) y origen de clasificación.
+2. **Neo4j (`:Partido`, `:Sede`, `:Evento`, `:Equipo`):** contiene la topología del torneo, sede/región y los eventos deportivos discretos (`Gol`, `Tarjeta amarilla`, `Tarjeta roja`, `Cambio`) con su minuto reglamentario.
+3. **InfluxDB 3 Core (`estadisticas_equipo` y `estadisticas_minuto`):** almacena la telemetría temporal de alta frecuencia (muestras cada 10 segundos) y los resúmenes consolidados minuto a minuto (`posesion_promedio`, `tiros_final`, `pases`, `muestras`).
+4. **Apache Cassandra (`comentarios_por_partido`):** ingesta masiva de interacciones de usuarios, particionada por `(partido_id, bucket_minuto, grupo)` sobre 16 grupos concurrentes para evitar contención de partición en picos de comentarios.
 
-Intentar responder esta pregunta analítica desde el camino operacional (por ejemplo, encadenando en cada request HTTP de un analista o dashboard consultas a los 16 grupos por minuto de Cassandra + recorridos Cypher en Neo4j + SQL sobre InfluxDB + lecturas BSON en MongoDB) constituiría el **antipatrón de consulta distribuida en serie sobre seis fuentes en tiempo real** advertido en la especificación (§1, §7). Provocaría alta latencia, amplificación de lectura y competencia directa con los recursos que atienden a los espectadores en vivo.
+Intentar responder esta pregunta analítica desde el camino operacional (por ejemplo, encadenando consultas a los 16 grupos por minuto en Cassandra + recorridos Cypher en Neo4j + agregaciones sobre InfluxDB + búsquedas BSON en MongoDB cada vez que un analista o directivo abre un tablero) constituiría el **antipatrón de consulta distribuida en serie sobre múltiples fuentes operacionales en tiempo real** advertido en la especificación técnica (§1, §7). Provocaría una latencia prohibitiva, alta amplificación de lectura y competencia directa por CPU, memoria y pools de conexión contra los espectadores que consultan la API en vivo.
 
 ---
 
-## 2. Fuentes Operacionales, Procedencia y Claves de Correspondencia (RF12, RNF12)
+## 2. Fuentes Operacionales, Procedencia y Claves de Correspondencia (RF12, RF13, RNF12)
 
 ```mermaid
 flowchart LR
-    subgraph Operacional["Fuentes Operacionales NoSQL (OLTP / Ingesta)"]
-        M[("MongoDB 7.0\nequipos / jugadores")]
-        N[("Neo4j 5.x\nPartido / Sede / Evento")]
-        I[("InfluxDB 3 Core\nresumenes_minuto_equipo")]
-        C[("Cassandra 5.0\ncomentarios_por_partido")]
+    subgraph Operacional["Fuentes Operacionales NoSQL (OLTP / Ingesta Continua)"]
+        M[("MongoDB 7.0\ncolección: equipos")]
+        N[("Neo4j 5.x\n:Partido / :Sede / :Evento")]
+        I[("InfluxDB 3 Core (History)\nmedición: estadisticas_minuto")]
+        C[("Cassandra 5.0\ntabla: comentarios_por_partido")]
     end
 
-    subgraph ETL["Proceso ETL / Micro-batch (Fuera del Camino Crítico)"]
-        T["Extractor Incremental +\nNormalizador de Claves +\nAgregador de Ventana 15m"]
+    subgraph ETL["Pipeline ETL / Micro-batch Analítico"]
+        E["Extractor Incremental\n(Ventanas de 15 min cerradas)"]
+        T["Normalización de Esquema,\nCálculo de Incrementos (Delta Tiros)\ny Separación de Granos Kimball"]
+        E --> T
     end
 
-    subgraph DM["Data Mart Analítico (Esquema Estrella)"]
-        F[["fact_rendimiento_audiencia_bloque15m"]]
+    subgraph DM["Data Mart Analítico (Constelación de Hechos Kimball)"]
+        FE[["fact_rendimiento_equipo_bloque15m\n(Grano: partido, equipo, bloque15m)"]]
+        FA[["fact_interaccion_partido_bloque15m\n(Grano: partido, bloque15m)"]]
         DP[("dim_partido")]
         DE[("dim_equipo")]
         DS[("dim_sede")]
         DB[("dim_bloque_tiempo")]
-        F --> DP
-        F --> DE
-        F --> DS
-        F --> DB
+
+        FE --> DP
+        FE --> DE
+        FE --> DS
+        FE --> DB
+
+        FA --> DP
+        FA --> DS
+        FA --> DB
     end
 
-    M -->|"UUID v5 + codigo (ARG)"| T
-    N -->|"partido.id (F2030-001)\nsede.id (SED-001)"| T
-    I -->|"partido_id + equipo_id\n+ ventana 1m"| T
-    C -->|"partido_id + bucket_minuto\n(16 grupos)"| T
-    T -->|"Upsert Idempotente\npor Clave Compuesta"| F
+    M -->|"UUID v5 + codigo (ARG)"| E
+    N -->|"partido.id + sede.id + eventos"| E
+    I -->|"partido_id + equipo_id\npases, tiros_final, posesion"| E
+    C -->|"partido_id + bucket_minuto\n(sin equipo_id)"| E
+    T -->|"Carga Idempotente (Upsert)"| FE
+    T -->|"Carga Idempotente (Upsert)"| FA
 ```
 
 ### Tabla de Procedencia Documentada Dato por Dato (RNF12)
 
-| Atributo / Medida en el Data Mart | Rol en Estrella | Motor de Origen | Colección / Tabla / Etiqueta Origen | Campo Original | Transformación Aplicada |
+| Atributo / Medida en el Data Mart | Rol Dimensional | Motor de Origen | Objeto / Tabla / Colección Origen | Campo Original Real | Transformación y Mapeo Aplicado |
 |:---|:---|:---|:---|:---|:---|
-| `partido_id` | PK / FK Dimensión | **Neo4j** | `:Partido` | `p.id` (`F2030-001`) | Validación de patrón `^F2030-\d{3}$` y mapeo directo. |
-| `equipo_id` | PK / FK Dimensión | **MongoDB** / **Neo4j** | `equipos` / `:Equipo` | `_id` / `e.id` (UUID v5) | Conservación del UUID v5 determinístico (`equipo:<codigo>`). |
-| `equipo_codigo` | Atributo Dimensión | **MongoDB** | `equipos` | `codigo` (`ARG`) | Normalización ISO 3 letras mayúsculas. |
-| `confederacion` | Atributo Dimensión | **MongoDB** | `equipos` | `confederacion` | Mapeo directo del enum (`CONMEBOL`, `UEFA`, `AFC`, `CAF`, `CONCACAF`, `OFC`). |
-| `sede_id`, `sede_region`, `sede_pais` | Atributos Dimensión | **Neo4j** | `:Sede` | `s.id`, `s.region`, `s.pais` | Extracción por relación `(:Partido)-[:SE_JUEGA_EN]->(:Sede)`. |
-| `fase_torneo`, `condicion_equipo` | Atributos Dimensión | **Neo4j** | `:Partido`, `[:DISPUTA]` | `p.fase`, `r.condicion` | Normalización de `local` / `visitante` y etapa del torneo. |
-| `bloque_15m_id` | PK / FK Dimensión | Derivado (`Neo4j` / `InfluxDB` / `Cassandra`) | Minuto o timestamp UTC | `e.minuto`, `time`, `bucket_minuto` | Discretización en 6 bloques reglamentarios: `B1 (0-15')`, `B2 (16-30')`, `B3 (31-45+')`, `B4 (46-60')`, `B5 (61-75')`, `B6 (76-90+')`. |
-| `goles_bloque`, `tarjetas_amarillas_bloque`, `tarjetas_rojas_bloque`, `cambios_bloque` | Medidas Aditivas | **Neo4j** | `:Evento` + `:OCURRE_EN` + `:INVOLUCRA` | `e.tipo`, `e.minuto`, `j.equipoCodigo` | Conteo condicional (`COUNT CASE WHEN e.tipo = ...`) agrupado por `(partido_id, equipo_codigo, bloque_15m_id)`. |
-| `posesion_promedio_pct` | Medida Semi-aditiva | **InfluxDB 3** | `resumenes_minuto_equipo` | `posesion_promedio` | Promedio ponderado (`SUM(posesion_promedio * muestras) / SUM(muestras)`) de los minutos cerrados del bloque. |
-| `pases_completados_bloque` | Medida Aditiva | **InfluxDB 3** | `resumenes_minuto_equipo` | `pases_minuto` | Suma (`SUM(pases_minuto)`) de los 15 resúmenes de un minuto del bloque. |
-| `tiros_nuevos_bloque` | Medida Aditiva | **InfluxDB 3** | `resumenes_minuto_equipo` | `tiros_acumulados_max` | Diferencia monotónica $\max(\text{tiros\_bloque\_actual}) - \max(\text{tiros\_bloque\_anterior})$ controlando no-negatividad. |
-| `comentarios_totales_partido`, `likes_acumulados`, `respuestas_acumuladas` | Medidas Aditivas | **Cassandra** | `comentarios_por_partido` | `comentario_id`, `likes`, `respuestas` | Lectura por partición `(partido_id, bucket_minuto, grupo 0..15)` de los minutos del bloque y agregación `COUNT(*)`, `SUM(likes)`, `SUM(respuestas)`. |
+| `partido_id` | PK / FK Dimensión | **Neo4j** | Nodos `:Partido` | `p.id` (`F2030-001`) | Validación de formato canónico `^F2030-\d{3}$` y mapeo directo a `dim_partido`. |
+| `equipo_id` | PK / FK Dimensión | **MongoDB** / **Neo4j** | Colección `equipos` / Nodos `:Equipo` | `_id` / `e.id` | Conservación del UUID v5 determinístico generado en Hito 4 (`dns:fixture2030.org/equipo/<codigo>`). |
+| `equipo_codigo` | Atributo Dimensión | **MongoDB** | Colección `equipos` | `codigo` (`ARG`) | Normalización ISO 3 caracteres mayúsculas en `dim_equipo`. |
+| `confederacion` | Atributo Dimensión | **MongoDB** | Colección `equipos` | `confederacion` | Mapeo directo del enumerado FIFA (`CONMEBOL`, `UEFA`, `AFC`, `CAF`, `CONCACAF`, `OFC`). |
+| `sede_id`, `sede_pais`, `sede_region` | Atributos Dimensión | **Neo4j** | Nodos `:Sede` | `s.id`, `s.pais`, `s.region` | Extracción mediante la relación `(:Partido)-[:SE_JUEGA_EN]->(:Sede)` hacia `dim_sede`. |
+| `fase_torneo`, `condicion_equipo` | Atributos Dimensión | **Neo4j** | Nodos `:Partido`, rel. `[:DISPUTA]` | `p.fase`, `r.condicion` | Normalización de fase y condición (`local` / `visitante`). |
+| `bloque_15m_id` | PK / FK Dimensión | Derivado multi-motor | Minuto de evento o timestamp UTC | `e.minuto`, `time` (InfluxDB), `bucket_minuto` (Cassandra) | Discretización reglamentaria en bloques cerrados: `B1 (0-15')`, `B2 (16-30')`, `B3 (31-45+')`, `B4 (46-60')`, `B5 (61-75')`, `B6 (76-90+')`, más eventuales prórrogas `B7` y `B8`. |
+| `goles_bloque`, `tarjetas_amarillas`, `tarjetas_rojas`, `cambios_bloque` | Medidas Aditivas de Equipo | **Neo4j** | `:Evento` + `:OCURRE_EN` + `:INVOLUCRA` | `e.tipo`, `e.minuto`, `j.equipoCodigo` | Conteo condicional (`COUNT(CASE WHEN e.tipo = 'Gol' THEN 1 END)`) agrupado por `(partido_id, equipo_id, bloque_15m_id)`. |
+| `posesion_promedio_pct` | Medida Semi-aditiva de Equipo | **InfluxDB 3** (base histórica) | Medición `estadisticas_minuto` (`influxdb/scripts/resumenes.py:60-77`) | `posesion_promedio`, `muestras` | Promedio ponderado de los 15 resúmenes de 1 minuto del bloque: $\frac{\sum (\text{posesion\_promedio} \times \text{muestras})}{\sum \text{muestras}}$. |
+| `pases_completados_bloque` | Medida Aditiva de Equipo | **InfluxDB 3** (base histórica) | Medición `estadisticas_minuto` | `pases` | Suma de los pases en los 15 minutos que componen el bloque: $\sum_{m=1}^{15} \text{pases}_m$. |
+| `tiros_nuevos_bloque` | Medida Aditiva de Equipo | **InfluxDB 3** (base histórica) | Medición `estadisticas_minuto` | `tiros_final` | `tiros_final` persiste el acumulado de tiros al cierre de cada minuto. El incremento del bloque se calcula como: $\Delta\text{tiros} = \text{tiros\_final}(\text{minuto } 15) - \text{tiros\_final}(\text{minuto } 0)$, garantizando no-negatividad. |
+| `comentarios_totales`, `likes_acumulados`, `respuestas_acumuladas` | Medidas Aditivas de Partido | **Cassandra** | Tabla `comentarios_por_partido` (`cassandra/scripts/00_esquema.cql`) | `comentario_id`, `likes`, `respuestas` | Agregación por partición `(partido_id, bucket_minuto, grupo 0..15)` de los 15 minutos del bloque: `COUNT(comentario_id)`, `SUM(likes)`, `SUM(respuestas)`. |
 
 ---
 
-## 3. Grano y Modelo Dimensional de la Vista Analítica (§5.7)
+## 3. Grano, Desacople de Medidas y Modelo Constelación de Kimball (RF12, H12-04)
 
-- **Nivel de detalle (Grano):** **Una fila por `(partido_id, equipo_id, bloque_15m_id)`**.
-  - En un partido reglamentario de 90 minutos (6 bloques de 15 minutos) con 2 selecciones participantes, cada partido genera exactamente **$2 \times 6 = 12$ filas** en la tabla de hechos `fact_rendimiento_audiencia_bloque15m`.
-  - Para los 32 partidos del laboratorio se generan **$32 \times 12 = 384$ filas**; para los 127 partidos proyectados del Mundial 2030 completo se generarían **$127 \times 12 = 1.524$ filas** (o $1.778$ filas incluyendo eventuales bloques `B7` y `B8` de prórroga).
-- **Ventaja del grano elegido:** Reduce millones de puntos temporales de InfluxDB y millones de comentarios de Cassandra a una tabla de hechos sumamente compacta ($< 2.000$ filas por torneo), capaz de responder cualquier cruce por confederación, sede, fase, selección o tramo de partido en $< 5\text{ ms}$ sin tocar las bases operacionales.
+### 3.1. Detección y Resolución de la Incompatibilidad de Granos
+Una inspección técnica rigurosa de las fuentes revela una discrepancia fundamental de grano:
+- **Las estadísticas deportivas de InfluxDB y los eventos de Neo4j tienen grano de equipo:** tanto `estadisticas_minuto` (con tags `partido_id` y `equipo_id`) como los eventos con relación `[:INVOLUCRA]->(:Jugador)` se atribuyen unívocamente a una selección participante.
+- **Los comentarios de Cassandra tienen grano de partido:** la tabla `comentarios_por_partido` está particionada por `((partido_id, bucket_minuto, grupo))` y almacena comentarios de hinchas que opinan sobre el encuentro general. **No existe un campo `equipo_id` en Cassandra.**
+
+> [!WARNING] Riesgo de Doble Conteo si se fuerza un Grano Incompatible
+> Si se intentara almacenar las medidas sociales (`comentarios_totales`, `likes`) dentro de una única tabla de hechos con grano `(partido_id, equipo_id, bloque_15m_id)`, **cada comentario se duplicaría obligatoriamente** en la fila del equipo local y en la fila del equipo visitante. Al ejecutar consultas analíticas agregadas (por ejemplo, *«total de comentarios en partidos de CONMEBOL»* o *«comentarios totales de la fase de grupos»*), la suma arrojaría exactamente el **doble ($2\times$) de la audiencia real**, violando los principios de diseño dimensional de Kimball.
+
+### 3.2. Modelo Dimensional Propuesto: Esquema Constelación (*Fact Constellation*)
+Para preservar la aditividad estricta de todas las medidas sin forzar datos artificiales ni inventar atribuciones no presentes en las fuentes operacionales, el Data Mart implementa dos tablas de hechos que comparten dimensiones conformadas:
+
+1. **`fact_rendimiento_equipo_bloque15m` (Grano: `partido_id, equipo_id, bloque_15m_id`):**
+   - Aloja las medidas deportivas propias de cada selección en cada cuarto de hora.
+   - Cada partido reglamentario genera $2 \times 6 = 12$ filas.
+   - En los 32 partidos del laboratorio genera exactamente **384 filas**; en los 127 partidos proyectados del Mundial 2030 genera **1.524 filas**.
+2. **`fact_interaccion_partido_bloque15m` (Grano: `partido_id, bloque_15m_id`):**
+   - Aloja las medidas de audiencia e interacción social del encuentro en ese cuarto de hora.
+   - Cada partido reglamentario genera 6 filas (1 por bloque temporal).
+   - En los 32 partidos genera **192 filas**; en los 127 partidos proyectados genera **762 filas**.
+3. **Vista Unificada de Consumo Analítico (`vw_partido_audiencia_rendimiento_15m`):**
+   - Cruza ambas tablas mediante `JOIN` por `(partido_id, bloque_15m_id)` para tableros que requieren correlacionar goles/tarjetas con picos de comentarios, conservando la trazabilidad de que los comentarios son una medida a nivel partido y no atribuible unívocamente a un equipo sin un proceso adicional de NLP/menciones.
+
+### 3.3. Ventaja del Grano y Estimación de Rendimiento (§5.7, H12-08)
+- **Reducción masiva de volumen:** Millones de muestras temporales de 10 s y millones de comentarios distribuidos en 16 particiones por minuto se consolidan en menos de **2.300 registros totales por torneo completo**.
+- **Objetivo de diseño analítico estimado:** Esta estructura compacta permite responder agregaciones multi-partido, cruces por confederación, sede o etapa en **tiempos de orden de milisegundos en motores OLAP tabulares o columnares**.  
+  *Nota de honestidad experimental (RNF14, §5.7):* Esta cifra representa un objetivo de diseño técnico derivado del dimensionamiento de filas en memoria; el Data Mart constituye una propuesta arquitectónica y no fue implementado ni medido experimentalmente en este laboratorio.
 
 ---
 
-## 4. Flujo ETL / Actualización, Frecuencia, Retraso y Tolerancia a Fallas (RF13, §5.7)
+## 4. Flujo ETL, Frecuencia, Retraso Aceptable y Tolerancia a Fallas (RF13, §5.7)
 
-| Aspecto del Pipeline Analítico | Definición Técnica y Justificación |
-|:---|:---|
-| **Estrategia de extracción** | **Híbrida (Dimensiones en Batch + Hechos en Micro-batch por ventana temporal):**<br>- Las dimensiones (`dim_equipo`, `dim_sede`, `dim_partido`) se sincronizan al inicio de cada jornada o ante cambios programados.<br>- Las medidas de `fact_rendimiento_audiencia_bloque15m` se extraen por ventana cerrada de minutos desde `resumenes_minuto_equipo` (InfluxDB), `:Evento` (Neo4j) y `comentarios_por_partido` (Cassandra). |
-| **Frecuencia de actualización** | **Cada 5 minutos durante partidos en curso** (actualización parcial del bloque de 15m activo) y **consolidación definitiva 15 minutos después de finalizar el partido** (`estado = Finalizado`). |
-| **Retraso aceptable (SLA de frescura)** | **De 1 a 5 minutos** para tableros de seguimiento analítico durante la jornada, y **hasta 15 minutos post-partido** para reportes oficiales de prensa y análisis táctico. Las decisiones analíticas (comparar sedes, fases o evolución por cuartos de hora) no requieren latencia sub-segundo. |
-| **Política ante datos tardíos (Late-arriving data)** | Siguiendo la regla implementada en el Hito 8 (`influxdb/scripts/resumenes.py`), un minuto de InfluxDB solo se resume cuando están presentes las 6 lecturas de 10 segundos. El job ETL re-procesa una **ventana deslizante de los últimos 30 minutos** (el bloque actual y el bloque inmediatamente anterior), incorporando eventos o comentarios con timestamp tardío. |
-| **Política ante duplicados e idempotencia** | La carga en `fact_rendimiento_audiencia_bloque15m` utiliza **`UPSERT` (`INSERT ... ON CONFLICT (partido_id, equipo_id, bloque_15m_id) DO UPDATE`)** reemplazando las medidas del bloque con el recálculo determinístico de la ventana completa, en lugar de sumar incrementalmente a ciegas. Si el job se ejecuta tres veces sobre el mismo bloque, el resultado final es idéntico. |
-| **Política ante datos faltantes o fallas parciales** | Si una de las fuentes (por ejemplo, Cassandra) sufre un timeout durante el micro-batch, la fila del bloque conserva un flag de calidad `estado_completitud = 'PARCIAL_SIN_COMENTARIOS'` y registra el `watermark` pendiente para reintentar en el siguiente ciclo, evitando publicar un `0` falso como si no hubieran existido comentarios. |
-| **Estrategia de validación de conteos y agregados** | Al cierre de cada partido se ejecuta una auditoría cruzada automática:<br>1) $\sum \text{goles\_bloque} == \text{COUNT}(:Evento \{\text{tipo}: \text{'Gol'}\})$ en Neo4j.<br>2) $\sum \text{pases\_completados\_bloque} == \sum \text{pases\_minuto}$ en InfluxDB.<br>3) Cantidad de equipos por partido en la tabla de hechos $== 2$. |
-
----
-
-## 5. Comparación: Consultar Fuentes Operacionales vs. Consultar la Proyección Analítica (§5.7)
-
-| Criterio | Consulta Directa a las 4 Fuentes Operacionales en Serie/Paralelo | Consulta a la Vista Analítica Pre-Integrada (Data Mart) |
+| Dimensión Operativa | Especificación Técnica | Justificación Arquitectónica |
 |:---|:---|:---|
-| **Cantidad de motores y conexiones por consulta** | 4 motores distintos (MongoDB + Neo4j + InfluxDB + Cassandra) y al menos $1 + 1 + 1 + 16 = 19$ operaciones de red por minuto consultado. | **1 sola consulta** sobre la estructura analítica (`fact_rendimiento_audiencia_bloque15m`). |
-| **Complejidad de unión en tiempo de lectura** | La aplicación debe cruzar en memoria UUIDs de MongoDB, códigos de 3 letras de Neo4j, tags de InfluxDB y particiones de Cassandra. | Los identificadores ya están normalizados y pre-unidos mediante claves sustitutas/naturales validadas. |
-| **Impacto sobre el tráfico en vivo del Mundial** | **Alto riesgo:** consultas analíticas pesadas compiten por CPU, memoria y pools de conexiones con los espectadores que consultan el partido o publican comentarios. | **Aislamiento total:** el consumo analítico ocurre fuera del camino crítico operacional. |
-| **Frescura del dato** | Tiempo real (0–2 segundos). | Retraso controlado y documentado (1–5 minutos en vivo; 15 minutos consolidado). |
-| **Caso de uso apropiado** | Pantalla operativa del partido en curso (`GET /partidos/:id`, feed de últimos comentarios). | Preguntas analíticas multi-partido, comparativas por confederación/sede, reportes históricos y BI. |
+| **Estrategia de extracción** | **Micro-batch por ventana cerrada de 15 minutos:**<br>- Las dimensiones maestras (`dim_equipo`, `dim_sede`, `dim_partido`) se sincronizan al inicio de cada jornada en batch.<br>- Las métricas de hechos se extraen por bloques temporales cerrados desde `estadisticas_minuto` (InfluxDB), eventos de Neo4j y `comentarios_por_partido` (Cassandra). | Minimiza el consumo de recursos operacionales al evitar la extracción streaming registro por registro en motores diseñados para batch/particiones. |
+| **Frecuencia de ejecución** | **Cada 5 minutos en partidos en vivo** (actualización provisional del bloque activo) y **consolidación definitiva a los 15 minutos post-partido** (`estado = 'Finalizado'`). | Provee información analítica oportuna para análisis táctico y de prensa sin saturar los motores operacionales durante el juego. |
+| **Retraso aceptable (SLA de frescura)** | **De 1 a 5 minutos durante el partido; hasta 15 minutos post-partido.** | Las preguntas analíticas estratégicas (comparación de confederaciones, sedes o cuartos de hora) no requieren latencia sub-segundo; priorizan consistencia y completitud sobre inmediatez. |
+| **Tratamiento de datos tardíos (*Late-arriving data*)** | Siguiendo el principio de Hito 8 (`influxdb/scripts/resumenes.py`), un minuto en InfluxDB solo se consolida cuando están presentes sus 6 muestras de 10 s. El proceso ETL evalúa una **ventana deslizante de re-lectura de 30 minutos** (bloque actual y bloque previo) para capturar eventos de arbitraje o comentarios ingresados con retraso de red. | Evita truncar métricas por asincronía de relojes o retrasos de ingesta sin reescribir todo el torneo. |
+| **Estrategia ante duplicados e idempotencia** | Inserción mediante **`UPSERT` (`INSERT ... ON CONFLICT (partido_id, equipo_id, bloque_15m_id) DO UPDATE`)** reemplazando las medidas del bloque con el recálculo determinístico de la ventana completa. | Si el proceso ETL se ejecuta múltiples veces ante reintentos de red, el estado final del Data Mart es estrictamente idéntico. |
+| **Tratamiento ante fallas parciales o caídas de fuente** | Si Cassandra sufre un timeout durante la extracción pero InfluxDB y Neo4j responden, se persiste el registro en `fact_rendimiento_equipo_bloque15m`, y en `fact_interaccion_partido_bloque15m` se registra un flag de calidad `estado_extraccion = 'PARCIAL_REINTENTO_PENDIENTE'`, programando un reintento en el siguiente ciclo. | Evita publicar ceros artificiales como si no hubiera comentarios y asegura completitud eventual. |
+| **Auditoría de integridad y validación de agregados** | Al finalizar cada partido se valida automáticamente:<br>1) $\sum \text{goles\_bloque} == \text{COUNT}(:Evento \{\text{tipo}: \text{'Gol'}\})$ en Neo4j.<br>2) $\sum \text{pases\_completados\_bloque} == \sum \text{pases}$ en `estadisticas_minuto` de InfluxDB.<br>3) $\sum \text{comentarios\_bloque} == \text{COUNT}(*)$ en Cassandra para ese partido. | Asegura que la capa analítica sea un reflejo matemático exacto de las fuentes operacionales. |
+
+---
+
+## 5. Comparación Crítica: Consulta Operacional Distribuida vs. Consulta al Data Mart (§5.7)
+
+| Criterio Evaluado | Consulta Distribuida a las 4 Fuentes Operacionales en Vivo | Consulta a la Proyección Pre-Agregada del Data Mart |
+|:---|:---|:---|
+| **Cantidad de conexiones y protocolos** | 4 protocolos distintos (Bolt, MongoDB Wire Protocol, InfluxDB HTTP/Flight, CQL) con al menos 19 consultas de red por minuto analizado. | **1 sola conexión SQL/OLAP** sobre el Data Mart dimensional. |
+| **Complejidad de transformación en lectura** | La aplicación cliente debe normalizar en memoria UUIDs v5, códigos ISO, calcular promedios ponderados y sumar 16 particiones por minuto de Cassandra. | Las claves ya están unificadas, las dimensiones conformadas y los totales pre-agregados en el grano de 15 minutos. |
+| **Riesgo de degradación operacional** | **Crítico:** analistas ejecutando consultas pesadas saturan memoria y pools de conexión compartidos con los usuarios de la app en vivo. | **Aislamiento total:** la carga analítica está físicamente desacoplada del camino crítico operacional. |
+| **Frescura del dato** | En tiempo real estricto (0–2 segundos). | Retraso controlado (1–5 minutos durante partido, 15 minutos consolidado). |
+| **Caso de uso idóneo** | Visualización operativa en vivo del partido en curso (`GET /partidos/:id`, feed de eventos y comentarios recientes). | Análisis táctico post-partido, tableros de audiencia por sede/confederación, informes para prensa y auditoría histórica del torneo. |

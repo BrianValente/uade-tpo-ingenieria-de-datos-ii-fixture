@@ -40,6 +40,23 @@ export interface LoadScenarioConfig {
   requestTimeoutMs: number
   seed: number
   virtualSessionsCount: number
+  // Configuración efectiva del entorno y motores (RF4, RF16, RNF2, RNF3)
+  mongoMaxPoolSize: number
+  neo4jMaxConnectionPoolSize: number
+  dependencyTimeoutMs: number
+  cacheTtlSeconds: {
+    match: number
+    team: number
+    events: number
+  }
+  sessionRenewThrottleSeconds: number
+  workloadDistribution: {
+    match_composite: string
+    team_players: string
+    match_events: string
+    team_profile: string
+  }
+  hotspotRatio: string
 }
 
 export interface ProfileResultSummary {
@@ -99,7 +116,7 @@ export interface LoadExecutionReport {
   }
 }
 
-function verifyPayloadIntegrity(
+export function verifyPayloadIntegrity(
   profileId: WorkloadProfileId,
   targetKey: string,
   body: unknown,
@@ -112,24 +129,56 @@ function verifyPayloadIntegrity(
     const venue = obj.venue as Record<string, unknown> | undefined
     return (
       obj.id === targetKey &&
-      Boolean(home && typeof home.code === 'string') &&
-      Boolean(away && typeof away.code === 'string') &&
+      Boolean(home && typeof home.code === 'string' && typeof home.id === 'string') &&
+      Boolean(away && typeof away.code === 'string' && typeof away.id === 'string') &&
       Boolean(venue && typeof venue.id === 'string')
     )
   }
   if (profileId === 'team_players') {
-    return (
-      Array.isArray(obj.items) &&
-      obj.items.length === 24 &&
-      obj.total === 24 &&
-      (obj.items[0] as Record<string, unknown> | undefined)?.teamCode === targetKey
-    )
+    // H12-01: Validar unicidad de 24 IDs, pertenencia estricta de todos los jugadores y unicidad de dorsales
+    if (!Array.isArray(obj.items) || obj.total !== 24 || obj.items.length !== 24) {
+      return false
+    }
+    const items = obj.items as Record<string, unknown>[]
+    const uniqueIds = new Set<string>()
+    const uniqueDorsals = new Set<number>()
+    for (const p of items) {
+      const id = String(p.id ?? '')
+      const team = String(p.teamCode ?? p.equipoCodigo ?? '')
+      const dorsal = Number(p.number ?? p.dorsal)
+      const name = String(p.firstName ?? p.name ?? p.nombre ?? '')
+      const pos = String(p.position ?? p.posicion ?? '')
+      if (!id || team !== targetKey || !name || !pos) return false
+      if (Number.isNaN(dorsal) || dorsal < 1 || dorsal > 99) return false
+      uniqueIds.add(id)
+      uniqueDorsals.add(dorsal)
+    }
+    return uniqueIds.size === 24 && uniqueDorsals.size === 24
   }
   if (profileId === 'match_events') {
-    return Array.isArray(obj.items) && obj.items.length > 0 && typeof obj.limit === 'number'
+    // H12-01: Validar unicidad de IDs de eventos y pertenencia al partido solicitado
+    if (!Array.isArray(obj.items) || typeof obj.limit !== 'number' || obj.items.length === 0) {
+      return false
+    }
+    const items = obj.items as Record<string, unknown>[]
+    const uniqueIds = new Set<string>()
+    for (const ev of items) {
+      const id = String(ev.id ?? '')
+      const match = String(ev.partidoId ?? ev.matchId ?? '')
+      const type = String(ev.tipo ?? ev.type ?? '')
+      const min = Number(ev.minuto ?? ev.minute)
+      if (!id || (match && match !== targetKey) || !type || Number.isNaN(min)) return false
+      uniqueIds.add(id)
+    }
+    return uniqueIds.size === items.length
   }
   if (profileId === 'team_profile') {
-    return obj.code === targetKey && typeof obj.id === 'string' && obj.participates === true
+    return (
+      obj.code === targetKey &&
+      typeof obj.id === 'string' &&
+      Boolean(obj.id) &&
+      obj.participates === true
+    )
   }
   return false
 }
@@ -153,6 +202,29 @@ export async function runLoadScenario(
     requestTimeoutMs: Number(env.H12_REQUEST_TIMEOUT_MS ?? 5000),
     seed: Number(env.H12_SEED ?? 203012),
     virtualSessionsCount: Number(env.H12_VIRTUAL_SESSIONS ?? 20),
+    mongoMaxPoolSize:
+      mode === 'optimized'
+        ? Number(env.H12_MONGO_POOL_SIZE_OPTIMIZED ?? 25)
+        : Number(env.H12_MONGO_POOL_SIZE_BASELINE ?? 10),
+    neo4jMaxConnectionPoolSize:
+      mode === 'optimized'
+        ? Number(env.H12_NEO4J_POOL_SIZE_OPTIMIZED ?? 25)
+        : Number(env.H12_NEO4J_POOL_SIZE_BASELINE ?? 10),
+    dependencyTimeoutMs: Number(env.DEPENDENCY_TIMEOUT_MS ?? 2000),
+    cacheTtlSeconds: {
+      match: mode === 'optimized' ? Number(env.H12_CACHE_TTL_MATCH_SECONDS ?? 120) : 0,
+      team: mode === 'optimized' ? Number(env.H12_CACHE_TTL_TEAM_SECONDS ?? 300) : 0,
+      events: mode === 'optimized' ? Number(env.H12_CACHE_TTL_EVENTS_SECONDS ?? 15) : 0,
+    },
+    sessionRenewThrottleSeconds:
+      mode === 'optimized' ? Number(env.H12_SESSION_RENEW_THROTTLE_SECONDS ?? 60) : 0,
+    workloadDistribution: {
+      match_composite: '40 %',
+      team_players: '30 %',
+      match_events: '20 %',
+      team_profile: '10 %',
+    },
+    hotspotRatio: '80 % tráfico sobre 4 partidos y 8 selecciones; 20 % sobre restantes',
   }
 
   const sessions = generateVirtualUserSessions(
@@ -520,7 +592,7 @@ export function formatLoadReportMarkdown(report: LoadExecutionReport): string {
     '',
     `- **Modo ejecutado:** \`${report.mode}\``,
     `- **Fecha de ejecución:** \`${report.environment.timestamp}\``,
-    `- **Commit Git:** \`${report.environment.gitCommit}\` (rama \`${report.environment.gitBranch}\`)`,
+    `- **Commit Git:** \`${report.environment.gitCommit}\` (rama \`${report.environment.gitBranch}\`, estado del árbol: \`${report.environment.gitTreeState ?? "clean"}\`)`,
     `- **Hardware / SO:** ${report.environment.host.platform} (${report.environment.host.arch}) — ${report.environment.host.cpuModel} (${report.environment.host.logicalCpus} CPUs lógicas, ${report.environment.host.totalMemoryGiB} GiB RAM) — Node.js \`${report.environment.host.nodeVersion}\``,
     `- **Versiones observadas:** MongoDB (\`${report.environment.products.mongodbVersion}\`), Neo4j (\`${report.environment.products.neo4jVersion}\`), Redis (\`${report.environment.products.redisVersion}\`)`,
     '',

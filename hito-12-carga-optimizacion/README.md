@@ -11,26 +11,26 @@
 Este módulo contiene la implementación reproducible, los generadores determinísticos de carga, la instrumentación multi-capa y la documentación técnica para evaluar y optimizar el rendimiento de la **API integrada de consulta en vivo del Fixture 2030** (desarrollada sobre **Fastify 5 + Node.js**) interactuando con **MongoDB 7.0**, **Neo4j 5.26** y **Redis 8.10**.
 
 El trabajo sigue una metodología experimental rigurosa en seis etapas:
-1. **Delimitación del flujo crítico multi-motor y preparación reproducible del dataset** (`64` equipos, `1.536` jugadores, `32` partidos, `8` sedes, `384` eventos —incluyendo `320` eventos sintéticos identificados con `fuente: "HITO_12"`— y `20` sesiones activas en Redis).
+1. **Delimitación del flujo crítico multi-motor y preparación reproducible del dataset** (`64` equipos, `1.536` jugadores, `32` partidos, `8` sedes, `384` eventos —incluyendo `320` eventos sintéticos identificados con `lotePrueba: "HITO_12"`— y `20` sesiones activas en Redis).
 2. **Establecimiento de una Línea Base (`baseline`) reproducible** antes de introducir mejoras, midiendo latencia (`min`, `avg`, `stdDev`, `p50`, `p90`, `p95`, `p99`, `max`), throughput, tasa de error y métricas diferenciadas por capa (Generador HTTP, Fastify, Drivers NoSQL y Contenedores Docker).
 3. **Formulación de hipótesis técnicas verificables (`H1`, `H2`, `H3`)** e implementación de **optimizaciones concretas (`O1`, `O2`, `O3`)**:
-   - **O1:** Ampliación de pools de conexiones (`maxPoolSize=32`, `maxConnectionPoolSize=50`), proyección documental acotada (`_id`, `codigo`, `nombre`, `confederacion`, `esCabezaDeSerie`) y resolución batch en MongoDB (`find({ codigo: { $in: [...] } })`).
-   - **O2:** Caché Read-Aside en Redis (`h12:cache:*`) con TTL explícito diferenciado por volatilidad (`30 s` para eventos y detalle de partido, `120 s` para planteles y fichas de equipos).
+   - **O1:** Ampliación de pools de conexiones (`maxPoolSize=25`, `maxConnectionPoolSize=25` frente a `10 / 10` en base), proyección documental acotada (`_id`, `codigo`, `nombre`, `confederacion`, `esCabezaDeSerie`) y resolución batch en MongoDB (`find({ codigo: { $in: [...] } })`).
+   - **O2:** Caché Read-Aside en Redis (`h12:cache:*`) con TTL explícito diferenciado por volatilidad (`15 s` para eventos, `120 s` para detalle de partido, `300 s` para planteles y fichas de selecciones).
    - **O3:** Throttling de ventana deslizante en sesiones Redis (`HSET` + `EXPIRE` solo cuando `now - last_activity >= 60 s`).
 4. **Repetición de la prueba bajo idéntico escenario (`optimized`)** y comparación cuantitativa Antes vs. Después, incluyendo el análisis explícito de **trade-offs** (memoria RAM en Redis/Node.js, frescura/TTL y complejidad operativa).
-5. **Propuesta de integración analítica hacia un Data Mart** (`fact_rendimiento_audiencia_bloque15m`) y **comparación condicionada frente a una alternativa Relacional 3FN**.
+5. **Propuesta de integración analítica hacia un Data Mart** (constelación Kimball `fact_rendimiento_equipo_bloque15m` y `fact_interaccion_partido_bloque15m`) y **comparación condicionada frente a una alternativa Relacional 3FN**.
 6. **Validación automatizada de integridad post-carga** (`8/8` controles superados, `0` registros perdidos/duplicados/corruptos, `100 %` de consistencia caché-fuente) y **limpieza selectiva no destructiva**.
 
 ---
 
 ## 2. Resumen Ejecutivo de Resultados (Línea Base vs. Optimizado)
 
-Ambas corridas se ejecutaron bajo el mismo escenario reproducible (`24` usuarios virtuales concurrentes, `3 s` de warm-up, `4 s` de ramp-up, `12 s` de estado estable, distribución `80/20` con semilla PRNG `203012`):
+Ambas corridas se ejecutaron bajo el mismo escenario reproducible (`24` usuarios virtuales concurrentes, `3 s` de warm-up, `4 s` de ramp-up, `12 s` de estado estable, distribución 40/30/20/10 sobre 4 partidos y 8 selecciones calientes en proporción 80/20 con semilla PRNG `203012`):
 
 | Indicador Clave | Línea Base (`baseline`) | Prueba Optimizada (`optimized`) | Variación |
 | :--- | ---: | ---: | ---: |
 | **Throughput Global** | `34.96 ops/s` (`635` ops) | **`276.94 ops/s`** (`4.439` ops) | **`+692.2 %` ($7,92\times$)** |
-| **Tasa de Error HTTP** | `10.87 %` (`69` errores `HTTP 503`) | **`0.00 %`** (`0` errores) | **`-10.87 pp` (`-100 %`)** |
+| **Tasa de Error HTTP** | `10.87 %` (`69` fallos: 64 `HTTP 503` + 5 `CLIENT_TIMEOUT`) | **`0.00 %`** (`0` errores) | **`-10.87 pp` (`-100 %`)** |
 | **Latencia Media E2E (`avg`)** | `606.01 ms` | **`77.88 ms`** | **`-87.1 %`** |
 | **Latencia Mediana E2E (`p50`)** | `267.81 ms` | **`65.83 ms`** | **`-75.4 %`** |
 | **Latencia Percentil 95 (`p95`)** | `2039.77 ms` | **`159.28 ms`** | **`-92.2 %` ($12,81\times$)** |
@@ -140,4 +140,4 @@ También pueden ejecutarse directamente desde `hito-12-carga-optimizacion/` usan
 ## 6. Política de Seguridad, Cero Secretos y No Destructividad (RNF7, RNF8, RF16)
 
 - **Cero Secretos:** Ninguna contraseña, token ni URI con credenciales se versiona en el código ni en los archivos de evidencia. El módulo [`entorno_y_recursos.ts`](scripts/entorno_y_recursos.ts) redacta automáticamente cualquier credencial (`******`).
-- **Aislamiento y Limpieza No Destructiva:** Todos los datos sintéticos creados para el Hito 12 llevan marcadores explícitos (`fuente: "HITO_12"`, `id: "F2030-H12-EVT-*"`, prefijos `h12:cache:*` y sesiones `00000000-0000-4000-8000-0000000001xx`), permitiendo que [`limpiar_datos_de_prueba.ts`](scripts/limpiar_datos_de_prueba.ts) restaure el estado exacto previo sin alterar ningún registro canónico de los Hitos 4 a 11.
+- **Aislamiento y Limpieza No Destructiva:** Todos los datos sintéticos creados para el Hito 12 llevan marcadores explícitos (`lotePrueba: "HITO_12"`, `id: "F2030-H12-EVT-*"`, prefijos `h12:cache:*` y sesiones `fixture2030:h10:h12-bench:sesion:*`), permitiendo que [`limpiar_datos_de_prueba.ts`](scripts/limpiar_datos_de_prueba.ts) restaure el estado exacto previo sin alterar ningún registro canónico de los Hitos 4 a 11.

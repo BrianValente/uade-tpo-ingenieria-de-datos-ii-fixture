@@ -7,6 +7,7 @@ import {
   loadNeo4j,
   loadRedis,
 } from '../../hito-11-conectividad/scripts/driver_loader.js'
+import { generateVirtualUserSessions } from '../datos-o-generadores/generador_escenario.js'
 import type { LoadExecutionReport } from './ejecutar_carga.js'
 import { HITO12_ROOT, loadLocalEnvironment } from './entorno_y_recursos.js'
 
@@ -21,6 +22,7 @@ export interface IntegrityCheckItem {
 
 export interface IntegrityValidationReport {
   validatedAt: string
+  validationTarget: 'post-carga' | 'post-limpieza'
   allChecksPassed: boolean
   totalChecks: number
   passedChecks: number
@@ -28,8 +30,17 @@ export interface IntegrityValidationReport {
   checks: IntegrityCheckItem[]
 }
 
-export async function validateDataIntegrity(): Promise<IntegrityValidationReport> {
+export async function validateDataIntegrity(
+  targetOverride?: 'post-carga' | 'post-limpieza',
+): Promise<IntegrityValidationReport> {
   const env = await loadLocalEnvironment()
+  const validationTarget: 'post-carga' | 'post-limpieza' =
+    targetOverride ??
+    (env.H12_STAGE === 'post-limpieza' ||
+    process.argv.includes('--post-limpieza')
+      ? 'post-limpieza'
+      : 'post-carga')
+
   const mongoHost = env.MONGO_HOST ?? '127.0.0.1'
   const mongoPort = Number(env.MONGO_PORT ?? 27017)
   const mongoDbName = env.MONGO_DATABASE ?? 'fixture2030'
@@ -44,6 +55,8 @@ export async function validateDataIntegrity(): Promise<IntegrityValidationReport
   const redisHost = env.REDIS_HOST ?? '127.0.0.1'
   const redisPort = Number(env.REDIS_PORT ?? 6379)
   const redisScope = env.H12_REDIS_SCOPE ?? 'h12-bench'
+  const expectedSessionsCount = Number(env.H12_VIRTUAL_SESSIONS ?? 20)
+  const seed = Number(env.H12_SEED ?? 203012)
 
   const checks: IntegrityCheckItem[] = []
 
@@ -61,6 +74,18 @@ export async function validateDataIntegrity(): Promise<IntegrityValidationReport
   })
 
   const mongoTeamMap = new Map<string, { id: string; name: string }>()
+  const mongoSquadsMap = new Map<
+    string,
+    Array<{
+      id: string
+      firstName: string
+      lastName: string
+      number: number
+      position: string
+      teamCode: string
+    }>
+  >()
+
   try {
     await mongoClient.connect()
     const db = mongoClient.db(mongoDbName)
@@ -124,6 +149,28 @@ export async function validateDataIntegrity(): Promise<IntegrityValidationReport
       observed: `${totalPlayers} jugadores totales, 64 planteles de 24=${allSquadsHave24}, rangos válidos=${rangesValid}`,
       passed: totalPlayers === 1536 && allSquadsHave24 && rangesValid,
     })
+
+    // Cargar todos los planteles ordenados para contraste de contenido en caché (H12-01)
+    const allPlayers = (await db
+      .collection('jugadores')
+      .find({})
+      .sort({ posicion: 1, dorsal: 1 })
+      .toArray()) as Record<string, unknown>[]
+
+    for (const p of allPlayers) {
+      const code = String(p.equipoCodigo)
+      if (!mongoSquadsMap.has(code)) {
+        mongoSquadsMap.set(code, [])
+      }
+      mongoSquadsMap.get(code)!.push({
+        id: String(p._id),
+        firstName: String(p.nombre),
+        lastName: String(p.apellido),
+        number: Number(p.dorsal),
+        position: String(p.posicion),
+        teamCode: code,
+      })
+    }
   } finally {
     await mongoClient.close().catch(() => undefined)
   }
@@ -140,6 +187,11 @@ export async function validateDataIntegrity(): Promise<IntegrityValidationReport
     string,
     { homeCode: string; awayCode: string; venueId: string }
   >()
+  const neoMatchEventsMap = new Map<
+    string,
+    Array<{ eventId: string; tipo: string; minuto: number }>
+  >()
+
   try {
     const graphTeamsRes = await neoDriver.executeQuery(
       `MATCH (e:Equipo) RETURN e.codigo AS codigo, e.id AS id`,
@@ -159,6 +211,28 @@ export async function validateDataIntegrity(): Promise<IntegrityValidationReport
       passed: crossMatches === 64,
     })
 
+    // Detectar eventos huérfanos sin relación hacia :Partido (H12-02)
+    const orphanRes = await neoDriver.executeQuery(`
+      MATCH (e:Evento)
+      WHERE NOT (e)-[:OCURRE_EN]->(:Partido)
+      RETURN count(e) AS huerfanosCount
+    `)
+    const rawHuerfanos = orphanRes.records[0]?.get('huerfanosCount')
+    const toNum = (v: unknown) =>
+      typeof v === 'number'
+        ? v
+        : v && typeof (v as { toNumber?: () => number }).toNumber === 'function'
+          ? (v as { toNumber: () => number }).toNumber()
+          : Number(v ?? 0)
+    const huerfanosCount = toNum(rawHuerfanos)
+
+    // Total absoluto de eventos en el grafo
+    const totalEventsRes = await neoDriver.executeQuery(`
+      MATCH (e:Evento) RETURN count(e) AS totalEventosGrafo
+    `)
+    const totalEventosGrafo = toNum(totalEventsRes.records[0]?.get('totalEventosGrafo'))
+
+    // Agregación de eventos por partido
     const eventsAggRes = await neoDriver.executeQuery(`
       MATCH (p:Partido)
       OPTIONAL MATCH (e:Evento)-[:OCURRE_EN]->(p)
@@ -172,40 +246,37 @@ export async function validateDataIntegrity(): Promise<IntegrityValidationReport
              max(totalEv) AS maxPorPartido
     `)
     const evRec = eventsAggRes.records[0]
-    const toNum = (v: unknown) =>
-      typeof v === 'number'
-        ? v
-        : v && typeof (v as { toNumber?: () => number }).toNumber === 'function'
-          ? (v as { toNumber: () => number }).toNumber()
-          : Number(v)
-
     const partidosCount = toNum(evRec?.get('partidosCount'))
     const sumaEventos = toNum(evRec?.get('sumaEventos'))
     const sumaH12 = toNum(evRec?.get('sumaH12'))
     const minPorPartido = toNum(evRec?.get('minPorPartido'))
     const maxPorPartido = toNum(evRec?.get('maxPorPartido'))
 
-    // Aceptamos tanto el estado con lote H12 (384 eventos, 12/partido) como el estado limpio post-limpieza (64 eventos, 2/partido)
+    const isPostCarga = validationTarget === 'post-carga'
+    const expectedEventsTotal = isPostCarga ? 384 : 64
+    const expectedH12Total = isPostCarga ? 320 : 0
+    const expectedMinEv = isPostCarga ? 12 : 2
+    const expectedMaxEv = isPostCarga ? 12 : 2
+
     const validEventState =
       partidosCount === 32 &&
-      ((sumaEventos === 384 &&
-        sumaH12 === 320 &&
-        minPorPartido === 12 &&
-        maxPorPartido === 12) ||
-        (sumaEventos === 64 &&
-          sumaH12 === 0 &&
-          minPorPartido === 2 &&
-          maxPorPartido === 2))
+      huerfanosCount === 0 &&
+      totalEventosGrafo === expectedEventsTotal &&
+      sumaEventos === expectedEventsTotal &&
+      sumaH12 === expectedH12Total &&
+      minPorPartido === expectedMinEv &&
+      maxPorPartido === expectedMaxEv
 
     checks.push({
       id: 'INT-04',
       category: 'Neo4j Grafo',
-      description: 'Integridad de conteos y distribución de eventos por partido (sin duplicados ni eventos huérfanos)',
-      expected: '32 partidos; 384 eventos (12/partido con lote H12) o 64 eventos (2/partido limpio)',
-      observed: `${partidosCount} partidos; ${sumaEventos} eventos (${sumaH12} H12; min=${minPorPartido}, max=${maxPorPartido} por partido)`,
+      description: `Integridad de conteos y distribución de eventos por partido (${validationTarget})`,
+      expected: `32 partidos, ${expectedEventsTotal} eventos enlazados (${expectedH12Total} H12, min=${expectedMinEv}, max=${expectedMaxEv} por partido), 0 huérfanos, total grafo ${expectedEventsTotal}`,
+      observed: `${partidosCount} partidos, ${sumaEventos} eventos (${sumaH12} H12, min=${minPorPartido}, max=${maxPorPartido} por partido), ${huerfanosCount} huérfanos, total grafo ${totalEventosGrafo}`,
       passed: validEventState,
     })
 
+    // Cargar partidos y eventos enlazados ordenados para validación de caché (H12-01)
     const matchDetailsRes = await neoDriver.executeQuery(`
       MATCH (local:Equipo)-[:DISPUTA {condicion: 'local'}]->(p:Partido)
       MATCH (visitante:Equipo)-[:DISPUTA {condicion: 'visitante'}]->(p)
@@ -217,6 +288,23 @@ export async function validateDataIntegrity(): Promise<IntegrityValidationReport
         homeCode: String(r.get('homeCode')),
         awayCode: String(r.get('awayCode')),
         venueId: String(r.get('venueId')),
+      })
+    }
+
+    const allEventsRes = await neoDriver.executeQuery(`
+      MATCH (e:Evento)-[:OCURRE_EN]->(p:Partido)
+      RETURN p.id AS matchId, e.id AS eventId, e.tipo AS tipo, e.minuto AS minuto
+      ORDER BY p.id, e.minuto, e.id
+    `)
+    for (const r of allEventsRes.records) {
+      const matchId = String(r.get('matchId'))
+      if (!neoMatchEventsMap.has(matchId)) {
+        neoMatchEventsMap.set(matchId, [])
+      }
+      neoMatchEventsMap.get(matchId)!.push({
+        eventId: String(r.get('eventId')),
+        tipo: String(r.get('tipo')),
+        minuto: toNum(r.get('minuto')),
       })
     }
   } finally {
@@ -231,7 +319,11 @@ export async function validateDataIntegrity(): Promise<IntegrityValidationReport
   try {
     await redisClient.connect()
 
-    // Verificar sesiones virtuales
+    // Verificar sesiones virtuales esperadas (H12-02: evita 0 === 0)
+    const expectedSessions = generateVirtualUserSessions(
+      expectedSessionsCount,
+      seed,
+    )
     const sessionKeys: string[] = []
     let cursor = '0'
     do {
@@ -244,24 +336,39 @@ export async function validateDataIntegrity(): Promise<IntegrityValidationReport
     } while (cursor !== '0')
 
     let validSessions = 0
-    for (const sk of sessionKeys) {
-      const pttl = await redisClient.pTTL(sk)
-      const status = await redisClient.hGet(sk, 'estado_acceso')
-      if (pttl > 0 && pttl <= 1800000 && status === 'autorizado') {
-        validSessions++
+    let expectedSessionsFound = 0
+    for (const expectedSession of expectedSessions) {
+      const expectedKey = `fixture2030:h10:${redisScope}:sesion:${expectedSession.tokenDigest}`
+      if (sessionKeys.includes(expectedKey)) {
+        expectedSessionsFound++
+        const pttl = await redisClient.pTTL(expectedKey)
+        const status = await redisClient.hGet(expectedKey, 'estado_acceso')
+        if (pttl > 0 && pttl <= 1800000 && status === 'autorizado') {
+          validSessions++
+        }
       }
     }
+
+    const isPostCarga = validationTarget === 'post-carga'
+    const expectedSessionsTotal = isPostCarga ? expectedSessionsCount : 0
+    const sessionsPassed = isPostCarga
+      ? sessionKeys.length === expectedSessionsCount &&
+        expectedSessionsFound === expectedSessionsCount &&
+        validSessions === expectedSessionsCount
+      : sessionKeys.length === 0
 
     checks.push({
       id: 'INT-05',
       category: 'Redis Sesiones',
-      description: 'Integridad de sesiones activas y preservación de TTL tras renovaciones concurrentes',
-      expected: 'Todas las sesiones presentes tienen estado_acceso=autorizado y PTTL en (0, 1800000]',
-      observed: `${validSessions}/${sessionKeys.length} sesiones válidas con TTL activo`,
-      passed: sessionKeys.length === validSessions,
+      description: `Integridad de sesiones activas del lote (${validationTarget})`,
+      expected: isPostCarga
+        ? `Exactamente ${expectedSessionsCount} sesiones esperadas presentes con estado_acceso=autorizado y PTTL en (0, 1800000]`
+        : '0 sesiones sintéticas presentes en Redis post-limpieza',
+      observed: `${validSessions}/${sessionKeys.length} sesiones válidas observadas (${expectedSessionsFound}/${expectedSessionsTotal} del lote identificadas)`,
+      passed: sessionsPassed,
     })
 
-    // Verificar consistencia entre caché Read-Aside en Redis y fuentes operacionales (MongoDB/Neo4j)
+    // Verificar consistencia estricta entre caché Read-Aside y fuentes operacionales (H12-01)
     const cacheKeys: string[] = []
     cursor = '0'
     do {
@@ -275,12 +382,21 @@ export async function validateDataIntegrity(): Promise<IntegrityValidationReport
 
     let cacheTtlValidCount = 0
     let cacheContentConsistentCount = 0
+    let cacheCorruptionDetail: string | null = null
+
     for (const ck of cacheKeys) {
       const pttl = await redisClient.pTTL(ck)
       if (pttl > 0) cacheTtlValidCount++
       const raw = await redisClient.get(ck)
       if (!raw) continue
-      const parsed = JSON.parse(raw) as Record<string, unknown>
+
+      let parsed: Record<string, unknown>
+      try {
+        parsed = JSON.parse(raw) as Record<string, unknown>
+      } catch {
+        cacheCorruptionDetail = `Clave ${ck} con JSON inválido`
+        continue
+      }
 
       if (ck.includes(':partido:')) {
         const matchId = ck.split(':partido:')[1] ?? ''
@@ -296,42 +412,118 @@ export async function validateDataIntegrity(): Promise<IntegrityValidationReport
           away?.id === mongoTeamMap.get(truth.awayCode)?.id
         ) {
           cacheContentConsistentCount++
+        } else if (!cacheCorruptionDetail) {
+          cacheCorruptionDetail = `Clave ${ck} inconsistente con Neo4j/MongoDB`
         }
       } else if (ck.includes(':equipo:')) {
         const code = ck.split(':equipo:')[1] ?? ''
         const truth = mongoTeamMap.get(code)
         if (truth && parsed.code === code && parsed.id === truth.id) {
           cacheContentConsistentCount++
+        } else if (!cacheCorruptionDetail) {
+          cacheCorruptionDetail = `Clave ${ck} inconsistente con MongoDB`
         }
       } else if (ck.includes(':plantel:')) {
+        // H12-01: Contraste campo por campo contra MongoDB (IDs únicos, orden, dorsal, nombre, posición)
         const parts = ck.split(':plantel:')[1]?.split(':') ?? []
         const code = parts[0] ?? ''
+        const page = Number(parts[1] ?? 1)
+        const limit = Number(parts[2] ?? 24)
         const items = parsed.items as Record<string, unknown>[] | undefined
+        const expectedSquad = mongoSquadsMap.get(code)
+
         if (
-          mongoTeamMap.has(code) &&
+          expectedSquad &&
           Array.isArray(items) &&
-          items.length === 24 &&
-          parsed.total === 24
+          parsed.total === expectedSquad.length
         ) {
-          cacheContentConsistentCount++
+          const expectedSlice = expectedSquad.slice(
+            (page - 1) * limit,
+            page * limit,
+          )
+          const uniqueIds = new Set(items.map((it) => String(it.id)))
+          const uniqueDorsals = new Set(items.map((it) => Number(it.number ?? it.dorsal)))
+
+          const idsUnique = uniqueIds.size === items.length
+          const dorsalsUnique = uniqueDorsals.size === items.length
+          const lengthMatches = items.length === expectedSlice.length
+
+          const fieldsMatchOrder = items.every((it, idx) => {
+            const exp = expectedSlice[idx]!
+            const itTeam = String(it.teamCode ?? it.equipoCodigo ?? '')
+            const itPos = String(it.position ?? it.posicion ?? '')
+            const itFirst = String(it.firstName ?? it.name ?? it.nombre ?? '')
+            const itNum = Number(it.number ?? it.dorsal)
+            return (
+              String(it.id) === exp.id &&
+              itTeam === exp.teamCode &&
+              itNum === exp.number &&
+              itPos === exp.position &&
+              itFirst === exp.firstName
+            )
+          })
+
+          if (idsUnique && dorsalsUnique && lengthMatches && fieldsMatchOrder) {
+            cacheContentConsistentCount++
+          } else if (!cacheCorruptionDetail) {
+            cacheCorruptionDetail = `Plantel ${code} cacheado contiene duplicados o discrepa con MongoDB (idsUnique=${idsUnique}, dorsalsUnique=${dorsalsUnique}, fieldsMatch=${fieldsMatchOrder})`
+          }
+        } else if (!cacheCorruptionDetail) {
+          cacheCorruptionDetail = `Plantel ${code} ausente en MongoDB o con estructura corrupta`
         }
       } else if (ck.includes(':eventos:')) {
-        const items = parsed.items as unknown[] | undefined
-        if (Array.isArray(items) && items.length > 0) {
-          cacheContentConsistentCount++
+        // H12-01: Contraste contra eventos enlazados reales de Neo4j
+        const parts = ck.split(':eventos:')[1]?.split(':') ?? []
+        const matchId = parts[0] ?? ''
+        const limit = Number(parts[1] ?? 20)
+        const items = parsed.items as Record<string, unknown>[] | undefined
+        const expectedEvents = neoMatchEventsMap.get(matchId) ?? []
+
+        if (neoMatchMap.has(matchId) && Array.isArray(items)) {
+          const expectedSlice = expectedEvents.slice(0, limit)
+          const uniqueIds = new Set(items.map((it) => String(it.id)))
+          const idsUnique = uniqueIds.size === items.length
+          const lengthMatches = items.length === expectedSlice.length
+
+          const eventsMatchOrder = items.every((it, idx) => {
+            const exp = expectedSlice[idx]!
+            const itType = String(it.tipo ?? it.type ?? '')
+            const itMin = Number(it.minuto ?? it.minute ?? 0)
+            return (
+              String(it.id) === exp.eventId &&
+              itType === exp.tipo &&
+              itMin === exp.minuto
+            )
+          })
+
+          if (idsUnique && lengthMatches && eventsMatchOrder) {
+            cacheContentConsistentCount++
+          } else if (!cacheCorruptionDetail) {
+            cacheCorruptionDetail = `Eventos de ${matchId} cacheados contienen duplicados o discrepan con Neo4j`
+          }
+        } else if (!cacheCorruptionDetail) {
+          cacheCorruptionDetail = `Partido ${matchId} de eventos ausente en Neo4j`
         }
       }
     }
 
+    const cachePassed = isPostCarga
+      ? cacheKeys.length > 0 &&
+        cacheTtlValidCount === cacheKeys.length &&
+        cacheContentConsistentCount === cacheKeys.length
+      : cacheKeys.length === 0
+
     checks.push({
       id: 'INT-06',
       category: 'Consistencia Fuente Operacional <-> Proyección Caché',
-      description: 'Todas las proyecciones cacheadas en Redis tienen TTL positivo y coinciden exactamente con MongoDB y Neo4j',
-      expected: `${cacheKeys.length}/${cacheKeys.length} claves con TTL > 0 y contenido íntegro respecto de la fuente`,
-      observed: `${cacheTtlValidCount}/${cacheKeys.length} con TTL > 0; ${cacheContentConsistentCount}/${cacheKeys.length} consistentes con MongoDB/Neo4j`,
-      passed:
-        cacheTtlValidCount === cacheKeys.length &&
-        cacheContentConsistentCount === cacheKeys.length,
+      description: `Todas las proyecciones cacheadas coinciden exactamente con MongoDB y Neo4j (${validationTarget})`,
+      expected: isPostCarga
+        ? `Al menos 1 clave cacheada; 100% con TTL > 0 y contenido íntegro verificado contra MongoDB y Neo4j`
+        : '0 claves de caché en Redis post-limpieza',
+      observed: isPostCarga
+        ? `${cacheKeys.length} claves en caché; ${cacheTtlValidCount} con TTL > 0; ${cacheContentConsistentCount} íntegras${cacheCorruptionDetail ? ` (${cacheCorruptionDetail})` : ''}`
+        : `${cacheKeys.length} claves de caché en Redis`,
+      passed: cachePassed,
     })
   } finally {
     if (redisClient.isOpen) {
@@ -385,6 +577,7 @@ export async function validateDataIntegrity(): Promise<IntegrityValidationReport
   const failedChecks = checks.length - passedChecks
   return {
     validatedAt: new Date().toISOString(),
+    validationTarget,
     allChecksPassed: failedChecks === 0,
     totalChecks: checks.length,
     passedChecks,
@@ -405,6 +598,7 @@ export function formatIntegrityMarkdown(rep: IntegrityValidationReport): string 
     '# Reporte de Validación de Integridad Post-Carga (Hito 12)',
     '',
     `- **Fecha de verificación:** \`${rep.validatedAt}\``,
+    `- **Objetivo de validación:** \`${rep.validationTarget}\``,
     `- **Estado global:** **${rep.allChecksPassed ? 'ÍNTEGRO — TODOS LOS CONTROLES APROBADOS' : 'OBSERVACIONES DETECTADAS'}** (${rep.passedChecks}/${rep.totalChecks} controles exitosos)`,
     '',
     '## Matriz de Controles de Integridad (RF15, RNF4, §5.8)',

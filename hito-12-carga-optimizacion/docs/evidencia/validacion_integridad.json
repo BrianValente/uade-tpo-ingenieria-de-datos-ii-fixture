@@ -1,5 +1,6 @@
 {
-  "validatedAt": "2026-10-26T21:09:21.930Z",
+  "validatedAt": "2026-10-29T23:18:38.902Z",
+  "validationTarget": "post-carga",
   "allChecksPassed": true,
   "totalChecks": 8,
   "passedChecks": 8,
@@ -32,25 +33,25 @@
     {
       "id": "INT-04",
       "category": "Neo4j Grafo",
-      "description": "Integridad de conteos y distribución de eventos por partido (sin duplicados ni eventos huérfanos)",
-      "expected": "32 partidos; 384 eventos (12/partido con lote H12) o 64 eventos (2/partido limpio)",
-      "observed": "32 partidos; 384 eventos (320 H12; min=12, max=12 por partido)",
+      "description": "Integridad de conteos y distribución de eventos por partido (post-carga)",
+      "expected": "32 partidos, 384 eventos enlazados (320 H12, min=12, max=12 por partido), 0 huérfanos, total grafo 384",
+      "observed": "32 partidos, 384 eventos (320 H12, min=12, max=12 por partido), 0 huérfanos, total grafo 384",
       "passed": true
     },
     {
       "id": "INT-05",
       "category": "Redis Sesiones",
-      "description": "Integridad de sesiones activas y preservación de TTL tras renovaciones concurrentes",
-      "expected": "Todas las sesiones presentes tienen estado_acceso=autorizado y PTTL en (0, 1800000]",
-      "observed": "20/20 sesiones válidas con TTL activo",
+      "description": "Integridad de sesiones activas del lote (post-carga)",
+      "expected": "Exactamente 20 sesiones esperadas presentes con estado_acceso=autorizado y PTTL en (0, 1800000]",
+      "observed": "20/20 sesiones válidas observadas (20/20 del lote identificadas)",
       "passed": true
     },
     {
       "id": "INT-06",
       "category": "Consistencia Fuente Operacional <-> Proyección Caché",
-      "description": "Todas las proyecciones cacheadas en Redis tienen TTL positivo y coinciden exactamente con MongoDB y Neo4j",
-      "expected": "149/149 claves con TTL > 0 y contenido íntegro respecto de la fuente",
-      "observed": "149/149 con TTL > 0; 149/149 consistentes con MongoDB/Neo4j",
+      "description": "Todas las proyecciones cacheadas coinciden exactamente con MongoDB y Neo4j (post-carga)",
+      "expected": "Al menos 1 clave cacheada; 100% con TTL > 0 y contenido íntegro verificado contra MongoDB y Neo4j",
+      "observed": "2 claves en caché; 2 con TTL > 0; 2 íntegras",
       "passed": true
     },
     {

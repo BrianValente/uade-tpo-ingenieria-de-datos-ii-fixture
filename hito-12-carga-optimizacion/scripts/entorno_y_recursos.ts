@@ -13,6 +13,7 @@ export interface EnvironmentMetadata {
   timestamp: string
   gitCommit: string
   gitBranch: string
+  gitTreeState: 'clean' | 'modified'
   host: {
     platform: string
     release: string
@@ -140,7 +141,36 @@ export function getGitBranch(): string {
   }
 }
 
-function safeDockerExecVersion(container: string, args: string[]): string {
+export function getGitTreeState(): 'clean' | 'modified' {
+  try {
+    const out = execSync('git status --porcelain', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+    return out === '' ? 'clean' : 'modified'
+  } catch {
+    return 'clean'
+  }
+}
+
+function resolveContainerName(candidates: string[]): string | null {
+  for (const name of candidates) {
+    try {
+      execFileSync('docker', ['inspect', '--type=container', name], {
+        stdio: ['ignore', 'ignore', 'ignore'],
+        timeout: 2000,
+      })
+      return name
+    } catch {
+      /* proximo alias */
+    }
+  }
+  return null
+}
+
+function safeDockerExecVersion(candidates: string[], args: string[]): string {
+  const container = resolveContainerName(candidates)
+  if (!container) return 'no-disponible'
   try {
     const out = execFileSync('docker', ['exec', container, ...args], {
       encoding: 'utf8',
@@ -159,6 +189,7 @@ export function collectEnvironmentMetadata(): EnvironmentMetadata {
     timestamp: new Date().toISOString(),
     gitCommit: getGitCommitSha(),
     gitBranch: getGitBranch(),
+    gitTreeState: getGitTreeState(),
     host: {
       platform: platform(),
       release: release(),
@@ -170,15 +201,15 @@ export function collectEnvironmentMetadata(): EnvironmentMetadata {
       nodeVersion: process.version,
     },
     products: {
-      mongodbVersion: safeDockerExecVersion('fixture2030-mongodb-1', [
+      mongodbVersion: safeDockerExecVersion(['fixture2030-mongodb-1', 'fixture2030_mongodb_1', 'mongodb'], [
         'mongod',
         '--version',
       ]),
-      neo4jVersion: safeDockerExecVersion('fixture2030-neo4j-1', [
+      neo4jVersion: safeDockerExecVersion(['fixture2030-neo4j-1', 'fixture2030_neo4j_1', 'neo4j'], [
         'cypher-shell',
         '--version',
       ]),
-      redisVersion: safeDockerExecVersion('fixture2030-redis-1', [
+      redisVersion: safeDockerExecVersion(['fixture2030-redis-1', 'fixture2030_redis_1', 'redis'], [
         'redis-server',
         '--version',
       ]),
@@ -207,11 +238,12 @@ export function takeProcessSnapshot(
 }
 
 export function collectDockerContainerStats(): ContainerResourceStat[] {
-  const containers = [
-    'fixture2030-mongodb-1',
-    'fixture2030-neo4j-1',
-    'fixture2030-redis-1',
+  const candidateList = [
+    ['fixture2030-mongodb-1', 'fixture2030_mongodb_1', 'mongodb'],
+    ['fixture2030-neo4j-1', 'fixture2030_neo4j_1', 'neo4j'],
+    ['fixture2030-redis-1', 'fixture2030_redis_1', 'redis'],
   ]
+  const containers = candidateList.map(c => resolveContainerName(c)).filter((c): c is string => Boolean(c))
   try {
     const out = execFileSync(
       'docker',
@@ -253,7 +285,7 @@ export function collectRedisEngineMetrics(): RedisEngineMetrics | null {
   try {
     const out = execFileSync(
       'docker',
-      ['exec', 'fixture2030-redis-1', 'redis-cli', 'INFO'],
+      ['exec', resolveContainerName(['fixture2030-redis-1', 'fixture2030_redis_1', 'redis']) || 'fixture2030-redis-1', 'redis-cli', 'INFO'],
       {
         encoding: 'utf8',
         timeout: 4000,
