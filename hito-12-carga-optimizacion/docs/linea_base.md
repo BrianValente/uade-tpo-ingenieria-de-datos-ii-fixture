@@ -17,7 +17,7 @@ Antes de introducir cualquier cambio en la lógica de acceso a datos, dimensiona
 | **Sistema Operativo y Arquitectura** | Windows 11 (`win32 x64`, kernel `10.0.22631`) |
 | **Procesador y Memoria del Host** | AMD Ryzen 5 5600U with Radeon Graphics — 12 CPUs lógicas, 7,31 GiB RAM total |
 | **Runtime de API y Generador** | Node.js `v22.18.0` + Fastify `5.12.7` |
-| **Versiones de Motores NoSQL en Docker** | - **MongoDB:** `v7.0.40` (`fixture2030-mongodb-1`)<br>- **Neo4j:** `5.26.x` / Cypher-Shell `2026.10.1` (`fixture2030-neo4j-1`)<br>- **Redis:** `v8.10.2` (`fixture2030-redis-1`, `maxmemory 256mb`, `noeviction`) |
+| **Versiones de Motores NoSQL en Docker** | - **MongoDB:** `v7.0.40` (`fixture2030-mongodb-1`)<br>- **Neo4j:** servidor `neo4j 2026.10.1` / cliente CLI `Cypher-Shell 2026.10.1` (`fixture2030-neo4j-1`, imagen `neo4j:latest`)<br>- **Redis:** `v8.10.2` (`fixture2030-redis-1`, `maxmemory 256mb`, `noeviction`) |
 | **Configuración Efectiva de la Línea Base** | - MongoDB `maxPoolSize = 5`, `dependencyTimeoutMs = 3000 ms`, sin proyección de campos, 2 `findOne` separados en `GET /partidos/:id`, 3 operaciones (`findOne` + `find` + `countDocuments`) en `GET /equipos/:codigo/jugadores`.<br>- Neo4j `maxConnectionPoolSize = 5`, `connectionAcquisitionTimeout = 3000 ms`.<br>- Redis `READ_AND_RENEW_SESSION` ejecutando `TIME` + `HSET ultima_actividad` + `EXPIRE 1800` en el 100 % de las peticiones (`sessionRenewThrottleSeconds = 0`).<br>- Caché Read-Aside de datos de negocio **deshabilitado** (`cacheTtlSeconds: { match: 0, team: 0, events: 0 }`). |
 
 ---
@@ -65,7 +65,7 @@ La instrumentación interna permitió aislar cuánto tiempo y cuántas operacion
 | **Servidor API Fastify (`onResponse`)** | 2.227 | 124,970 | 126,784 | **209,682** | **367,210** | 0 | El 80,3 % del tiempo medio E2E (`124,97 / 155,69 ms`) transcurre dentro del handler esperando a los drivers NoSQL. |
 | **Redis — Sesiones Lua** | 2.227 | 24,087 | 22,095 | **42,750** | **88,615** | 0 | **2.227 escrituras `HSET` + `EXPIRE`** (una en cada request `GET`, 0 omitidas). Instantánea post-prueba: `0,33 %` CPU y `30,26 MiB` RAM (`used_memory = 1,79M`). |
 | **MongoDB 7.0 — Driver** | **4.000** | 62,552 | 63,100 | **94,668** | **174,204** | 0 | **Amplificación de consultas ($1,80\times$):** `4.000` operaciones de driver para `2.227` requests HTTP (`2` `findOne` por partido + `3` consultas por plantel), encoladas tras `maxPoolSize=5`. |
-| **Neo4j 5.x — Driver Bolt** | **1.359** | 49,283 | 40,869 | **101,740** | **266,560** | 0 | **Contención en pool de grafos:** `1.359` consultas Cypher compitiendo por `maxConnectionPoolSize=5`, elevando el p99 del driver a `266,560 ms` (`máx = 311,475 ms`). |
+| **Neo4j — Driver Bolt** | **1.359** | 49,283 | 40,869 | **101,740** | **266,560** | 0 | **Contención en pool de grafos:** `1.359` consultas Cypher compitiendo por `maxConnectionPoolSize=5`, elevando el p99 del driver a `266,560 ms` (`máx = 311,475 ms`). |
 
 ---
 

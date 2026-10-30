@@ -27,6 +27,7 @@ export interface EnvironmentMetadata {
   products: {
     mongodbVersion: string
     neo4jVersion: string
+    neo4jClientVersion: string
     redisVersion: string
     fastifyVersion: string
   }
@@ -175,6 +176,26 @@ function resolveContainerName(candidates: string[]): string | null {
   return null
 }
 
+export function parseNeo4jServerVersion(
+  execOut: string | null,
+  inspectOut: string | null,
+): string {
+  const firstLine = execOut?.split(/\r?\n/)[0]?.trim() ?? ''
+  if (firstLine && !/^cypher-shell/i.test(firstLine)) {
+    return /^neo4j\b/i.test(firstLine) ? firstLine : `neo4j ${firstLine}`
+  }
+  const inspectText = inspectOut?.trim() ?? ''
+  if (inspectText) {
+    const tarballMatch = inspectText.match(/NEO4J_TARBALL=([^\s]+)/)
+    if (tarballMatch?.[1]) {
+      return tarballMatch[1].replace(/-unix\.tar\.gz$/, '')
+    }
+    const image = inspectText.split('|')[0]?.trim()
+    if (image) return image
+  }
+  return 'no-disponible'
+}
+
 function safeDockerExecVersion(candidates: string[], args: string[]): string {
   const container = resolveContainerName(candidates)
   if (!container) return 'no-disponible'
@@ -203,16 +224,47 @@ function safeDockerExecVersion(candidates: string[], args: string[]): string {
         stdio: ['ignore', 'pipe', 'ignore'],
       },
     ).trim()
-    const tarballMatch = inspectOut.match(/NEO4J_TARBALL=([^\s]+)/)
-    if (tarballMatch?.[1]) {
-      return tarballMatch[1].replace(/-unix\.tar\.gz$/, '')
-    }
-    const image = inspectOut.split('|')[0]?.trim()
-    if (image) return image
+    return parseNeo4jServerVersion(null, inspectOut)
   } catch {
     /* ignorar */
   }
   return 'no-disponible'
+}
+
+function safeNeo4jServerVersion(candidates: string[]): string {
+  const container = resolveContainerName(candidates)
+  if (!container) return 'no-disponible'
+  let execOut: string | null = null
+  try {
+    execOut = execFileSync('docker', ['exec', container, 'neo4j', '--version'], {
+      encoding: 'utf8',
+      timeout: 10000,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+  } catch {
+    execOut = null
+  }
+  let inspectOut: string | null = null
+  if (!execOut) {
+    try {
+      inspectOut = execFileSync(
+        'docker',
+        [
+          'inspect',
+          '--format={{.Config.Image}}|{{range .Config.Env}}{{println .}}{{end}}',
+          container,
+        ],
+        {
+          encoding: 'utf8',
+          timeout: 3000,
+          stdio: ['ignore', 'pipe', 'ignore'],
+        },
+      ).trim()
+    } catch {
+      inspectOut = null
+    }
+  }
+  return parseNeo4jServerVersion(execOut, inspectOut)
 }
 
 export function collectEnvironmentMetadata(): EnvironmentMetadata {
@@ -237,7 +289,8 @@ export function collectEnvironmentMetadata(): EnvironmentMetadata {
         'mongod',
         '--version',
       ]),
-      neo4jVersion: safeDockerExecVersion(['fixture2030-neo4j-1', 'fixture2030_neo4j_1', 'neo4j'], [
+      neo4jVersion: safeNeo4jServerVersion(['fixture2030-neo4j-1', 'fixture2030_neo4j_1', 'neo4j']),
+      neo4jClientVersion: safeDockerExecVersion(['fixture2030-neo4j-1', 'fixture2030_neo4j_1', 'neo4j'], [
         'cypher-shell',
         '--version',
       ]),

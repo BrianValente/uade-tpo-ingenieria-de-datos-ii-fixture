@@ -8,7 +8,7 @@
 
 ## 1. Descripción del Hito
 
-Este módulo contiene la implementación reproducible, los generadores determinísticos de carga, la instrumentación multi-capa y la documentación técnica para evaluar y optimizar el rendimiento de la **API integrada de consulta en vivo del Fixture 2030** (desarrollada sobre **Fastify 5 + Node.js**) interactuando con **MongoDB 7.0**, **Neo4j 5.26** y **Redis 8.10**.
+Este módulo contiene la implementación reproducible, los generadores determinísticos de carga, la instrumentación multi-capa y la documentación técnica para evaluar y optimizar el rendimiento de la **API integrada de consulta en vivo del Fixture 2030** (desarrollada sobre **Fastify 5 + Node.js**) interactuando con **MongoDB 7.0**, **Neo4j 2026.10.1** (servidor `neo4j 2026.10.1`, cliente CLI `Cypher-Shell 2026.10.1`) y **Redis 8.10**.
 
 El trabajo sigue una metodología experimental rigurosa en seis etapas:
 1. **Delimitación del flujo crítico multi-motor y preparación reproducible del dataset** (`64` equipos, `1.536` jugadores, `32` partidos, `8` sedes, `384` eventos —incluyendo `320` eventos sintéticos identificados con `lotePrueba: "HITO_12"`— y `20` sesiones activas en Redis).

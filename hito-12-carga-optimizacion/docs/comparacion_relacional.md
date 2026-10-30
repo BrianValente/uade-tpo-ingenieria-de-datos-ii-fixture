@@ -3,7 +3,7 @@
 **Asignatura:** Ingeniería de Datos II  
 **Proyecto:** Plataforma Fixture Mundial 2030 — Grupo 5  
 
-> **Nota Metodológica (RNF14, §5.6):** En este hito las mediciones experimentales de carga se ejecutaron sobre la arquitectura poli-motor NoSQL real del proyecto (**MongoDB 7.0 + Neo4j 5.x + Redis + Fastify**). La alternativa relacional que se desarrolla a continuación se presenta como un **análisis técnico y arquitectónico riguroso vinculado directamente con el flujo probado**, separando explícitamente el modelo conceptual relacional de las mediciones empíricas obtenidas en el laboratorio.
+> **Nota Metodológica (RNF14, §5.6):** En este hito las mediciones experimentales de carga se ejecutaron sobre la arquitectura poli-motor NoSQL real del proyecto (**MongoDB 7.0 + Neo4j + Redis + Fastify**). La alternativa relacional que se desarrolla a continuación se presenta como un **análisis técnico y arquitectónico riguroso vinculado directamente con el flujo probado**, separando explícitamente el modelo conceptual relacional de las mediciones empíricas obtenidas en el laboratorio.
 
 ---
 

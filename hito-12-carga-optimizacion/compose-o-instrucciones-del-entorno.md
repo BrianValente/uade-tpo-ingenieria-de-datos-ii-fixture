@@ -17,7 +17,7 @@ flowchart LR
 
     subgraph Docker["Red Docker Compose (fixture2030)"]
         Redis[("Redis\n127.0.0.1:6379\nSesiones Lua + Caché Read-Aside")]
-        Neo4j[("Neo4j 5.x\n127.0.0.1:7687 (Bolt)\nGrafo Partidos / Sedes / Eventos")]
+        Neo4j[("Neo4j 2026.10.1\n127.0.0.1:7687 (Bolt)\nGrafo Partidos / Sedes / Eventos")]
         Mongo[("MongoDB 7.0\n127.0.0.1:27017\nFichas Equipos y Jugadores")]
     end
 
@@ -29,9 +29,9 @@ flowchart LR
 
 | Servicio | Imagen en `compose.yaml` | Puerto Local Publicado | Rol en el Flujo Bajo Prueba | Configuración Relevante |
 |:---|:---|:---:|:---|:---|
-| **MongoDB** | `mongo:7.0` | `127.0.0.1:27017` | Fuente de verdad documental (`equipos`, `jugadores`, `usuarios_api`) | Validadores `$jsonSchema` estrictos; índices `equipos_codigo_unico`, `jugadores_equipo_dorsal_unico` y `jugadores_equipo_posicion_dorsal`. |
-| **Neo4j** | `neo4j:latest` (`5.26.21`) | `127.0.0.1:7687` (Bolt)<br>`127.0.0.1:7474` (HTTP) | Grafo deportivo (`:Equipo`, `:Jugador`, `:Partido`, `:Sede`, `:Evento`) | 5 restricciones `UNIQUENESS` e índices `RANGE` en `(equipoCodigo, dorsal)`, `(fecha)` y `(tipo)`. |
-| **Redis** | `redis:latest` (`8.6.2`) | `127.0.0.1:6379` | Sesiones activas (`fixture2030:h10:h12-bench:sesion:*`) y Caché Read-Aside (`fixture2030:h12:cache:*`) | `--appendonly yes --appendfsync everysec --maxmemory 256mb --maxmemory-policy noeviction`. |
+| **MongoDB** | `mongo:7.0` (`v7.0.40`) | `127.0.0.1:27017` | Fuente de verdad documental (`equipos`, `jugadores`, `usuarios_api`) | Validadores `$jsonSchema` estrictos; índices `equipos_codigo_unico`, `jugadores_equipo_dorsal_unico` y `jugadores_equipo_posicion_dorsal`. |
+| **Neo4j** | `neo4j:latest` (servidor `neo4j 2026.10.1`, cliente `Cypher-Shell 2026.10.1`) | `127.0.0.1:7687` (Bolt)<br>`127.0.0.1:7474` (HTTP) | Grafo deportivo (`:Equipo`, `:Jugador`, `:Partido`, `:Sede`, `:Evento`) | 5 restricciones `UNIQUENESS` e índices `RANGE` en `(equipoCodigo, dorsal)`, `(fecha)` y `(tipo)`. |
+| **Redis** | `redis:latest` (`8.10.2`) | `127.0.0.1:6379` | Sesiones activas (`fixture2030:h10:h12-bench:sesion:*`) y Caché Read-Aside (`fixture2030:h12:cache:*`) | `--appendonly yes --appendfsync everysec --maxmemory 256mb --maxmemory-policy noeviction`. |
 | **API Fastify** | Proceso Node.js local | `127.0.0.1:8012` (o dinámico) | Orquestación de rutas, validación Zod y telemetría por capa | `API_REQUEST_TIMEOUT_MS=10000`, `DEPENDENCY_TIMEOUT_MS=3000`. |
 
 ---

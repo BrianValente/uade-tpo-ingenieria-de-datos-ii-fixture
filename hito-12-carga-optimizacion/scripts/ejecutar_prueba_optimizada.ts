@@ -37,6 +37,26 @@ export function generateComparisonMarkdown(
     .filter(Boolean)
     .join('\n')
 
+  const baseSuccessPct =
+    bw.totalRequestsGenerated > 0
+      ? ((bw.successfulRequests / bw.totalRequestsGenerated) * 100).toFixed(2)
+      : '0.00'
+  const optSuccessPct =
+    ow.totalRequestsGenerated > 0
+      ? ((ow.successfulRequests / ow.totalRequestsGenerated) * 100).toFixed(2)
+      : '0.00'
+  const successInterpretation =
+    bw.failedRequests === 0 &&
+    ow.failedRequests === 0 &&
+    bw.payloadIntegrityErrors === 0 &&
+    ow.payloadIntegrityErrors === 0
+      ? `${baseSuccessPct} % base vs. ${optSuccessPct} % opt de respuestas válidas con integridad comprobada (0 fallos en ambas corridas)`
+      : `Éxito HTTP 200: ${baseSuccessPct} % base (${bw.payloadIntegrityVerified}/${bw.successfulRequests} íntegras) vs. ${optSuccessPct} % opt (${ow.payloadIntegrityVerified}/${ow.successfulRequests} íntegras)`
+  const errorInterpretation =
+    bw.failedRequests === 0 && ow.failedRequests === 0
+      ? '0 errores HTTP y 0 errores de integridad observados en ambas corridas'
+      : `Fallos observados: ${bw.failedRequests} en base vs. ${ow.failedRequests} en optimizado`
+
   return [
     '# Tablas y Gráficos Comparativos: Línea Base vs. Optimizado (Hito 12)',
     '',
@@ -55,18 +75,18 @@ export function generateComparisonMarkdown(
     '| Métrica / Indicador | Unidad | Línea Base (`baseline`) | Flujo Optimizado (`optimized`) | Variación Relativa | Interpretación |',
     '|:---|:---:|---:|---:|---:|:---|',
     `| **Duración de Ventana Medida** | s | ${bw.durationSeconds} | **${ow.durationSeconds}** | **${pctDelta(bw.durationSeconds, ow.durationSeconds)}** | Cierre: \`${bw.terminationReason}\` vs. \`${ow.terminationReason}\` (sostenimiento completo: \`${bw.phasesReached.steadyCompleted}\` / \`${ow.phasesReached.steadyCompleted}\`) |`,
-    `| **Operaciones Totales Generadas** | ops | ${bw.totalRequestsGenerated} | **${ow.totalRequestsGenerated}** | **${pctDelta(bw.totalRequestsGenerated, ow.totalRequestsGenerated)}** | Mayor capacidad procesada durante la ventana completa (${bw.durationSeconds.toFixed(1)} s base vs. ${ow.durationSeconds.toFixed(1)} s opt) |`,
-    `| **Operaciones Exitosas (\`HTTP 200\`)** | ops | ${bw.successfulRequests} | **${ow.successfulRequests}** | **${pctDelta(bw.successfulRequests, ow.successfulRequests)}** | 100 % de respuestas válidas con integridad comprobada |`,
-    `| **Tasa de Error** | % | ${bw.errorRatePct} % | **${ow.errorRatePct} %** | ${ow.errorRatePct - bw.errorRatePct} pp | Cero pérdida ni degradación HTTP |`,
-    `| **Throughput Global Sostenido** | ops/s | ${bw.throughputOpsPerSec} | **${ow.throughputOpsPerSec}** | **${pctDelta(bw.throughputOpsPerSec, ow.throughputOpsPerSec)}** | Incremento sustancial de caudal por eliminación de contención y lecturas redundantes |`,
-    `| **Latencia Media E2E** | ms | ${bl.avgMs} | **${ol.avgMs}** | **${pctDelta(bl.avgMs, ol.avgMs)}** | Reducción del tiempo medio de respuesta al cliente |`,
-    `| **Latencia p50 (Mediana) E2E** | ms | ${bl.p50Ms} | **${ol.p50Ms}** | **${pctDelta(bl.p50Ms, ol.p50Ms)}** | Mejora en el caso típico (dominado por claves calientes) |`,
-    `| **Latencia p90 E2E** | ms | ${bl.p90Ms} | **${ol.p90Ms}** | **${pctDelta(bl.p90Ms, ol.p90Ms)}** | Reducción del encolamiento bajo concurrencia de 24 VUs |`,
-    `| **Latencia p95 E2E** | ms | ${bl.p95Ms} | **${ol.p95Ms}** | **${pctDelta(bl.p95Ms, ol.p95Ms)}** | Mitigación de espera en pools de MongoDB y Neo4j |`,
-    `| **Latencia p99 E2E** | ms | ${bl.p99Ms} | **${ol.p99Ms}** | **${pctDelta(bl.p99Ms, ol.p99Ms)}** | Reducción de la cola extrema de latencia |`,
-    `| **Latencia Máxima E2E** | ms | ${bl.maxMs} | **${ol.maxMs}** | **${pctDelta(bl.maxMs, ol.maxMs)}** | Pico aislado de cold-miss / GC |`,
-    `| **Latencia p95 Claves Calientes (80 %)** | ms | ${bw.hotKeysLatencyE2E.p95Ms} | **${ow.hotKeysLatencyE2E.p95Ms}** | **${pctDelta(bw.hotKeysLatencyE2E.p95Ms, ow.hotKeysLatencyE2E.p95Ms)}** |Servidas mayoritariamente desde caché Read-Aside en Redis |`,
-    `| **Latencia p95 Claves Frías (20 %)** | ms | ${bw.coldKeysLatencyE2E.p95Ms} | **${ow.coldKeysLatencyE2E.p95Ms}** | **${pctDelta(bw.coldKeysLatencyE2E.p95Ms, ow.coldKeysLatencyE2E.p95Ms)}** | Efecto conjunto (O1+O2): claves de baja frecuencia que tras su primer miss se benefician de pools ampliados, proyección BSON y caché subsecuente |`,
+    `| **Operaciones Totales Generadas** | ops | ${bw.totalRequestsGenerated} | **${ow.totalRequestsGenerated}** | **${pctDelta(bw.totalRequestsGenerated, ow.totalRequestsGenerated)}** | Volumen procesado en ventana observada (${bw.durationSeconds.toFixed(1)} s base vs. ${ow.durationSeconds.toFixed(1)} s opt) |`,
+    `| **Operaciones Exitosas (\`HTTP 200\`)** | ops | ${bw.successfulRequests} | **${ow.successfulRequests}** | **${pctDelta(bw.successfulRequests, ow.successfulRequests)}** | ${successInterpretation} |`,
+    `| **Tasa de Error** | % | ${bw.errorRatePct} % | **${ow.errorRatePct} %** | ${(ow.errorRatePct - bw.errorRatePct).toFixed(2)} pp | ${errorInterpretation} |`,
+    `| **Throughput Global Sostenido** | ops/s | ${bw.throughputOpsPerSec} | **${ow.throughputOpsPerSec}** | **${pctDelta(bw.throughputOpsPerSec, ow.throughputOpsPerSec)}** | Variación de caudal medida bajo efecto conjunto del paquete aplicado (O1+O2+O3+O4) |`,
+    `| **Latencia Media E2E** | ms | ${bl.avgMs} | **${ol.avgMs}** | **${pctDelta(bl.avgMs, ol.avgMs)}** | Variación del tiempo medio de respuesta al cliente (efecto conjunto O1–O4) |`,
+    `| **Latencia p50 (Mediana) E2E** | ms | ${bl.p50Ms} | **${ol.p50Ms}** | **${pctDelta(bl.p50Ms, ol.p50Ms)}** | Variación en la mediana de latencia bajo distribución Pareto 80/20 |`,
+    `| **Latencia p90 E2E** | ms | ${bl.p90Ms} | **${ol.p90Ms}** | **${pctDelta(bl.p90Ms, ol.p90Ms)}** | Variación del percentil 90 bajo ${base.scenario.concurrency} VUs concurrentes (efecto conjunto O1–O4) |`,
+    `| **Latencia p95 E2E** | ms | ${bl.p95Ms} | **${ol.p95Ms}** | **${pctDelta(bl.p95Ms, ol.p95Ms)}** | Variación del percentil 95 extremo a extremo bajo efecto conjunto (O1–O4) |`,
+    `| **Latencia p99 E2E** | ms | ${bl.p99Ms} | **${ol.p99Ms}** | **${pctDelta(bl.p99Ms, ol.p99Ms)}** | Variación del percentil 99 de cola extremo a extremo (efecto conjunto O1–O4) |`,
+    `| **Latencia Máxima E2E** | ms | ${bl.maxMs} | **${ol.maxMs}** | **${pctDelta(bl.maxMs, ol.maxMs)}** | Valor extremo puntual observado en la muestra (sin aislamiento individual de causa) |`,
+    `| **Latencia p95 Claves Calientes (80 %)** | ms | ${bw.hotKeysLatencyE2E.p95Ms} | **${ow.hotKeysLatencyE2E.p95Ms}** | **${pctDelta(bw.hotKeysLatencyE2E.p95Ms, ow.hotKeysLatencyE2E.p95Ms)}** | Tráfico concentrado en 4 partidos y 8 equipos; servido mayoritariamente desde caché Read-Aside tras el primer miss |`,
+    `| **Latencia p95 Claves Frías (20 %)** | ms | ${bw.coldKeysLatencyE2E.p95Ms} | **${ow.coldKeysLatencyE2E.p95Ms}** | **${pctDelta(bw.coldKeysLatencyE2E.p95Ms, ow.coldKeysLatencyE2E.p95Ms)}** | Efecto conjunto (O1+O2+O4): claves de baja frecuencia de selección PRNG que se cachean tras su primer acceso y comparten motores descargados |`,
     '',
     '---',
     '',
@@ -82,15 +102,15 @@ export function generateComparisonMarkdown(
     '',
     '| Motor / Recurso | Métrica | Línea Base (`baseline`) | Flujo Optimizado (`optimized`) | Variación / Efecto |',
     '|:---|:---|---:|---:|:---|',
-    `| **MongoDB 7.0** | Consultas ejecutadas al motor | ${bDep.mongodb.operationsCount} | **${oDep.mongodb.operationsCount}** | **${pctDelta(bDep.mongodb.operationsCount, oDep.mongodb.operationsCount)}** de descarga sobre el motor documental |`,
-    `| **MongoDB 7.0** | Latencia p95 del driver | ${bDep.mongodb.latency.p95Ms} ms | **${oDep.mongodb.latency.p95Ms} ms** | **${pctDelta(bDep.mongodb.latency.p95Ms, oDep.mongodb.latency.p95Ms)}** (Pool \`5\` -> \`25\` + proyección + \`$in\`) |`,
-    `| **Neo4j 5.x** | Consultas Cypher ejecutadas | ${bDep.neo4j.operationsCount} | **${oDep.neo4j.operationsCount}** | **${pctDelta(bDep.neo4j.operationsCount, oDep.neo4j.operationsCount)}** de descarga sobre el motor de grafos |`,
-    `| **Neo4j 5.x** | Latencia p95 del driver Bolt | ${bDep.neo4j.latency.p95Ms} ms | **${oDep.neo4j.latency.p95Ms} ms** | **${pctDelta(bDep.neo4j.latency.p95Ms, oDep.neo4j.latency.p95Ms)}** (Pool \`5\` -> \`25\` + menor contención) |`,
+    `| **MongoDB** | Consultas ejecutadas al motor | ${bDep.mongodb.operationsCount} | **${oDep.mongodb.operationsCount}** | **${pctDelta(bDep.mongodb.operationsCount, oDep.mongodb.operationsCount)}** de variación en llamadas al motor documental |`,
+    `| **MongoDB** | Latencia p95 del driver | ${bDep.mongodb.latency.p95Ms} ms | **${oDep.mongodb.latency.p95Ms} ms** | **${pctDelta(bDep.mongodb.latency.p95Ms, oDep.mongodb.latency.p95Ms)}** en las consultas restantes (efecto conjunto O1+O2+O4, pool \`${base.scenario.mongoMaxPoolSize}\` -> \`${opt.scenario.mongoMaxPoolSize}\`) |`,
+    `| **Neo4j** | Consultas Cypher ejecutadas | ${bDep.neo4j.operationsCount} | **${oDep.neo4j.operationsCount}** | **${pctDelta(bDep.neo4j.operationsCount, oDep.neo4j.operationsCount)}** de variación en llamadas al motor de grafos |`,
+    `| **Neo4j** | Latencia p95 del driver Bolt | ${bDep.neo4j.latency.p95Ms} ms | **${oDep.neo4j.latency.p95Ms} ms** | **${pctDelta(bDep.neo4j.latency.p95Ms, oDep.neo4j.latency.p95Ms)}** en las consultas restantes (efecto conjunto O1+O4, pool \`${base.scenario.neo4jMaxConnectionPoolSize}\` -> \`${opt.scenario.neo4jMaxConnectionPoolSize}\`) |`,
     `| **Redis (Sesiones)** | Evaluaciones Lua de sesión | ${bDep.redisSession.operationsCount} | **${oDep.redisSession.operationsCount}** | ${pctDelta(bDep.redisSession.operationsCount, oDep.redisSession.operationsCount)} (1 por request HTTP) |`,
-    `| **Redis (Sesiones)** | Escrituras \`HSET\`+\`EXPIRE\` ejecutadas | ${bDep.redisSession.renewWritesExecuted} | **${oDep.redisSession.renewWritesExecuted}** | **${bDep.redisSession.renewWritesSkippedByThrottle} -> ${oDep.redisSession.renewWritesSkippedByThrottle}** escrituras evitadas por throttle de 60 s |`,
+    `| **Redis (Sesiones)** | Escrituras \`HSET\`+\`EXPIRE\` ejecutadas | ${bDep.redisSession.renewWritesExecuted} | **${oDep.redisSession.renewWritesExecuted}** | **${bDep.redisSession.renewWritesSkippedByThrottle} -> ${oDep.redisSession.renewWritesSkippedByThrottle}** escrituras omitidas por ventana de throttle (${opt.scenario.sessionRenewThrottleSeconds} s) |`,
     `| **Redis (Caché Read-Aside)** | Hit Ratio de Caché | 0 % (Inactivo) | **${oDep.redisCache.hitRatioPct} %** | **${oDep.redisCache.cacheHits} hits** / ${oDep.redisCache.cacheMisses} misses (${oDep.redisCache.cacheWrites} escrituras) |`,
-    `| **Redis (Memoria)** | Memoria usada post-prueba (\`used_memory\`) | ${base.resources.redisMetricsAfter?.usedMemoryHuman ?? 'N/A'} (${base.resources.redisMetricsAfter?.usedMemoryBytes ?? 0} B) | **${opt.resources.redisMetricsAfter?.usedMemoryHuman ?? 'N/A'} (${opt.resources.redisMetricsAfter?.usedMemoryBytes ?? 0} B)** | Trade-off de memoria en RAM para alojar claves de caché con TTL |`,
-    `| **Node.js (Proceso)** | Memoria RSS final | ${base.resources.processAfter.rssMiB} MiB | **${opt.resources.processAfter.rssMiB} MiB** | Incremento acotado por pools de conexión más amplios |`,
+    `| **Redis (Memoria)** | Memoria usada post-prueba (\`used_memory\`) | ${base.resources.redisMetricsAfter?.usedMemoryHuman ?? 'N/A'} (${base.resources.redisMetricsAfter?.usedMemoryBytes ?? 0} B) | **${opt.resources.redisMetricsAfter?.usedMemoryHuman ?? 'N/A'} (${opt.resources.redisMetricsAfter?.usedMemoryBytes ?? 0} B)** | Instantánea post-prueba (\`INFO memory\`) con claves de caché activas |`,
+    `| **Node.js (Proceso)** | Memoria RSS final | ${base.resources.processAfter.rssMiB} MiB | **${opt.resources.processAfter.rssMiB} MiB** | Instantánea RSS al cierre del proceso (${pctDelta(base.resources.processAfter.rssMiB, opt.resources.processAfter.rssMiB)}, sin atribución aislada) |`,
     '',
     '---',
     '',

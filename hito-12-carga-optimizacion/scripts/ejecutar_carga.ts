@@ -246,6 +246,8 @@ export async function runLoadScenario(
   )
 
   try {
+    const envMeta = collectEnvironmentMetadata()
+
     // 1. Fase de Calentamiento (Warm-up)
     const warmupPrng = createDeterministicPrng(scenario.seed + 1)
     const warmupStart = performance.now()
@@ -288,7 +290,7 @@ export async function runLoadScenario(
         : 0
 
     // 2. Preparar instantáneas antes del período medido
-    const envMeta = collectEnvironmentMetadata()
+    envMeta.timestamp = new Date().toISOString()
     const redisBefore = collectRedisEngineMetrics()
     const procBefore = takeProcessSnapshot()
 
@@ -639,7 +641,7 @@ export function formatLoadReportMarkdown(report: LoadExecutionReport): string {
     `- **Fecha de ejecución:** \`${report.environment.timestamp}\``,
     `- **Commit Git:** \`${report.environment.gitCommit}\` (rama \`${report.environment.gitBranch}\`, estado del árbol: \`${report.environment.gitTreeState ?? "clean"}\`)`,
     `- **Hardware / SO:** ${report.environment.host.platform} (${report.environment.host.arch}) — ${report.environment.host.cpuModel} (${report.environment.host.logicalCpus} CPUs lógicas, ${report.environment.host.totalMemoryGiB} GiB RAM) — Node.js \`${report.environment.host.nodeVersion}\``,
-    `- **Versiones observadas:** MongoDB (\`${report.environment.products.mongodbVersion}\`), Neo4j (\`${report.environment.products.neo4jVersion}\`), Redis (\`${report.environment.products.redisVersion}\`)`,
+    `- **Versiones observadas:** MongoDB (\`${report.environment.products.mongodbVersion}\`), Neo4j Servidor (\`${report.environment.products.neo4jVersion}\`, cliente CLI: \`${report.environment.products.neo4jClientVersion ?? 'no-disponible'}\`), Redis (\`${report.environment.products.redisVersion}\`)`,
     '',
     '---',
     '',
@@ -704,8 +706,8 @@ export function formatLoadReportMarkdown(report: LoadExecutionReport): string {
     `| **API Fastify (Handler interno)** | ${apiLat.count} | Zod validation + serialización | ${apiLat.avgMs} | ${apiLat.p50Ms} | **${apiLat.p95Ms}** | **${apiLat.p99Ms}** | ${apiLat.maxMs} | Tiempo interno \`reply.elapsedTime\` |`,
     `| **Redis (Sesiones Lua)** | ${dep.redisSession.operationsCount} | Escrituras renovación: ${dep.redisSession.renewWritesExecuted} (omitidas: ${dep.redisSession.renewWritesSkippedByThrottle}) | ${dep.redisSession.latency.avgMs} | ${dep.redisSession.latency.p50Ms} | **${dep.redisSession.latency.p95Ms}** | **${dep.redisSession.latency.p99Ms}** | ${dep.redisSession.latency.maxMs} | Autorización Bearer en cada request |`,
     `| **Redis (Caché Read-Aside)** | ${dep.redisCache.lookupsCount} | Activo: \`${dep.redisCache.enabled}\` — Hit Ratio: **${dep.redisCache.hitRatioPct} %** (${dep.redisCache.cacheHits} hits / ${dep.redisCache.cacheMisses} misses) | ${dep.redisCache.latency.avgMs} | ${dep.redisCache.latency.p50Ms} | **${dep.redisCache.latency.p95Ms}** | **${dep.redisCache.latency.p99Ms}** | ${dep.redisCache.latency.maxMs} | Escrituras a caché: ${dep.redisCache.cacheWrites} |`,
-    `| **MongoDB 7.0 (Driver)** | ${dep.mongodb.operationsCount} | \`maxPoolSize=${dep.mongodb.poolSizeConfigured}\` | ${dep.mongodb.latency.avgMs} | ${dep.mongodb.latency.p50Ms} | **${dep.mongodb.latency.p95Ms}** | **${dep.mongodb.latency.p99Ms}** | ${dep.mongodb.latency.maxMs} | Fallos: ${dep.mongodb.failuresCount} |`,
-    `| **Neo4j 5.x (Driver Bolt)** | ${dep.neo4j.operationsCount} | \`maxConnectionPoolSize=${dep.neo4j.poolSizeConfigured}\` | ${dep.neo4j.latency.avgMs} | ${dep.neo4j.latency.p50Ms} | **${dep.neo4j.latency.p95Ms}** | **${dep.neo4j.latency.p99Ms}** | ${dep.neo4j.latency.maxMs} | Fallos: ${dep.neo4j.failuresCount} |`,
+    `| **MongoDB (Driver)** | ${dep.mongodb.operationsCount} | \`maxPoolSize=${dep.mongodb.poolSizeConfigured}\` | ${dep.mongodb.latency.avgMs} | ${dep.mongodb.latency.p50Ms} | **${dep.mongodb.latency.p95Ms}** | **${dep.mongodb.latency.p99Ms}** | ${dep.mongodb.latency.maxMs} | Fallos: ${dep.mongodb.failuresCount} |`,
+    `| **Neo4j (Driver Bolt)** | ${dep.neo4j.operationsCount} | \`maxConnectionPoolSize=${dep.neo4j.poolSizeConfigured}\` | ${dep.neo4j.latency.avgMs} | ${dep.neo4j.latency.p50Ms} | **${dep.neo4j.latency.p95Ms}** | **${dep.neo4j.latency.p99Ms}** | ${dep.neo4j.latency.maxMs} | Fallos: ${dep.neo4j.failuresCount} |`,
     '',
     '---',
     '',

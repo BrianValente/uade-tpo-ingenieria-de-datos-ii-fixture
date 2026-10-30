@@ -4,6 +4,7 @@ import {
   resolveLoadScenarioConfig,
   verifyPayloadIntegrity,
 } from '../../../hito-12-carga-optimizacion/scripts/ejecutar_carga.js'
+import { parseNeo4jServerVersion } from '../../../hito-12-carga-optimizacion/scripts/entorno_y_recursos.js'
 import { resolveBenchmarkServerConfig } from '../../../hito-12-carga-optimizacion/scripts/servidor_optimizado.js'
 
 describe('Hito 12 - Verificación de Integridad de Payloads (H12-01, RF15, RNF4)', () => {
@@ -183,5 +184,18 @@ describe('Hito 12 - Verificación de Integridad de Payloads (H12-01, RF15, RNF4)
     expect(customScenarioCfg.mongoMaxPoolSize).toBe(40)
     expect(customScenarioCfg.neo4jMaxConnectionPoolSize).toBe(35)
     expect(customScenarioCfg.maxOperations).toBe(60000)
+  })
+
+  it('distingue la versión del servidor Neo4j de la versión del cliente Cypher-Shell (R2-04)', () => {
+    expect(parseNeo4jServerVersion('2026.10.1\n', null)).toBe('neo4j 2026.10.1')
+    expect(parseNeo4jServerVersion('neo4j 5.26.32\n', null)).toBe(
+      'neo4j 5.26.32',
+    )
+    expect(
+      parseNeo4jServerVersion(
+        'Cypher-Shell 2026.10.1',
+        'neo4j:latest|NEO4J_TARBALL=neo4j-community-2026.10.1-unix.tar.gz',
+      ),
+    ).toBe('neo4j-community-2026.10.1')
   })
 })

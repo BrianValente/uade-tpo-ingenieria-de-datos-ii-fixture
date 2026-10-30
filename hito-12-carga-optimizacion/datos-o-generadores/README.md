@@ -13,8 +13,8 @@ El escenario de carga opera sobre una combinación de **datos canónicos de los 
 | **MongoDB 7.0** | Colección `equipos` | 64 equipos | **64 equipos** | UUID v5 determinístico (`equipo:<codigo>`), código ISO de 3 letras (`ARG`, `BRA`, etc.). |
 | **MongoDB 7.0** | Colección `jugadores` | 1.536 jugadores (24/equipo) | **1.536 jugadores** | UUID v5 determinístico (`jugador:<codigo>:<dorsal>`), referencia `equipoId` y `equipoCodigo`. |
 | **MongoDB 7.0** | Colección `usuarios_api` | 2 cuentas (`admin`, `user`) | **2 cuentas** | Seed con hash Argon2id (`fixture-admin`, `fixture-user`). |
-| **Neo4j 5.x** | Nodos `:Equipo`, `:Jugador`, `:Sede`, `:Partido` | 64, 1.536, 8, 32 | **64, 1.536, 8, 32** | Nodos con restricciones `UNIQUENESS` y relaciones `:PERTENECE_A`, `:DISPUTA`, `:SE_JUEGA_EN`. |
-| **Neo4j 5.x** | Nodos `:Evento` y relaciones `:OCURRE_EN` / `:INVOLUCRA` | 64 eventos (2/partido) | **384 eventos** (+320 eventos `F2030-H12-EVT-0001..0320`, 12/partido) | `MERGE` idempotente en `preparar_datos.ts` con propiedad `lotePrueba: 'HITO_12'`. |
+| **Neo4j** | Nodos `:Equipo`, `:Jugador`, `:Sede`, `:Partido` | 64, 1.536, 8, 32 | **64, 1.536, 8, 32** | Nodos con restricciones `UNIQUENESS` y relaciones `:PERTENECE_A`, `:DISPUTA`, `:SE_JUEGA_EN`. |
+| **Neo4j** | Nodos `:Evento` y relaciones `:OCURRE_EN` / `:INVOLUCRA` | 64 eventos (2/partido) | **384 eventos** (+320 eventos `F2030-H12-EVT-0001..0320`, 12/partido) | `MERGE` idempotente en `preparar_datos.ts` con propiedad `lotePrueba: 'HITO_12'`. |
 | **Redis** | Hashes de sesión `fixture2030:h10:h12-bench:sesion:<digest>` | 1 sesión secuencial | **20 sesiones concurrentes** (`vu-h12-01..20`) | Pre-sembradas con TTL de 1800s para aislar usuarios virtuales concurrentes. |
 
 ---
