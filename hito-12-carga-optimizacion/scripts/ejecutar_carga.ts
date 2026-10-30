@@ -23,8 +23,10 @@ import {
   type RedisEngineMetrics,
 } from './entorno_y_recursos.js'
 import {
+  resolveBenchmarkServerConfig,
   startBenchmarkServer,
   type BenchmarkMode,
+  type BenchmarkServerEffectiveConfig,
   type ServerTelemetrySummary,
 } from './servidor_optimizado.js'
 
@@ -90,6 +92,18 @@ export interface LoadExecutionReport {
     startedAt: string
     finishedAt: string
     durationSeconds: number
+    terminationReason:
+      | 'TIME_WINDOW_COMPLETED'
+      | 'MAX_OPERATIONS_REACHED'
+      | 'ABORT_ERROR_RATE_EXCEEDED'
+    phasesReached: {
+      rampupTargetSeconds: number
+      steadyTargetSeconds: number
+      observedRampupSeconds: number
+      observedSteadySeconds: number
+      rampupCompleted: boolean
+      steadyCompleted: boolean
+    }
     abortedEarly: boolean
     abortReason: string | null
     totalRequestsGenerated: number
@@ -183,6 +197,40 @@ export function verifyPayloadIntegrity(
   return false
 }
 
+export function resolveLoadScenarioConfig(
+  mode: BenchmarkMode,
+  env: Record<string, string | undefined>,
+  serverEffectiveConfig?: BenchmarkServerEffectiveConfig,
+): LoadScenarioConfig {
+  const eff = serverEffectiveConfig ?? resolveBenchmarkServerConfig(mode, env)
+  return {
+    mode,
+    concurrency: Number(env.H12_CONCURRENCY ?? 24),
+    warmupSeconds: Number(env.H12_WARMUP_SECONDS ?? 3),
+    warmupConcurrency: Number(env.H12_WARMUP_CONCURRENCY ?? 4),
+    rampupSeconds: Number(env.H12_RAMPUP_SECONDS ?? 4),
+    steadySeconds: Number(env.H12_STEADY_SECONDS ?? 12),
+    maxOperations: Number(env.H12_MAX_OPERATIONS ?? 50000),
+    abortErrorRate: Number(env.H12_ABORT_ERROR_RATE ?? 0.5),
+    requestTimeoutMs: Number(env.H12_REQUEST_TIMEOUT_MS ?? 5000),
+    seed: Number(env.H12_SEED ?? 203012),
+    virtualSessionsCount: Number(env.H12_VIRTUAL_SESSIONS ?? 20),
+    mongoMaxPoolSize: eff.mongoMaxPoolSize,
+    neo4jMaxConnectionPoolSize: eff.neo4jMaxConnectionPoolSize,
+    dependencyTimeoutMs: eff.dependencyTimeoutMs,
+    cacheTtlSeconds: eff.cacheTtlSeconds,
+    sessionRenewThrottleSeconds: eff.sessionRenewThrottleSeconds,
+    workloadDistribution: {
+      match_composite: '40 %',
+      team_players: '30 %',
+      match_events: '20 %',
+      team_profile: '10 %',
+    },
+    hotspotRatio:
+      '80 % tráfico sobre 4 partidos y 8 selecciones; 20 % sobre restantes',
+  }
+}
+
 export async function runLoadScenario(
   modeOffset?: BenchmarkMode,
 ): Promise<LoadExecutionReport> {
@@ -190,48 +238,12 @@ export async function runLoadScenario(
   const mode: BenchmarkMode =
     modeOffset ?? (env.H12_MODE === 'optimized' ? 'optimized' : 'baseline')
 
-  const scenario: LoadScenarioConfig = {
-    mode,
-    concurrency: Number(env.H12_CONCURRENCY ?? 24),
-    warmupSeconds: Number(env.H12_WARMUP_SECONDS ?? 3),
-    warmupConcurrency: Number(env.H12_WARMUP_CONCURRENCY ?? 4),
-    rampupSeconds: Number(env.H12_RAMPUP_SECONDS ?? 4),
-    steadySeconds: Number(env.H12_STEADY_SECONDS ?? 12),
-    maxOperations: Number(env.H12_MAX_OPERATIONS ?? 5000),
-    abortErrorRate: Number(env.H12_ABORT_ERROR_RATE ?? 0.5),
-    requestTimeoutMs: Number(env.H12_REQUEST_TIMEOUT_MS ?? 5000),
-    seed: Number(env.H12_SEED ?? 203012),
-    virtualSessionsCount: Number(env.H12_VIRTUAL_SESSIONS ?? 20),
-    mongoMaxPoolSize:
-      mode === 'optimized'
-        ? Number(env.H12_MONGO_POOL_SIZE_OPTIMIZED ?? 25)
-        : Number(env.H12_MONGO_POOL_SIZE_BASELINE ?? 10),
-    neo4jMaxConnectionPoolSize:
-      mode === 'optimized'
-        ? Number(env.H12_NEO4J_POOL_SIZE_OPTIMIZED ?? 25)
-        : Number(env.H12_NEO4J_POOL_SIZE_BASELINE ?? 10),
-    dependencyTimeoutMs: Number(env.DEPENDENCY_TIMEOUT_MS ?? 2000),
-    cacheTtlSeconds: {
-      match: mode === 'optimized' ? Number(env.H12_CACHE_TTL_MATCH_SECONDS ?? 120) : 0,
-      team: mode === 'optimized' ? Number(env.H12_CACHE_TTL_TEAM_SECONDS ?? 300) : 0,
-      events: mode === 'optimized' ? Number(env.H12_CACHE_TTL_EVENTS_SECONDS ?? 15) : 0,
-    },
-    sessionRenewThrottleSeconds:
-      mode === 'optimized' ? Number(env.H12_SESSION_RENEW_THROTTLE_SECONDS ?? 60) : 0,
-    workloadDistribution: {
-      match_composite: '40 %',
-      team_players: '30 %',
-      match_events: '20 %',
-      team_profile: '10 %',
-    },
-    hotspotRatio: '80 % tráfico sobre 4 partidos y 8 selecciones; 20 % sobre restantes',
-  }
-
+  const server = await startBenchmarkServer(mode, 0)
+  const scenario = resolveLoadScenarioConfig(mode, env, server.effectiveConfig)
   const sessions = generateVirtualUserSessions(
     scenario.virtualSessionsCount,
     scenario.seed,
   )
-  const server = await startBenchmarkServer(mode, 0)
 
   try {
     // 1. Fase de Calentamiento (Warm-up)
@@ -476,9 +488,33 @@ export async function runLoadScenario(
       Array.from({ length: scenario.concurrency }, (_, i) => runVirtualUser(i)),
     )
 
+    const endPerf = performance.now()
     const measuredDurationSec =
-      Math.round(((performance.now() - measuredStartPerf) / 1000) * 1000) / 1000
+      Math.round(((endPerf - measuredStartPerf) / 1000) * 1000) / 1000
     const measuredFinishedAt = new Date().toISOString()
+
+    const hitMaxOperations =
+      totalRequestsGenerated >= scenario.maxOperations &&
+      endPerf < measuredDeadline
+    const terminationReason: LoadExecutionReport['measuredWindow']['terminationReason'] =
+      abortedEarly
+        ? 'ABORT_ERROR_RATE_EXCEEDED'
+        : hitMaxOperations
+          ? 'MAX_OPERATIONS_REACHED'
+          : 'TIME_WINDOW_COMPLETED'
+
+    const observedRampupSeconds =
+      Math.round(Math.min(measuredDurationSec, scenario.rampupSeconds) * 1000) /
+      1000
+    const observedSteadySeconds =
+      Math.round(
+        Math.max(0, measuredDurationSec - scenario.rampupSeconds) * 1000,
+      ) / 1000
+    const rampupCompleted =
+      observedRampupSeconds >= scenario.rampupSeconds && !abortedEarly
+    const steadyCompleted =
+      terminationReason === 'TIME_WINDOW_COMPLETED' &&
+      observedSteadySeconds >= scenario.steadySeconds * 0.95
 
     server.stopRecordingTelemetry()
     const layerTelemetry = server.getTelemetrySummary()
@@ -524,6 +560,15 @@ export async function runLoadScenario(
         startedAt: measuredStartedAt,
         finishedAt: measuredFinishedAt,
         durationSeconds: measuredDurationSec,
+        terminationReason,
+        phasesReached: {
+          rampupTargetSeconds: scenario.rampupSeconds,
+          steadyTargetSeconds: scenario.steadySeconds,
+          observedRampupSeconds,
+          observedSteadySeconds,
+          rampupCompleted,
+          steadyCompleted,
+        },
         abortedEarly,
         abortReason,
         totalRequestsGenerated,
@@ -605,9 +650,12 @@ export function formatLoadReportMarkdown(report: LoadExecutionReport): string {
     `| Usuarios virtuales concurrentes | **${report.scenario.concurrency}** |`,
     `| Sesiones virtuales pre-sembradas en Redis | **${report.scenario.virtualSessionsCount}** |`,
     `| Período de calentamiento (excluido de métricas) | ${report.scenario.warmupSeconds} s (${report.warmupSummary.requestsExecuted} ops, media ${report.warmupSummary.avgLatencyMs} ms) |`,
-    `| Rampa de incremento (Ramp-up) | ${report.scenario.rampupSeconds} s |`,
-    `| Período de sostenimiento (Steady-state) | ${report.scenario.steadySeconds} s |`,
+    `| Rampa de incremento (Ramp-up) | ${report.scenario.rampupSeconds} s (observada: ${w.phasesReached.observedRampupSeconds} s, completada: \`${w.phasesReached.rampupCompleted}\`) |`,
+    `| Período de sostenimiento (Steady-state) | ${report.scenario.steadySeconds} s (observado: ${w.phasesReached.observedSteadySeconds} s, completado: \`${w.phasesReached.steadyCompleted}\`) |`,
     `| Duración total medida | **${w.durationSeconds} s** |`,
+    `| Motivo de finalización de ventana | \`${w.terminationReason}\` (tope seguridad: ${report.scenario.maxOperations} ops) |`,
+    `| Configuración efectiva de motores | MongoDB pool=\`${report.scenario.mongoMaxPoolSize}\`, Neo4j pool=\`${report.scenario.neo4jMaxConnectionPoolSize}\`, timeout=\`${report.scenario.dependencyTimeoutMs} ms\` |`,
+    `| Política efectiva de caché y sesión | TTLs (\`match=${report.scenario.cacheTtlSeconds.match}s\`, \`team=${report.scenario.cacheTtlSeconds.team}s\`, \`events=${report.scenario.cacheTtlSeconds.events}s\`), throttle sesión=\`${report.scenario.sessionRenewThrottleSeconds}s\` |`,
     `| Semilla PRNG determinística (\`H12_SEED\`) | \`${report.scenario.seed}\` |`,
     `| Operaciones medidas generadas | **${w.totalRequestsGenerated}** |`,
     `| Operaciones exitosas (\`HTTP 200\`) | **${w.successfulRequests}** |`,

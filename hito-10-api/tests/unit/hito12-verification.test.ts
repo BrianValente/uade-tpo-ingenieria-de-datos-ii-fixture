@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { verifyPayloadIntegrity } from '../../../hito-12-carga-optimizacion/scripts/ejecutar_carga.js'
+import {
+  resolveLoadScenarioConfig,
+  verifyPayloadIntegrity,
+} from '../../../hito-12-carga-optimizacion/scripts/ejecutar_carga.js'
+import { resolveBenchmarkServerConfig } from '../../../hito-12-carga-optimizacion/scripts/servidor_optimizado.js'
 
 describe('Hito 12 - Verificación de Integridad de Payloads (H12-01, RF15, RNF4)', () => {
   it('aprueba un plantel íntegro de 24 jugadores únicos con su equipo y dorsales válidos', () => {
@@ -119,5 +123,65 @@ describe('Hito 12 - Verificación de Integridad de Payloads (H12-01, RF15, RNF4)
         limit: 20,
       }),
     ).toBe(false)
+  })
+
+  it('unifica la configuración efectiva entre servidor y escenario en defaults y overrides (R2-04, R2-02)', () => {
+    const emptyEnv: Record<string, string | undefined> = {}
+
+    const baseServerCfg = resolveBenchmarkServerConfig('baseline', emptyEnv)
+    const baseScenarioCfg = resolveLoadScenarioConfig(
+      'baseline',
+      emptyEnv,
+      baseServerCfg,
+    )
+    expect(baseServerCfg.dependencyTimeoutMs).toBe(3000)
+    expect(baseScenarioCfg.dependencyTimeoutMs).toBe(3000)
+    expect(baseServerCfg.mongoMaxPoolSize).toBe(5)
+    expect(baseScenarioCfg.mongoMaxPoolSize).toBe(5)
+    expect(baseServerCfg.neo4jMaxConnectionPoolSize).toBe(5)
+    expect(baseScenarioCfg.neo4jMaxConnectionPoolSize).toBe(5)
+    expect(baseScenarioCfg.cacheTtlSeconds).toEqual({
+      match: 0,
+      team: 0,
+      events: 0,
+    })
+    expect(baseScenarioCfg.sessionRenewThrottleSeconds).toBe(0)
+    expect(baseScenarioCfg.maxOperations).toBe(50000)
+
+    const optServerCfg = resolveBenchmarkServerConfig('optimized', emptyEnv)
+    const optScenarioCfg = resolveLoadScenarioConfig(
+      'optimized',
+      emptyEnv,
+      optServerCfg,
+    )
+    expect(optServerCfg.dependencyTimeoutMs).toBe(3000)
+    expect(optScenarioCfg.dependencyTimeoutMs).toBe(3000)
+    expect(optServerCfg.mongoMaxPoolSize).toBe(25)
+    expect(optScenarioCfg.mongoMaxPoolSize).toBe(25)
+    expect(optServerCfg.neo4jMaxConnectionPoolSize).toBe(25)
+    expect(optScenarioCfg.neo4jMaxConnectionPoolSize).toBe(25)
+    expect(optScenarioCfg.cacheTtlSeconds).toEqual({
+      match: 120,
+      team: 300,
+      events: 15,
+    })
+    expect(optScenarioCfg.sessionRenewThrottleSeconds).toBe(60)
+
+    const customEnv: Record<string, string | undefined> = {
+      DEPENDENCY_TIMEOUT_MS: '4500',
+      H12_MONGO_POOL_SIZE_OPTIMIZED: '40',
+      H12_NEO4J_POOL_SIZE_OPTIMIZED: '35',
+      H12_MAX_OPERATIONS: '60000',
+    }
+    const customServerCfg = resolveBenchmarkServerConfig('optimized', customEnv)
+    const customScenarioCfg = resolveLoadScenarioConfig(
+      'optimized',
+      customEnv,
+      customServerCfg,
+    )
+    expect(customScenarioCfg.dependencyTimeoutMs).toBe(4500)
+    expect(customScenarioCfg.mongoMaxPoolSize).toBe(40)
+    expect(customScenarioCfg.neo4jMaxConnectionPoolSize).toBe(35)
+    expect(customScenarioCfg.maxOperations).toBe(60000)
   })
 })

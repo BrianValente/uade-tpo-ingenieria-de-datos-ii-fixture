@@ -143,11 +143,18 @@ export function getGitBranch(): string {
 
 export function getGitTreeState(): 'clean' | 'modified' {
   try {
-    const out = execSync('git status --porcelain', {
+    const nonEvidenceChanges = execSync('git status --porcelain', {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim()
-    return out === '' ? 'clean' : 'modified'
+    })
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(
+        (line) =>
+          Boolean(line) &&
+          !line.includes('hito-12-carga-optimizacion/docs/evidencia/'),
+      )
+    return nonEvidenceChanges.length === 0 ? 'clean' : 'modified'
   } catch {
     return 'clean'
   }
@@ -174,13 +181,38 @@ function safeDockerExecVersion(candidates: string[], args: string[]): string {
   try {
     const out = execFileSync('docker', ['exec', container, ...args], {
       encoding: 'utf8',
-      timeout: 4000,
+      timeout: 10000,
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim()
-    return out.split(/\r?\n/)[0]?.trim() || 'unknown'
+    const firstLine = out.split(/\r?\n/)[0]?.trim()
+    if (firstLine) return firstLine
   } catch {
-    return 'no-disponible'
+    /* Fallback a metadatos del contenedor si el comando CLI excede timeout bajo carga */
   }
+  try {
+    const inspectOut = execFileSync(
+      'docker',
+      [
+        'inspect',
+        '--format={{.Config.Image}}|{{range .Config.Env}}{{println .}}{{end}}',
+        container,
+      ],
+      {
+        encoding: 'utf8',
+        timeout: 3000,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      },
+    ).trim()
+    const tarballMatch = inspectOut.match(/NEO4J_TARBALL=([^\s]+)/)
+    if (tarballMatch?.[1]) {
+      return tarballMatch[1].replace(/-unix\.tar\.gz$/, '')
+    }
+    const image = inspectOut.split('|')[0]?.trim()
+    if (image) return image
+  } catch {
+    /* ignorar */
+  }
+  return 'no-disponible'
 }
 
 export function collectEnvironmentMetadata(): EnvironmentMetadata {

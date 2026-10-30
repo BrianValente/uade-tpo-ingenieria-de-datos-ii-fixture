@@ -50,10 +50,54 @@ export interface ServerTelemetrySummary {
   }
 }
 
+export interface BenchmarkServerEffectiveConfig {
+  mode: BenchmarkMode
+  dependencyTimeoutMs: number
+  mongoMaxPoolSize: number
+  neo4jMaxConnectionPoolSize: number
+  cacheTtlSeconds: {
+    match: number
+    team: number
+    events: number
+  }
+  sessionRenewThrottleSeconds: number
+}
+
+export function resolveBenchmarkServerConfig(
+  mode: BenchmarkMode,
+  env: Record<string, string | undefined>,
+): BenchmarkServerEffectiveConfig {
+  return {
+    mode,
+    dependencyTimeoutMs: Number(env.DEPENDENCY_TIMEOUT_MS ?? 3000),
+    mongoMaxPoolSize:
+      mode === 'optimized'
+        ? Number(env.H12_MONGO_POOL_SIZE_OPTIMIZED ?? 25)
+        : Number(env.H12_MONGO_POOL_SIZE_BASELINE ?? 5),
+    neo4jMaxConnectionPoolSize:
+      mode === 'optimized'
+        ? Number(env.H12_NEO4J_POOL_SIZE_OPTIMIZED ?? 25)
+        : Number(env.H12_NEO4J_POOL_SIZE_BASELINE ?? 5),
+    cacheTtlSeconds: {
+      match:
+        mode === 'optimized' ? Number(env.H12_CACHE_TTL_MATCH_SECONDS ?? 120) : 0,
+      team:
+        mode === 'optimized' ? Number(env.H12_CACHE_TTL_TEAM_SECONDS ?? 300) : 0,
+      events:
+        mode === 'optimized' ? Number(env.H12_CACHE_TTL_EVENTS_SECONDS ?? 15) : 0,
+    },
+    sessionRenewThrottleSeconds:
+      mode === 'optimized'
+        ? Number(env.H12_SESSION_RENEW_THROTTLE_SECONDS ?? 60)
+        : 0,
+  }
+}
+
 export interface RunningBenchmarkServer {
   mode: BenchmarkMode
   baseUrl: string
   port: number
+  effectiveConfig: BenchmarkServerEffectiveConfig
   startRecordingTelemetry: () => void
   stopRecordingTelemetry: () => void
   getTelemetrySummary: () => ServerTelemetrySummary
@@ -196,21 +240,14 @@ export async function startBenchmarkServer(
   const redisHost = env.REDIS_HOST ?? '127.0.0.1'
   const redisPort = Number(env.REDIS_PORT ?? 6379)
   const redisScope = env.H12_REDIS_SCOPE ?? 'h12-bench'
-  const dependencyTimeoutMs = Number(env.DEPENDENCY_TIMEOUT_MS ?? 3000)
-
-  const mongoPoolSize =
-    mode === 'optimized'
-      ? Number(env.H12_MONGO_POOL_SIZE_OPTIMIZED ?? 25)
-      : Number(env.H12_MONGO_POOL_SIZE_BASELINE ?? 5)
-  const neo4jPoolSize =
-    mode === 'optimized'
-      ? Number(env.H12_NEO4J_POOL_SIZE_OPTIMIZED ?? 25)
-      : Number(env.H12_NEO4J_POOL_SIZE_BASELINE ?? 5)
-
-  const cacheTtlTeamSec = Number(env.H12_CACHE_TTL_TEAM_SECONDS ?? 300)
-  const cacheTtlMatchSec = Number(env.H12_CACHE_TTL_MATCH_SECONDS ?? 120)
-  const cacheTtlEventsSec = Number(env.H12_CACHE_TTL_EVENTS_SECONDS ?? 15)
-  const sessionThrottleSec = Number(env.H12_SESSION_RENEW_THROTTLE_SECONDS ?? 60)
+  const effectiveConfig = resolveBenchmarkServerConfig(mode, env)
+  const dependencyTimeoutMs = effectiveConfig.dependencyTimeoutMs
+  const mongoPoolSize = effectiveConfig.mongoMaxPoolSize
+  const neo4jPoolSize = effectiveConfig.neo4jMaxConnectionPoolSize
+  const cacheTtlTeamSec = effectiveConfig.cacheTtlSeconds.team
+  const cacheTtlMatchSec = effectiveConfig.cacheTtlSeconds.match
+  const cacheTtlEventsSec = effectiveConfig.cacheTtlSeconds.events
+  const sessionThrottleSec = effectiveConfig.sessionRenewThrottleSeconds
 
   // Telemetría por capa (RF6)
   let recordingActive = false
@@ -722,6 +759,7 @@ export async function startBenchmarkServer(
     mode,
     baseUrl: listenUrl.origin,
     port: Number(listenUrl.port),
+    effectiveConfig,
     startRecordingTelemetry() {
       apiSamples.length = 0
       mongoSamples.length = 0
