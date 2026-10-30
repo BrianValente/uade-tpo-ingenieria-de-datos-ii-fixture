@@ -2,9 +2,11 @@
 
 Este documento consolida la comparación verificable entre la **Línea Base** (`baseline`) y la **Prueba Optimizada** (`optimized`) bajo el mismo escenario reproducible de carga (RF9, RF10, RNF3, RNF5).
 
-- **Fecha corrida Línea Base:** `2026-10-29T23:25:34.080Z` (Commit `abaec7c`)
-- **Fecha corrida Optimizada:** `2026-10-29T23:36:26.920Z` (Commit `abaec7c`)
-- **Condiciones invariantes:** Concurrencia = **24 VUs**, Semilla PRNG = `203012`, Warm-up = 3 s, Ramp-up = 4 s, Sostenimiento = 12 s, Distribución Hotspot 80/20.
+- **Fecha corrida Línea Base:** `2026-10-30T12:58:10.366Z` (Commit `acb8fc0`, estado: `clean`)
+- **Fecha corrida Optimizada:** `2026-10-30T12:59:05.508Z` (Commit `acb8fc0`, estado: `clean`)
+- **Condiciones configuradas:** Concurrencia = **24 VUs**, Semilla PRNG = `203012`, Warm-up = 3 s, Ramp-up = 4 s, Sostenimiento = 12 s, Tope de seguridad = 50000 ops, Distribución Hotspot 80/20.
+- **Ventana observada Línea Base:** `16.084 s` (Ramp-up observado: `4 s`, Sostenimiento observado: `12.084 s`, Motivo de cierre: `TIME_WINDOW_COMPLETED`)
+- **Ventana observada Optimizada:** `16.029 s` (Ramp-up observado: `4 s`, Sostenimiento observado: `12.029 s`, Motivo de cierre: `TIME_WINDOW_COMPLETED`)
 
 ---
 
@@ -12,18 +14,19 @@ Este documento consolida la comparación verificable entre la **Línea Base** (`
 
 | Métrica / Indicador | Unidad | Línea Base (`baseline`) | Flujo Optimizado (`optimized`) | Variación Relativa | Interpretación |
 |:---|:---:|---:|---:|---:|:---|
-| **Operaciones Totales Generadas** | ops | 3584 | **5000** | **+39.5 %** | Mayor capacidad procesada en la misma ventana de 16 s |
-| **Operaciones Exitosas (`HTTP 200`)** | ops | 3584 | **5000** | **+39.5 %** | 100 % de respuestas válidas con integridad comprobada |
+| **Duración de Ventana Medida** | s | 16.084 | **16.029** | **-0.3 %** | Cierre: `TIME_WINDOW_COMPLETED` vs. `TIME_WINDOW_COMPLETED` (sostenimiento completo: `true` / `true`) |
+| **Operaciones Totales Generadas** | ops | 2227 | **7129** | **+220.1 %** | Mayor capacidad procesada durante la ventana completa (16.1 s base vs. 16.0 s opt) |
+| **Operaciones Exitosas (`HTTP 200`)** | ops | 2227 | **7129** | **+220.1 %** | 100 % de respuestas válidas con integridad comprobada |
 | **Tasa de Error** | % | 0 % | **0 %** | 0 pp | Cero pérdida ni degradación HTTP |
-| **Throughput Global Sostenido** | ops/s | 221.85 | **840.34** | **+278.8 %** | Incremento sustancial de caudal por eliminación de contención y lecturas redundantes |
-| **Latencia Media E2E** | ms | 96.701 | **20.864** | **-78.4 %** | Reducción del tiempo medio de respuesta al cliente |
-| **Latencia p50 (Mediana) E2E** | ms | 79.224 | **17.64** | **-77.7 %** | Mejora en el caso típico (dominado por claves calientes) |
-| **Latencia p90 E2E** | ms | 164.868 | **24.352** | **-85.2 %** | Reducción del encolamiento bajo concurrencia de 24 VUs |
-| **Latencia p95 E2E** | ms | 231.733 | **33.982** | **-85.3 %** | Mitigación de espera en pools de MongoDB y Neo4j |
-| **Latencia p99 E2E** | ms | 423.238 | **96.889** | **-77.1 %** | Reducción de la cola extrema de latencia |
-| **Latencia Máxima E2E** | ms | 587.841 | **423.174** | **-28.0 %** | Pico aislado de cold-miss / GC |
-| **Latencia p95 Claves Calientes (80 %)** | ms | 229.864 | **29.443** | **-87.2 %** |Servidas mayoritariamente desde caché Read-Aside en Redis |
-| **Latencia p95 Claves Frías (20 %)** | ms | 240.029 | **37.892** | **-84.2 %** | Efecto conjunto (O1+O2): claves de baja frecuencia que tras su primer miss se benefician de pools ampliados, proyección BSON y caché subsecuente |
+| **Throughput Global Sostenido** | ops/s | 138.46 | **444.76** | **+221.2 %** | Incremento sustancial de caudal por eliminación de contención y lecturas redundantes |
+| **Latencia Media E2E** | ms | 155.692 | **48.5** | **-68.8 %** | Reducción del tiempo medio de respuesta al cliente |
+| **Latencia p50 (Mediana) E2E** | ms | 157.768 | **43.478** | **-72.4 %** | Mejora en el caso típico (dominado por claves calientes) |
+| **Latencia p90 E2E** | ms | 210.811 | **59.541** | **-71.8 %** | Reducción del encolamiento bajo concurrencia de 24 VUs |
+| **Latencia p95 E2E** | ms | 242.841 | **87.16** | **-64.1 %** | Mitigación de espera en pools de MongoDB y Neo4j |
+| **Latencia p99 E2E** | ms | 380.44 | **178.09** | **-53.2 %** | Reducción de la cola extrema de latencia |
+| **Latencia Máxima E2E** | ms | 677.89 | **340.889** | **-49.7 %** | Pico aislado de cold-miss / GC |
+| **Latencia p95 Claves Calientes (80 %)** | ms | 237.75 | **86.587** | **-63.6 %** |Servidas mayoritariamente desde caché Read-Aside en Redis |
+| **Latencia p95 Claves Frías (20 %)** | ms | 263.206 | **89.258** | **-66.1 %** | Efecto conjunto (O1+O2): claves de baja frecuencia que tras su primer miss se benefician de pools ampliados, proyección BSON y caché subsecuente |
 
 ---
 
@@ -31,10 +34,10 @@ Este documento consolida la comparación verificable entre la **Línea Base** (`
 
 | Endpoint | Throughput Base (ops/s) | Throughput Opt. (ops/s) | p50 Base (ms) | p50 Opt. (ms) | p95 Base (ms) | p95 Opt. (ms) | p99 Base (ms) | p99 Opt. (ms) |
 |:---|---:|---:|---:|---:|---:|---:|---:|---:|
-| `GET /partidos/:id` | 88.83 | **339.5** (+282.2 %) | 85.771 | **17.626** (-79.4 %) | 236.94 | **28.154** (-88.1 %) | 422.329 | **131.777** (-68.8 %) |
-| `GET /equipos/:codigo/jugadores?page=1&limit=24` | 66.98 | **252.77** (+277.4 %) | 95.927 | **17.74** (-81.5 %) | 296.273 | **32.561** (-89.0 %) | 490.29 | **85.31** (-82.6 %) |
-| `GET /partidos/:id/eventos?limit=20` | 44.63 | **165.21** (+270.2 %) | 53.918 | **17.574** (-67.4 %) | 168.794 | **37.759** (-77.6 %) | 263.477 | **134.332** (-49.0 %) |
-| `GET /equipos/:codigo` | 21.42 | **82.86** (+286.8 %) | 61.558 | **17.547** (-71.5 %) | 163.065 | **34.8** (-78.7 %) | 281.01 | **84.563** (-69.9 %) |
+| `GET /partidos/:id` | 56.02 | **180.67** (+222.5 %) | 163.44 | **43.185** (-73.6 %) | 263.111 | **89.016** (-66.2 %) | 380.44 | **192.822** (-49.3 %) |
+| `GET /equipos/:codigo/jugadores?page=1&limit=24` | 41.35 | **132.07** (+219.4 %) | 185.362 | **43.731** (-76.4 %) | 247.483 | **86.748** (-64.9 %) | 442.563 | **178.432** (-59.7 %) |
+| `GET /partidos/:id/eventos?limit=20` | 28.48 | **88.09** (+209.3 %) | 100.227 | **43.435** (-56.7 %) | 189.794 | **85.771** (-54.8 %) | 304.858 | **135.003** (-55.7 %) |
+| `GET /equipos/:codigo` | 12.62 | **43.92** (+248.0 %) | 116.867 | **43.547** (-62.7 %) | 150.017 | **87.068** (-42.0 %) | 177.849 | **145.593** (-18.1 %) |
 
 ---
 
@@ -42,15 +45,15 @@ Este documento consolida la comparación verificable entre la **Línea Base** (`
 
 | Motor / Recurso | Métrica | Línea Base (`baseline`) | Flujo Optimizado (`optimized`) | Variación / Efecto |
 |:---|:---|---:|---:|:---|
-| **MongoDB 7.0** | Consultas ejecutadas al motor | 6462 | **38** | **-99.4 %** de descarga sobre el motor documental |
-| **MongoDB 7.0** | Latencia p95 del driver | 97.895 ms | **16.385 ms** | **-83.3 %** (Pool `5` -> `25` + proyección + `$in`) |
-| **Neo4j 5.x** | Consultas Cypher ejecutadas | 2156 | **15** | **-99.3 %** de descarga sobre el motor de grafos |
-| **Neo4j 5.x** | Latencia p95 del driver Bolt | 77.987 ms | **325.788 ms** | **+317.7 %** (Pool `5` -> `25` + menor contención) |
-| **Redis (Sesiones)** | Evaluaciones Lua de sesión | 3584 | **5000** | +39.5 % (1 por request HTTP) |
-| **Redis (Sesiones)** | Escrituras `HSET`+`EXPIRE` ejecutadas | 3584 | **0** | **0 -> 5000** escrituras evitadas por throttle de 60 s |
-| **Redis (Caché Read-Aside)** | Hit Ratio de Caché | 0 % (Inactivo) | **98.96 %** | **4948 hits** / 52 misses (52 escrituras) |
-| **Redis (Memoria)** | Memoria usada post-prueba (`used_memory`) | 1.77M (1855464 B) | **2.43M (2545984 B)** | Trade-off de memoria en RAM para alojar claves de caché con TTL |
-| **Node.js (Proceso)** | Memoria RSS final | 259.21 MiB | **271.14 MiB** | Incremento acotado por pools de conexión más amplios |
+| **MongoDB 7.0** | Consultas ejecutadas al motor | 4000 | **84** | **-97.9 %** de descarga sobre el motor documental |
+| **MongoDB 7.0** | Latencia p95 del driver | 94.668 ms | **25.591 ms** | **-73.0 %** (Pool `5` -> `25` + proyección + `$in`) |
+| **Neo4j 5.x** | Consultas Cypher ejecutadas | 1359 | **47** | **-96.5 %** de descarga sobre el motor de grafos |
+| **Neo4j 5.x** | Latencia p95 del driver Bolt | 101.74 ms | **74.836 ms** | **-26.4 %** (Pool `5` -> `25` + menor contención) |
+| **Redis (Sesiones)** | Evaluaciones Lua de sesión | 2227 | **7129** | +220.1 % (1 por request HTTP) |
+| **Redis (Sesiones)** | Escrituras `HSET`+`EXPIRE` ejecutadas | 2227 | **0** | **0 -> 7129** escrituras evitadas por throttle de 60 s |
+| **Redis (Caché Read-Aside)** | Hit Ratio de Caché | 0 % (Inactivo) | **98.27 %** | **7006 hits** / 123 misses (123 escrituras) |
+| **Redis (Memoria)** | Memoria usada post-prueba (`used_memory`) | 1.79M (1877248 B) | **2.43M (2547080 B)** | Trade-off de memoria en RAM para alojar claves de caché con TTL |
+| **Node.js (Proceso)** | Memoria RSS final | 233.89 MiB | **274.21 MiB** | Incremento acotado por pools de conexión más amplios |
 
 ---
 
@@ -62,9 +65,9 @@ Este documento consolida la comparación verificable entre la **Línea Base** (`
 xychart-beta
     title "Latencia Extremo a Extremo (ms): Linea Base vs Optimizado"
     x-axis ["Media", "p50 (Mediana)", "p90", "p95", "p99"]
-    y-axis "Latencia (ms)" 0 --> 487
-    bar [96.701, 79.224, 164.868, 231.733, 423.238]
-    bar [20.864, 17.64, 24.352, 33.982, 96.889]
+    y-axis "Latencia (ms)" 0 --> 438
+    bar [155.692, 157.768, 210.811, 242.841, 380.44]
+    bar [48.5, 43.478, 59.541, 87.16, 178.09]
 ```
 
 > *Primera serie de barras: Línea Base (`baseline`). Segunda serie de barras: Flujo Optimizado (`optimized`).*
@@ -75,9 +78,9 @@ xychart-beta
 xychart-beta
     title "Throughput Sostenido (ops/s): Linea Base vs Optimizado"
     x-axis ["Global", "GET /partidos/:id", "GET /jugadores", "GET /eventos", "GET /equipos/:cod"]
-    y-axis "Operaciones / seg" 0 --> 967
-    bar [221.85, 88.83, 66.98, 44.63, 21.42]
-    bar [840.34, 339.5, 252.77, 165.21, 82.86]
+    y-axis "Operaciones / seg" 0 --> 512
+    bar [138.46, 56.02, 41.35, 28.48, 12.62]
+    bar [444.76, 180.67, 132.07, 88.09, 43.92]
 ```
 
 ---

@@ -1,5 +1,5 @@
 {
-  "validatedAt": "2026-10-29T23:36:53.353Z",
+  "validatedAt": "2026-10-30T12:59:46.151Z",
   "validationTarget": "post-carga",
   "allChecksPassed": true,
   "totalChecks": 8,
@@ -51,7 +51,7 @@
       "category": "Consistencia Fuente Operacional <-> Proyección Caché",
       "description": "Todas las proyecciones cacheadas coinciden exactamente con MongoDB y Neo4j (post-carga)",
       "expected": "Al menos 1 clave activa cacheada; 100% con TTL > 0 y contenido íntegro verificado contra MongoDB y Neo4j",
-      "observed": "159 claves activas en caché; 159 con TTL > 0; 159 íntegras",
+      "observed": "157 claves activas en caché; 157 con TTL > 0; 157 íntegras",
       "passed": true
     },
     {
@@ -59,7 +59,7 @@
       "category": "Contabilidad de Operaciones de Carga",
       "description": "Verificación de solicitudes generadas vs aceptadas vs validadas en Corrida Línea Base (resultados_linea_base.json)",
       "expected": "generadas == exitosas + fallidas; 100% payloads HTTP 200 íntegros",
-      "observed": "generadas=3584, exitosas=3584, fallidas=0, íntegros=3584, corruptos=0",
+      "observed": "generadas=2227, exitosas=2227, fallidas=0, íntegros=2227, corruptos=0",
       "passed": true
     },
     {
@@ -67,7 +67,7 @@
       "category": "Contabilidad de Operaciones de Carga",
       "description": "Verificación de solicitudes generadas vs aceptadas vs validadas en Corrida Optimizada (resultados_optimizados.json)",
       "expected": "generadas == exitosas + fallidas; 100% payloads HTTP 200 íntegros",
-      "observed": "generadas=5000, exitosas=5000, fallidas=0, íntegros=5000, corruptos=0",
+      "observed": "generadas=7129, exitosas=7129, fallidas=0, íntegros=7129, corruptos=0",
       "passed": true
     }
   ]

@@ -14,10 +14,10 @@ El trabajo sigue una metodología experimental rigurosa en seis etapas:
 1. **Delimitación del flujo crítico multi-motor y preparación reproducible del dataset** (`64` equipos, `1.536` jugadores, `32` partidos, `8` sedes, `384` eventos —incluyendo `320` eventos sintéticos identificados con `lotePrueba: "HITO_12"`— y `20` sesiones activas en Redis).
 2. **Establecimiento de una Línea Base (`baseline`) reproducible** antes de introducir mejoras, midiendo latencia (`min`, `avg`, `stdDev`, `p50`, `p90`, `p95`, `p99`, `max`), throughput, tasa de error y métricas diferenciadas por capa (Generador HTTP, Fastify, Drivers NoSQL y Contenedores Docker).
 3. **Formulación de hipótesis técnicas verificables (`H1`, `H2`, `H3`)** e implementación de **optimizaciones concretas (`O1`, `O2`, `O3`)**:
-   - **O1:** Ampliación de pools de conexiones (`maxPoolSize=25`, `maxConnectionPoolSize=25` frente a `10 / 10` en base), proyección documental acotada (`_id`, `codigo`, `nombre`, `confederacion`, `esCabezaDeSerie`) y resolución batch en MongoDB (`find({ codigo: { $in: [...] } })`).
-   - **O2:** Caché Read-Aside en Redis (`h12:cache:*`) con TTL explícito diferenciado por volatilidad (`15 s` para eventos, `120 s` para detalle de partido, `300 s` para planteles y fichas de selecciones).
+   - **O1:** Ampliación de pools de conexiones (`maxPoolSize=25`, `maxConnectionPoolSize=25` frente a `5 / 5` en base), proyección documental acotada (`_id`, `codigo`, `nombre`, `confederacion`, `origenSeleccion`, `etapaClasificacion`, `participaFixture2030`, `sedeEntrenamiento`) y resolución batch en MongoDB (`find({ codigo: { $in: [...] } })`).
+   - **O2:** Caché Read-Aside en Redis (`fixture2030:h12:cache:*`) con TTL explícito diferenciado por volatilidad (`15 s` para eventos, `120 s` para detalle de partido, `300 s` para planteles y fichas de selecciones).
    - **O3:** Throttling de ventana deslizante en sesiones Redis (`HSET` + `EXPIRE` solo cuando `now - last_activity >= 60 s`).
-4. **Repetición de la prueba bajo idéntico escenario (`optimized`)** y comparación cuantitativa Antes vs. Después, incluyendo el análisis explícito de **trade-offs** (memoria RAM en Redis/Node.js, frescura/TTL y complejidad operativa).
+4. **Repetición de la prueba bajo idéntico escenario y ventana completa (`optimized`)** y comparación cuantitativa Antes vs. Después, incluyendo el análisis explícito de **trade-offs** (memoria RAM en Redis/Node.js, frescura/TTL y complejidad operativa).
 5. **Propuesta de integración analítica hacia un Data Mart** (constelación Kimball `fact_rendimiento_equipo_bloque15m` y `fact_interaccion_partido_bloque15m`) y **comparación condicionada frente a una alternativa Relacional 3FN**.
 6. **Validación automatizada de integridad post-carga** (`8/8` controles superados, `0` registros perdidos/duplicados/corruptos, `100 %` de consistencia caché-fuente) y **limpieza selectiva no destructiva**.
 
@@ -25,20 +25,22 @@ El trabajo sigue una metodología experimental rigurosa en seis etapas:
 
 ## 2. Resumen Ejecutivo de Resultados (Línea Base vs. Optimizado)
 
-Ambas corridas se ejecutaron bajo el mismo escenario reproducible (`24` usuarios virtuales concurrentes, `3 s` de warm-up, `4 s` de ramp-up, `12 s` de estado estable, distribución 40/30/20/10 sobre 4 partidos y 8 selecciones calientes en proporción 80/20 con semilla PRNG `203012`):
+Ambas corridas se ejecutaron completando la ventana temporal configurada (`TIME_WINDOW_COMPLETED`: `16.084 s` en base vs. `16.029 s` en optimizado, tras `3 s` de warm-up excluido, con `4 s` de ramp-up y `12 s` de sostenimiento completados al 100 %, tope de seguridad `50.000` ops, `24` usuarios virtuales concurrentes, distribución 40/30/20/10 sobre 4 partidos y 8 selecciones calientes en proporción 80/20 con semilla PRNG `203012`):
 
 | Indicador Clave | Línea Base (`baseline`) | Prueba Optimizada (`optimized`) | Variación |
 | :--- | ---: | ---: | ---: |
-| **Throughput Global** | `221.85 ops/s` (`3.584` ops) | **`840.34 ops/s`** (`5.000` ops) | **`+278.8 %` ($3,79\times$)** |
+| **Ventana Medida (Cierre)** | `16.084 s` (`TIME_WINDOW_COMPLETED`) | **`16.029 s`** (`TIME_WINDOW_COMPLETED`) | **`-0.3 %` (ventanas equivalentes)** |
+| **Throughput Global Sostenido** | `138.46 ops/s` (`2.227` ops) | **`444.76 ops/s`** (`7.129` ops) | **`+221.2 %` ($3,21\times$)** |
 | **Tasa de Error HTTP** | `0.00 %` (`0` errores) | **`0.00 %`** (`0` errores) | **`0.00 pp` (100 % éxito e integridad)** |
-| **Latencia Media E2E (`avg`)** | `96.70 ms` | **`20.86 ms`** | **`-78.4 %`** |
-| **Latencia Mediana E2E (`p50`)** | `79.22 ms` | **`17.64 ms`** | **`-77.7 %`** |
-| **Latencia Percentil 95 (`p95`)** | `231.73 ms` | **`33.98 ms`** | **`-85.3 %` ($6,82\times$)** |
-| **Latencia Percentil 99 (`p99`)** | `423.24 ms` | **`96.89 ms`** | **`-77.1 %` ($4,37\times$)** |
-| **Consultas Driver MongoDB** | `6.462` llamadas | **`38` llamadas** | **`-99.4 %`** |
-| **Consultas Driver Neo4j** | `2.156` llamadas | **`15` llamadas** | **`-99.3 %`** |
-| **Cache Hit Ratio (Read-Aside Redis)** | `0.00 %` (sin caché) | **`98.96 %`** (`4.948` hits / `52` misses) | **`+98.96 pp`** |
-| **Renovaciones de Sesión Ahorradas** | `0` | **`5.000` escrituras (`HSET`+`EXPIRE`)** | **`100 %` en ventana $<60\text{ s}$** |
+| **Latencia Media E2E (`avg`)** | `155.69 ms` | **`48.50 ms`** | **`-68.8 %`** |
+| **Latencia Mediana E2E (`p50`)** | `157.77 ms` | **`43.48 ms`** | **`-72.4 %`** |
+| **Latencia Percentil 90 (`p90`)** | `210.81 ms` | **`59.54 ms`** | **`-71.8 %`** |
+| **Latencia Percentil 95 (`p95`)** | `242.84 ms` | **`87.16 ms`** | **`-64.1 %` ($2,79\times$)** |
+| **Latencia Percentil 99 (`p99`)** | `380.44 ms` | **`178.09 ms`** | **`-53.2 %` ($2,14\times$)** |
+| **Consultas Driver MongoDB** | `4.000` llamadas (`pool=5`) | **`84` llamadas** (`pool=25`) | **`-97.9 %`** |
+| **Consultas Driver Neo4j** | `1.359` llamadas (`pool=5`) | **`47` llamadas** (`pool=25`) | **`-96.5 %`** |
+| **Cache Hit Ratio (Read-Aside Redis)** | `0.00 %` (sin caché) | **`98.27 %`** (`7.006` hits / `123` misses) | **`+98.27 pp`** |
+| **Renovaciones de Sesión Ahorradas** | `0` (`2.227` escrituras) | **`7.129` escrituras evitadas** (`0` ejecutadas) | **`100 %` en ventana $<60\text{ s}$** |
 
 ---
 
@@ -70,7 +72,7 @@ hito-12-carga-optimizacion/
     ├── flujo_y_escenario_de_carga.md          # Delimitación arquitectónica, pesos y modelo de concurrencia
     ├── linea_base.md                          # Análisis de resultados de línea base y cuellos de botella
     ├── hipotesis_y_optimizacion.md            # Hipótesis H1-H3, optimizaciones O1-O3, antes/después y trade-offs
-    ├── integracion_data_mart.md               # Diseño estrella fact_rendimiento_audiencia_bloque15m y ETL
+    ├── integracion_data_mart.md               # Constelación Kimball (rendimiento equipo + interacción partido) y ETL
     ├── comparacion_relacional.md              # Comparación condicionada Políglota vs Relacional 3FN
     ├── integridad_y_limitaciones.md           # Auditoría de integridad post-carga y limitaciones del laboratorio
     └── evidencia/

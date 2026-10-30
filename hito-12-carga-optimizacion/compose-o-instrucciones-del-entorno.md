@@ -80,7 +80,7 @@ Este comando verifica los 64 equipos y 1.536 jugadores en MongoDB, inserta de fo
 ## 3. Control de Recursos y Seguridad Operativa (RNF8, RNF9, RNF11)
 
 1. **Límites de consumo en la notebook (RNF9):**
-   - El generador de carga impone una duración acotada (**3 s de calentamiento + 4 s de rampa + 12 s de sostenimiento = 19 s por corrida**), un tope duro de operaciones (`H12_MAX_OPERATIONS=5000`), un timeout por request (`5000 ms`) y una **condición de corte temprano** si la tasa de error supera el `50 %`.
+   - El generador de carga impone una duración acotada (**3 s de calentamiento + 4 s de rampa + 12 s de sostenimiento = 19 s por corrida**), un tope duro de operaciones (`H12_MAX_OPERATIONS=50000`), un timeout por request (`5000 ms`) y una **condición de corte temprano** si la tasa de error supera el `50 %`.
    - Redis está acotado a `--maxmemory 256mb` en `compose.yaml`.
 2. **Aislamiento y carácter no destructivo (RNF7, RNF11):**
    - Todos los eventos adicionales llevan la propiedad `lotePrueba: 'HITO_12'` y prefijo `F2030-H12-EVT-*`.

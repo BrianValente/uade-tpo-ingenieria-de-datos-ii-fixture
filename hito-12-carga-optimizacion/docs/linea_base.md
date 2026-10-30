@@ -11,14 +11,14 @@ Antes de introducir cualquier cambio en la lógica de acceso a datos, dimensiona
 
 | Atributo de Trazabilidad | Valor Observado |
 |:---|:---|
-| **Fecha y hora de ejecución** | `2026-10-29T23:25:34.080Z` |
-| **Commit base del repositorio** | `abaec7c` (rama `feature/hito-12-carga-optimizacion`, estado del árbol: `clean`) |
+| **Fecha y hora de ejecución** | `2026-10-30T12:58:10.366Z` |
+| **Commit base del repositorio** | `acb8fc0` (rama `feature/hito-12-carga-optimizacion`, estado del árbol: `clean`) |
 | **Comando de reproducción** | `pnpm --dir hito-10-api h12:linea-base` (`scripts/ejecutar_linea_base.ts`) |
 | **Sistema Operativo y Arquitectura** | Windows 11 (`win32 x64`, kernel `10.0.22631`) |
 | **Procesador y Memoria del Host** | AMD Ryzen 5 5600U with Radeon Graphics — 12 CPUs lógicas, 7,31 GiB RAM total |
 | **Runtime de API y Generador** | Node.js `v22.18.0` + Fastify `5.12.7` |
 | **Versiones de Motores NoSQL en Docker** | - **MongoDB:** `v7.0.40` (`fixture2030-mongodb-1`)<br>- **Neo4j:** `5.26.x` / Cypher-Shell `2026.10.1` (`fixture2030-neo4j-1`)<br>- **Redis:** `v8.10.2` (`fixture2030-redis-1`, `maxmemory 256mb`, `noeviction`) |
-| **Configuración de la Línea Base** | - MongoDB `maxPoolSize = 5`, sin proyección de campos, 2 `findOne` separados en `GET /partidos/:id`, 3 operaciones (`findOne` + `find` + `countDocuments`) en `GET /equipos/:codigo/jugadores`.<br>- Neo4j `maxConnectionPoolSize = 5`, `connectionAcquisitionTimeout = 3000 ms`.<br>- Redis `READ_AND_RENEW_SESSION` ejecutando `TIME` + `HSET ultima_actividad` + `EXPIRE 1800` en el 100 % de las peticiones.<br>- Caché Read-Aside de datos de negocio **deshabilitado** (`cache-control: no-store`). |
+| **Configuración Efectiva de la Línea Base** | - MongoDB `maxPoolSize = 5`, `dependencyTimeoutMs = 3000 ms`, sin proyección de campos, 2 `findOne` separados en `GET /partidos/:id`, 3 operaciones (`findOne` + `find` + `countDocuments`) en `GET /equipos/:codigo/jugadores`.<br>- Neo4j `maxConnectionPoolSize = 5`, `connectionAcquisitionTimeout = 3000 ms`.<br>- Redis `READ_AND_RENEW_SESSION` ejecutando `TIME` + `HSET ultima_actividad` + `EXPIRE 1800` en el 100 % de las peticiones (`sessionRenewThrottleSeconds = 0`).<br>- Caché Read-Aside de datos de negocio **deshabilitado** (`cacheTtlSeconds: { match: 0, team: 0, events: 0 }`). |
 
 ---
 
@@ -27,31 +27,31 @@ Antes de introducir cualquier cambio en la lógica de acceso a datos, dimensiona
 Los datos completos y las muestras crudas se encuentran versionados en [`evidencia/resultados_linea_base.json`](evidencia/resultados_linea_base.json) y [`evidencia/resultados_linea_base.md`](evidencia/resultados_linea_base.md).
 
 ### 2.1. Indicadores Globales del Período Medido
-- **Concurrencia aplicada:** 24 usuarios virtuales concurrentes sobre 20 sesiones activas en Redis (tras 3 s de calentamiento excluido).
-- **Duración efectiva medida:** `18,165 s` (16 s de ventana objetivo más el tiempo de drenaje de las peticiones en vuelo al cierre).
-- **Operaciones medidas generadas:** **635 solicitudes HTTP**.
-- **Operaciones exitosas (`HTTP 200`):** **566 solicitudes** (`89,13 %`), todas con integridad de estructura y contenido verificada (`566 / 566`).
-- **Operaciones fallidas:** **69 solicitudes** (**`10,87 %` de tasa de error**), desglosadas en **64 respuestas `HTTP 503`** (`DEPENDENCY_UNAVAILABLE` por saturación de pool en Neo4j) y **5 `CLIENT_TIMEOUT`** (`AbortSignal.timeout` de 5 s en el generador). Concentradas en rutas dependientes de Neo4j (`47` en `/partidos/:id` y `22` en `/partidos/:id/eventos`).
-- **Throughput global sostenido:** **`34,96 ops/s`**.
+- **Concurrencia aplicada:** 24 usuarios virtuales concurrentes sobre 20 sesiones activas en Redis (tras 3 s de calentamiento excluido: `173 ops`, media `68,471 ms`).
+- **Duración efectiva medida:** `16,084 s` (rampa de `4 s` completada al 100 % + sostenimiento de `12,084 s` completado al 100 %, motivo de cierre: `TIME_WINDOW_COMPLETED`, tope de seguridad: `50.000 ops`).
+- **Operaciones medidas generadas:** **2.227 solicitudes HTTP**.
+- **Operaciones exitosas (`HTTP 200`):** **2.227 solicitudes** (`100 %`), todas con integridad de estructura y contenido verificada (`2.227 / 2.227`).
+- **Operaciones fallidas:** **0 solicitudes** (`0 %` de tasa de error con `dependencyTimeoutMs = 3000 ms`).
+- **Throughput global sostenido:** **`138,46 ops/s`** (`7.119,83 KiB` transferidos).
 
 ### 2.2. Distribución de Latencia Extremo a Extremo (E2E)
 
 | Segmento | Muestras | Mín (ms) | Media (ms) | Desv. Est. (ms) | p50 / Mediana (ms) | p90 (ms) | p95 (ms) | p99 (ms) | Máx (ms) |
 |:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| **Global (Todas las rutas)** | 635 | 11,374 | 606,008 | 801,069 | **267,811** | 2014,118 | **2039,774** | **3922,693** | 5149,397 |
-| **Claves Calientes (Hotspot 80 %)** | 505 | 11,374 | 584,310 | 709,366 | **269,839** | 2014,118 | **2039,031** | **2328,070** | 3929,072 |
-| **Claves Frías (Long-tail 20 %)** | 125 | 11,784 | 516,567 | 657,876 | **260,139** | 1592,509 | **2019,902** | **2065,464** | 3897,346 |
+| **Global (Todas las rutas)** | 2227 | 23,761 | 155,692 | 59,615 | **157,768** | 210,811 | **242,841** | **380,440** | 677,890 |
+| **Claves Calientes (Hotspot 80 %)** | 1779 | 23,761 | 154,824 | 57,618 | **157,601** | 210,078 | **237,750** | **350,466** | 677,890 |
+| **Claves Frías (Long-tail 20 %)** | 448 | 26,900 | 159,141 | 66,848 | **157,829** | 216,252 | **263,206** | **401,036** | 476,355 |
 
-> **Observación crítica sobre el promedio vs. percentiles (§7):** La media global (`606 ms`) y la mediana (`267,8 ms`) ocultan una distribución fuertemente bimodal: mientras las rutas solo-MongoDB responden en `< 300 ms` en p95, las rutas que consultan Neo4j sufren encolamiento severo en el pool de 5 conexiones, disparando el **p90 a `2.014 ms`**, el **p95 a `2.039 ms`** y el **p99 a `3.922 ms`**, con el **87,6 % de las operaciones por encima de `100 ms`**. Además, en la línea base **no existe diferencia significativa entre claves calientes y claves frías** (`p50 = 269,8 ms` vs `260,1 ms`), ya que la ausencia de caché obliga a recalcular en disco/grafo el 100 % de las peticiones repetidas.
+> **Observación crítica sobre percentiles e invariancia ante hotspots (§7):** En la línea base, el **83,4 % de las operaciones (`1.858 / 2.227`) supera los `100 ms`**, con un **p95 de `242,841 ms`** y un **p99 de `380,440 ms`** (`máx = 677,890 ms`). Además, **no existe diferencia práctica en la mediana entre claves calientes y claves frías** (`p50 = 157,601 ms` en el 80 % hotspot vs. `p50 = 157,829 ms` en el 20 % long-tail), ya que la ausencia de caché obliga a recalcular en MongoDB y Neo4j el 100 % de las peticiones repetidas sobre los 4 partidos y 8 selecciones más consultados.
 
 ### 2.3. Desglose por Perfil de Endpoint HTTP
 
-| Endpoint | Motores | Solicitudes | Éxitos (`200`) | Fallos (`503` + `TIMEOUT`) | Throughput (ops/s) | p50 (ms) | p95 (ms) | p99 (ms) | Máx (ms) |
-|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|
-| `GET /partidos/:id` | Redis + Neo4j + MongoDB | 265 | 218 | **47** | **14,59** | 423,882 | **2050,251** | 5003,734 | 5149,397 |
-| `GET /equipos/:codigo/jugadores` | Redis + MongoDB | 182 | 182 | 0 | **10,02** | 197,952 | **298,205** | 335,868 | 376,821 |
-| `GET /partidos/:id/eventos` | Redis + Neo4j | 136 | 114 | **22** | **7,49** | 291,269 | **2071,892** | 5000,532 | 5008,580 |
-| `GET /equipos/:codigo` | Redis + MongoDB | 52 | 52 | 0 | **2,86** | 114,668 | **220,775** | 252,942 | 252,942 |
+| Endpoint | Motores | Solicitudes | Éxitos (`200`) | Fallos | Throughput (ops/s) | Media (ms) | p50 (ms) | p95 (ms) | p99 (ms) | Máx (ms) |
+|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `GET /partidos/:id` | Redis + Neo4j + MongoDB | 901 | 901 | 0 | **56,02** | 168,232 | **163,440** | **263,111** | **380,440** | 418,777 |
+| `GET /equipos/:codigo/jugadores?page=1&limit=24` | Redis + MongoDB | 665 | 665 | 0 | **41,35** | 184,740 | **185,362** | **247,483** | **442,563** | 677,890 |
+| `GET /partidos/:id/eventos?limit=20` | Redis + Neo4j | 458 | 458 | 0 | **28,48** | 107,749 | **100,227** | **189,794** | **304,858** | 335,498 |
+| `GET /equipos/:codigo` | Redis + MongoDB | 203 | 203 | 0 | **12,62** | 113,047 | **116,867** | **150,017** | **177,849** | 313,875 |
 
 ---
 
@@ -59,17 +59,20 @@ Los datos completos y las muestras crudas se encuentran versionados en [`evidenc
 
 La instrumentación interna permitió aislar cuánto tiempo y cuántas operaciones consumió cada eslabón de la cadena:
 
-| Capa / Producto | Operaciones Registradas | p50 (ms) | p95 (ms) | p99 (ms) | Fallos | Diagnóstico de Comportamiento en Línea Base |
-|:---|---:|---:|---:|---:|---:|:---|
-| **Generador de Carga (Cliente HTTP)** | 635 | 267,811 | 2039,774 | 3922,693 | 69 (64 `503` + 5 `TIMEOUT`) | El generador mantuvo 24 VUs activos sin saturar CPU local; esperó a los sockets HTTP de la API. |
-| **Servidor API Fastify (`onResponse`)** | 630 | 223,592 | 2021,539 | 2314,905 | - | El 92 % del tiempo de respuesta transcurre dentro del handler esperando a los drivers NoSQL. |
-| **Redis — Sesiones Lua** | 635 | 29,442 | 63,309 | 86,632 | 0 | **635 escrituras `HSET` + `EXPIRE`** (una en cada request `GET`). Contenedor en `0,32 %` CPU y `22,5 MiB` RAM. |
-| **MongoDB 7.0 — Driver** | **1.034** | 54,171 | 122,450 | 161,847 | 0 | **Amplificación de consultas ($1,63\times$):** 1.034 operaciones para 635 requests HTTP, encoladas tras `maxPoolSize=5`. |
-| **Neo4j 5.x — Driver Bolt** | **401** | 232,004 | **2012,273** | **5410,765** | **69** | **Cuello de botella principal:** 401 consultas Cypher compitiendo por `maxConnectionPoolSize=5`; el contenedor escaló al **`75,75 %` de CPU** (`913,9 MiB` RAM) y agotó el timeout de adquisición en 69 peticiones. |
+| Capa / Producto | Operaciones Registradas | Media (ms) | p50 (ms) | p95 (ms) | p99 (ms) | Fallos | Diagnóstico de Comportamiento en Línea Base |
+|:---|---:|---:|---:|---:|---:|---:|:---|
+| **Generador de Carga (Cliente HTTP)** | 2.227 | 155,692 | 157,768 | **242,841** | **380,440** | 0 | Mantiene 24 VUs concurrentes; el tiempo transcurre esperando las respuestas HTTP de la API. |
+| **Servidor API Fastify (`onResponse`)** | 2.227 | 124,970 | 126,784 | **209,682** | **367,210** | 0 | El 80,3 % del tiempo medio E2E (`124,97 / 155,69 ms`) transcurre dentro del handler esperando a los drivers NoSQL. |
+| **Redis — Sesiones Lua** | 2.227 | 24,087 | 22,095 | **42,750** | **88,615** | 0 | **2.227 escrituras `HSET` + `EXPIRE`** (una en cada request `GET`, 0 omitidas). Instantánea post-prueba: `0,33 %` CPU y `30,26 MiB` RAM (`used_memory = 1,79M`). |
+| **MongoDB 7.0 — Driver** | **4.000** | 62,552 | 63,100 | **94,668** | **174,204** | 0 | **Amplificación de consultas ($1,80\times$):** `4.000` operaciones de driver para `2.227` requests HTTP (`2` `findOne` por partido + `3` consultas por plantel), encoladas tras `maxPoolSize=5`. |
+| **Neo4j 5.x — Driver Bolt** | **1.359** | 49,283 | 40,869 | **101,740** | **266,560** | 0 | **Contención en pool de grafos:** `1.359` consultas Cypher compitiendo por `maxConnectionPoolSize=5`, elevando el p99 del driver a `266,560 ms` (`máx = 311,475 ms`). |
 
 ---
 
-## 4. Observaciones sobre la Estabilidad de la Prueba (§5.4)
+## 4. Observaciones sobre la Estabilidad y Cuellos de Botella de la Prueba (§5.4)
 
-1. **Reproducibilidad y estabilidad funcional:** Los tres contenedores Docker se mantuvieron `healthy` durante y después de la prueba. Ningún proceso sufrió caídas (*crashes*) ni corrupción de datos.
-2. **Degradación bajo concurrencia sostenida:** La tasa de error del **`10,87 %` (64 `HTTP 503` y 5 `CLIENT_TIMEOUT`)** demuestra empíricamente que la configuración base del Hito 10 (diseñada para validación funcional secuencial con pools de tamaño 5 y sin caché) **no soporta 24 usuarios concurrentes** sin rechazar solicitudes por agotamiento del pool de Neo4j y encolamiento en MongoDB.
+1. **Estabilidad funcional y ventana completa:** Los tres contenedores Docker se mantuvieron `healthy` durante y después de la ventana completa de `16,084 s` (`TIME_WINDOW_COMPLETED`). El 100 % de las `2.227` respuestas verificó integridad estructural y de contenido sin caídas ni pérdidas.
+2. **Cuellos de botella identificados bajo concurrencia sostenida (24 VUs):**
+   - **Amplificación y serialización en pools reducidos (`pool=5`):** Para atender `2.227` requests HTTP, la API ejecutó **`5.359` llamadas a motores de disco/grafo** (`4.000` en MongoDB + `1.359` en Neo4j) más `2.227` evaluaciones con escritura en Redis (`7.586` operaciones NoSQL totales, razón de `3,41` operaciones internas por cada request HTTP).
+   - **Recálculo redundante sobre el conjunto caliente (80/20):** Aunque el 80 % del tráfico (`1.779` requests) consulta reiteradamente los mismos 4 partidos y 8 selecciones, el 100 % de esas lecturas impacta contra Neo4j y MongoDB, limitando el caudal global a **`138,46 ops/s`** y manteniendo la mediana en **`157,768 ms`**.
+   - *(Nota sobre sensibilidad del timeout de adquisición):* En pruebas preliminares exploratorias con el timeout por defecto del Hito 10 (`2.000 ms`) bajo picos de CPU del host, el encolamiento sobre `maxConnectionPoolSize=5` llegó a producir rechazos `HTTP 503` (`DEPENDENCY_UNAVAILABLE`) y `CLIENT_TIMEOUT`. Con el margen unificado de `dependencyTimeoutMs = 3.000 ms`, las peticiones no fallan pero sufren la penalización de cola reflejada en el p95 (`242,841 ms`) y p99 (`380,440 ms`).
