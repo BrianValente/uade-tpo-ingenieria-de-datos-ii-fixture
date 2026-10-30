@@ -53,9 +53,12 @@ export function generateComparisonMarkdown(
       ? `${baseSuccessPct} % base vs. ${optSuccessPct} % opt de respuestas válidas con integridad comprobada (0 fallos en ambas corridas)`
       : `Éxito HTTP 200: ${baseSuccessPct} % base (${bw.payloadIntegrityVerified}/${bw.successfulRequests} íntegras) vs. ${optSuccessPct} % opt (${ow.payloadIntegrityVerified}/${ow.successfulRequests} íntegras)`
   const errorInterpretation =
-    bw.failedRequests === 0 && ow.failedRequests === 0
+    bw.failedRequests === 0 &&
+    ow.failedRequests === 0 &&
+    bw.payloadIntegrityErrors === 0 &&
+    ow.payloadIntegrityErrors === 0
       ? '0 errores HTTP y 0 errores de integridad observados en ambas corridas'
-      : `Fallos observados: ${bw.failedRequests} en base vs. ${ow.failedRequests} en optimizado`
+      : `Fallos HTTP: ${bw.failedRequests} base vs. ${ow.failedRequests} opt; errores de integridad de payload: ${bw.payloadIntegrityErrors} base vs. ${ow.payloadIntegrityErrors} opt`
 
   return [
     '# Tablas y Gráficos Comparativos: Línea Base vs. Optimizado (Hito 12)',
@@ -78,15 +81,15 @@ export function generateComparisonMarkdown(
     `| **Operaciones Totales Generadas** | ops | ${bw.totalRequestsGenerated} | **${ow.totalRequestsGenerated}** | **${pctDelta(bw.totalRequestsGenerated, ow.totalRequestsGenerated)}** | Volumen procesado en ventana observada (${bw.durationSeconds.toFixed(1)} s base vs. ${ow.durationSeconds.toFixed(1)} s opt) |`,
     `| **Operaciones Exitosas (\`HTTP 200\`)** | ops | ${bw.successfulRequests} | **${ow.successfulRequests}** | **${pctDelta(bw.successfulRequests, ow.successfulRequests)}** | ${successInterpretation} |`,
     `| **Tasa de Error** | % | ${bw.errorRatePct} % | **${ow.errorRatePct} %** | ${(ow.errorRatePct - bw.errorRatePct).toFixed(2)} pp | ${errorInterpretation} |`,
-    `| **Throughput Global Sostenido** | ops/s | ${bw.throughputOpsPerSec} | **${ow.throughputOpsPerSec}** | **${pctDelta(bw.throughputOpsPerSec, ow.throughputOpsPerSec)}** | Variación de caudal medida bajo efecto conjunto del paquete aplicado (O1+O2+O3+O4) |`,
-    `| **Latencia Media E2E** | ms | ${bl.avgMs} | **${ol.avgMs}** | **${pctDelta(bl.avgMs, ol.avgMs)}** | Variación del tiempo medio de respuesta al cliente (efecto conjunto O1–O4) |`,
+    `| **Throughput Global Sostenido** | ops/s | ${bw.throughputOpsPerSec} | **${ow.throughputOpsPerSec}** | **${pctDelta(bw.throughputOpsPerSec, ow.throughputOpsPerSec)}** | Variación de caudal medida bajo efecto conjunto del paquete aplicado (O1+O2+O3) |`,
+    `| **Latencia Media E2E** | ms | ${bl.avgMs} | **${ol.avgMs}** | **${pctDelta(bl.avgMs, ol.avgMs)}** | Variación del tiempo medio de respuesta al cliente (efecto conjunto O1–O3) |`,
     `| **Latencia p50 (Mediana) E2E** | ms | ${bl.p50Ms} | **${ol.p50Ms}** | **${pctDelta(bl.p50Ms, ol.p50Ms)}** | Variación en la mediana de latencia bajo distribución Pareto 80/20 |`,
-    `| **Latencia p90 E2E** | ms | ${bl.p90Ms} | **${ol.p90Ms}** | **${pctDelta(bl.p90Ms, ol.p90Ms)}** | Variación del percentil 90 bajo ${base.scenario.concurrency} VUs concurrentes (efecto conjunto O1–O4) |`,
-    `| **Latencia p95 E2E** | ms | ${bl.p95Ms} | **${ol.p95Ms}** | **${pctDelta(bl.p95Ms, ol.p95Ms)}** | Variación del percentil 95 extremo a extremo bajo efecto conjunto (O1–O4) |`,
-    `| **Latencia p99 E2E** | ms | ${bl.p99Ms} | **${ol.p99Ms}** | **${pctDelta(bl.p99Ms, ol.p99Ms)}** | Variación del percentil 99 de cola extremo a extremo (efecto conjunto O1–O4) |`,
+    `| **Latencia p90 E2E** | ms | ${bl.p90Ms} | **${ol.p90Ms}** | **${pctDelta(bl.p90Ms, ol.p90Ms)}** | Variación del percentil 90 bajo ${base.scenario.concurrency} VUs concurrentes (efecto conjunto O1–O3) |`,
+    `| **Latencia p95 E2E** | ms | ${bl.p95Ms} | **${ol.p95Ms}** | **${pctDelta(bl.p95Ms, ol.p95Ms)}** | Variación del percentil 95 extremo a extremo bajo efecto conjunto (O1–O3) |`,
+    `| **Latencia p99 E2E** | ms | ${bl.p99Ms} | **${ol.p99Ms}** | **${pctDelta(bl.p99Ms, ol.p99Ms)}** | Variación del percentil 99 de cola extremo a extremo (efecto conjunto O1–O3) |`,
     `| **Latencia Máxima E2E** | ms | ${bl.maxMs} | **${ol.maxMs}** | **${pctDelta(bl.maxMs, ol.maxMs)}** | Valor extremo puntual observado en la muestra (sin aislamiento individual de causa) |`,
     `| **Latencia p95 Claves Calientes (80 %)** | ms | ${bw.hotKeysLatencyE2E.p95Ms} | **${ow.hotKeysLatencyE2E.p95Ms}** | **${pctDelta(bw.hotKeysLatencyE2E.p95Ms, ow.hotKeysLatencyE2E.p95Ms)}** | Tráfico concentrado en 4 partidos y 8 equipos; servido mayoritariamente desde caché Read-Aside tras el primer miss |`,
-    `| **Latencia p95 Claves Frías (20 %)** | ms | ${bw.coldKeysLatencyE2E.p95Ms} | **${ow.coldKeysLatencyE2E.p95Ms}** | **${pctDelta(bw.coldKeysLatencyE2E.p95Ms, ow.coldKeysLatencyE2E.p95Ms)}** | Efecto conjunto (O1+O2+O4): claves de baja frecuencia de selección PRNG que se cachean tras su primer acceso y comparten motores descargados |`,
+    `| **Latencia p95 Claves Frías (20 %)** | ms | ${bw.coldKeysLatencyE2E.p95Ms} | **${ow.coldKeysLatencyE2E.p95Ms}** | **${pctDelta(bw.coldKeysLatencyE2E.p95Ms, ow.coldKeysLatencyE2E.p95Ms)}** | Efecto conjunto (O1+O2+O3): claves de baja frecuencia de selección PRNG que se cachean tras su primer acceso y comparten motores descargados |`,
     '',
     '---',
     '',
@@ -103,9 +106,9 @@ export function generateComparisonMarkdown(
     '| Motor / Recurso | Métrica | Línea Base (`baseline`) | Flujo Optimizado (`optimized`) | Variación / Efecto |',
     '|:---|:---|---:|---:|:---|',
     `| **MongoDB** | Consultas ejecutadas al motor | ${bDep.mongodb.operationsCount} | **${oDep.mongodb.operationsCount}** | **${pctDelta(bDep.mongodb.operationsCount, oDep.mongodb.operationsCount)}** de variación en llamadas al motor documental |`,
-    `| **MongoDB** | Latencia p95 del driver | ${bDep.mongodb.latency.p95Ms} ms | **${oDep.mongodb.latency.p95Ms} ms** | **${pctDelta(bDep.mongodb.latency.p95Ms, oDep.mongodb.latency.p95Ms)}** en las consultas restantes (efecto conjunto O1+O2+O4, pool \`${base.scenario.mongoMaxPoolSize}\` -> \`${opt.scenario.mongoMaxPoolSize}\`) |`,
+    `| **MongoDB** | Latencia p95 del driver | ${bDep.mongodb.latency.p95Ms} ms | **${oDep.mongodb.latency.p95Ms} ms** | **${pctDelta(bDep.mongodb.latency.p95Ms, oDep.mongodb.latency.p95Ms)}** en las consultas restantes (efecto conjunto O1+O2, pool \`${base.scenario.mongoMaxPoolSize}\` -> \`${opt.scenario.mongoMaxPoolSize}\`) |`,
     `| **Neo4j** | Consultas Cypher ejecutadas | ${bDep.neo4j.operationsCount} | **${oDep.neo4j.operationsCount}** | **${pctDelta(bDep.neo4j.operationsCount, oDep.neo4j.operationsCount)}** de variación en llamadas al motor de grafos |`,
-    `| **Neo4j** | Latencia p95 del driver Bolt | ${bDep.neo4j.latency.p95Ms} ms | **${oDep.neo4j.latency.p95Ms} ms** | **${pctDelta(bDep.neo4j.latency.p95Ms, oDep.neo4j.latency.p95Ms)}** en las consultas restantes (efecto conjunto O1+O4, pool \`${base.scenario.neo4jMaxConnectionPoolSize}\` -> \`${opt.scenario.neo4jMaxConnectionPoolSize}\`) |`,
+    `| **Neo4j** | Latencia p95 del driver Bolt | ${bDep.neo4j.latency.p95Ms} ms | **${oDep.neo4j.latency.p95Ms} ms** | **${pctDelta(bDep.neo4j.latency.p95Ms, oDep.neo4j.latency.p95Ms)}** en las consultas restantes (efecto conjunto O1+O2, pool \`${base.scenario.neo4jMaxConnectionPoolSize}\` -> \`${opt.scenario.neo4jMaxConnectionPoolSize}\`) |`,
     `| **Redis (Sesiones)** | Evaluaciones Lua de sesión | ${bDep.redisSession.operationsCount} | **${oDep.redisSession.operationsCount}** | ${pctDelta(bDep.redisSession.operationsCount, oDep.redisSession.operationsCount)} (1 por request HTTP) |`,
     `| **Redis (Sesiones)** | Escrituras \`HSET\`+\`EXPIRE\` ejecutadas | ${bDep.redisSession.renewWritesExecuted} | **${oDep.redisSession.renewWritesExecuted}** | **${bDep.redisSession.renewWritesSkippedByThrottle} -> ${oDep.redisSession.renewWritesSkippedByThrottle}** escrituras omitidas por ventana de throttle (${opt.scenario.sessionRenewThrottleSeconds} s) |`,
     `| **Redis (Caché Read-Aside)** | Hit Ratio de Caché | 0 % (Inactivo) | **${oDep.redisCache.hitRatioPct} %** | **${oDep.redisCache.cacheHits} hits** / ${oDep.redisCache.cacheMisses} misses (${oDep.redisCache.cacheWrites} escrituras) |`,

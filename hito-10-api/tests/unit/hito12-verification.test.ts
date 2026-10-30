@@ -1,10 +1,18 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import {
   resolveLoadScenarioConfig,
   verifyPayloadIntegrity,
+  type LoadExecutionReport,
 } from '../../../hito-12-carga-optimizacion/scripts/ejecutar_carga.js'
-import { parseNeo4jServerVersion } from '../../../hito-12-carga-optimizacion/scripts/entorno_y_recursos.js'
+import { generateComparisonMarkdown } from '../../../hito-12-carga-optimizacion/scripts/ejecutar_prueba_optimizada.js'
+import {
+  HITO12_ROOT,
+  parseNeo4jServerVersion,
+} from '../../../hito-12-carga-optimizacion/scripts/entorno_y_recursos.js'
 import { resolveBenchmarkServerConfig } from '../../../hito-12-carga-optimizacion/scripts/servidor_optimizado.js'
 
 describe('Hito 12 - Verificación de Integridad de Payloads (H12-01, RF15, RNF4)', () => {
@@ -197,5 +205,45 @@ describe('Hito 12 - Verificación de Integridad de Payloads (H12-01, RF15, RNF4)
         'neo4j:latest|NEO4J_TARBALL=neo4j-community-2026.10.1-unix.tar.gz',
       ),
     ).toBe('neo4j-community-2026.10.1')
+  })
+
+  it('genera tablas comparativas sin referenciar O4 y reportando errores de integridad aun con 0 fallos HTTP (R2-03)', () => {
+    const baseReport = JSON.parse(
+      readFileSync(
+        resolve(HITO12_ROOT, 'docs/evidencia/resultados_linea_base.json'),
+        'utf8',
+      ),
+    ) as LoadExecutionReport
+    const optReport = JSON.parse(
+      readFileSync(
+        resolve(HITO12_ROOT, 'docs/evidencia/resultados_optimizados.json'),
+        'utf8',
+      ),
+    ) as LoadExecutionReport
+
+    const cleanMd = generateComparisonMarkdown(baseReport, optReport)
+    expect(cleanMd).not.toContain('O4')
+    expect(cleanMd).toContain(
+      '0 errores HTTP y 0 errores de integridad observados en ambas corridas',
+    )
+
+    const syntheticIntegrityFaultOpt: LoadExecutionReport = {
+      ...optReport,
+      measuredWindow: {
+        ...optReport.measuredWindow,
+        failedRequests: 0,
+        payloadIntegrityErrors: 1,
+        payloadIntegrityVerified:
+          optReport.measuredWindow.payloadIntegrityVerified - 1,
+      },
+    }
+    const faultMd = generateComparisonMarkdown(
+      baseReport,
+      syntheticIntegrityFaultOpt,
+    )
+    expect(faultMd).not.toContain('0 errores de integridad')
+    expect(faultMd).toContain(
+      'Fallos HTTP: 0 base vs. 0 opt; errores de integridad de payload: 0 base vs. 1 opt',
+    )
   })
 })

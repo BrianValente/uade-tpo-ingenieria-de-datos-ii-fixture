@@ -18,15 +18,15 @@ Este documento consolida la comparación verificable entre la **Línea Base** (`
 | **Operaciones Totales Generadas** | ops | 2009 | **8249** | **+310.6 %** | Volumen procesado en ventana observada (16.1 s base vs. 16.0 s opt) |
 | **Operaciones Exitosas (`HTTP 200`)** | ops | 2009 | **8249** | **+310.6 %** | 100.00 % base vs. 100.00 % opt de respuestas válidas con integridad comprobada (0 fallos en ambas corridas) |
 | **Tasa de Error** | % | 0 % | **0 %** | 0.00 pp | 0 errores HTTP y 0 errores de integridad observados en ambas corridas |
-| **Throughput Global Sostenido** | ops/s | 124.59 | **514.98** | **+313.3 %** | Variación de caudal medida bajo efecto conjunto del paquete aplicado (O1+O2+O3+O4) |
-| **Latencia Media E2E** | ms | 172.95 | **41.892** | **-75.8 %** | Variación del tiempo medio de respuesta al cliente (efecto conjunto O1–O4) |
+| **Throughput Global Sostenido** | ops/s | 124.59 | **514.98** | **+313.3 %** | Variación de caudal medida bajo efecto conjunto del paquete aplicado (O1+O2+O3) |
+| **Latencia Media E2E** | ms | 172.95 | **41.892** | **-75.8 %** | Variación del tiempo medio de respuesta al cliente (efecto conjunto O1–O3) |
 | **Latencia p50 (Mediana) E2E** | ms | 167.838 | **39.298** | **-76.6 %** | Variación en la mediana de latencia bajo distribución Pareto 80/20 |
-| **Latencia p90 E2E** | ms | 247.187 | **54.375** | **-78.0 %** | Variación del percentil 90 bajo 24 VUs concurrentes (efecto conjunto O1–O4) |
-| **Latencia p95 E2E** | ms | 308.75 | **65.572** | **-78.8 %** | Variación del percentil 95 extremo a extremo bajo efecto conjunto (O1–O4) |
-| **Latencia p99 E2E** | ms | 532.104 | **83.586** | **-84.3 %** | Variación del percentil 99 de cola extremo a extremo (efecto conjunto O1–O4) |
+| **Latencia p90 E2E** | ms | 247.187 | **54.375** | **-78.0 %** | Variación del percentil 90 bajo 24 VUs concurrentes (efecto conjunto O1–O3) |
+| **Latencia p95 E2E** | ms | 308.75 | **65.572** | **-78.8 %** | Variación del percentil 95 extremo a extremo bajo efecto conjunto (O1–O3) |
+| **Latencia p99 E2E** | ms | 532.104 | **83.586** | **-84.3 %** | Variación del percentil 99 de cola extremo a extremo (efecto conjunto O1–O3) |
 | **Latencia Máxima E2E** | ms | 756.323 | **254.803** | **-66.3 %** | Valor extremo puntual observado en la muestra (sin aislamiento individual de causa) |
 | **Latencia p95 Claves Calientes (80 %)** | ms | 304.542 | **61.587** | **-79.8 %** | Tráfico concentrado en 4 partidos y 8 equipos; servido mayoritariamente desde caché Read-Aside tras el primer miss |
-| **Latencia p95 Claves Frías (20 %)** | ms | 340.348 | **72.343** | **-78.7 %** | Efecto conjunto (O1+O2+O4): claves de baja frecuencia de selección PRNG que se cachean tras su primer acceso y comparten motores descargados |
+| **Latencia p95 Claves Frías (20 %)** | ms | 340.348 | **72.343** | **-78.7 %** | Efecto conjunto (O1+O2+O3): claves de baja frecuencia de selección PRNG que se cachean tras su primer acceso y comparten motores descargados |
 
 ---
 
@@ -46,9 +46,9 @@ Este documento consolida la comparación verificable entre la **Línea Base** (`
 | Motor / Recurso | Métrica | Línea Base (`baseline`) | Flujo Optimizado (`optimized`) | Variación / Efecto |
 |:---|:---|---:|---:|:---|
 | **MongoDB** | Consultas ejecutadas al motor | 3592 | **83** | **-97.7 %** de variación en llamadas al motor documental |
-| **MongoDB** | Latencia p95 del driver | 109.793 ms | **33.85 ms** | **-69.2 %** en las consultas restantes (efecto conjunto O1+O2+O4, pool `5` -> `25`) |
+| **MongoDB** | Latencia p95 del driver | 109.793 ms | **33.85 ms** | **-69.2 %** en las consultas restantes (efecto conjunto O1+O2, pool `5` -> `25`) |
 | **Neo4j** | Consultas Cypher ejecutadas | 1227 | **43** | **-96.5 %** de variación en llamadas al motor de grafos |
-| **Neo4j** | Latencia p95 del driver Bolt | 355.53 ms | **48.454 ms** | **-86.4 %** en las consultas restantes (efecto conjunto O1+O4, pool `5` -> `25`) |
+| **Neo4j** | Latencia p95 del driver Bolt | 355.53 ms | **48.454 ms** | **-86.4 %** en las consultas restantes (efecto conjunto O1+O2, pool `5` -> `25`) |
 | **Redis (Sesiones)** | Evaluaciones Lua de sesión | 2009 | **8249** | +310.6 % (1 por request HTTP) |
 | **Redis (Sesiones)** | Escrituras `HSET`+`EXPIRE` ejecutadas | 2009 | **0** | **0 -> 8249** escrituras omitidas por ventana de throttle (60 s) |
 | **Redis (Caché Read-Aside)** | Hit Ratio de Caché | 0 % (Inactivo) | **98.57 %** | **8131 hits** / 118 misses (118 escrituras) |
