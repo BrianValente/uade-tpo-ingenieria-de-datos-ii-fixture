@@ -1,0 +1,74 @@
+{
+  "validatedAt": "2026-10-30T14:57:29.759Z",
+  "validationTarget": "post-carga",
+  "allChecksPassed": true,
+  "totalChecks": 8,
+  "passedChecks": 8,
+  "failedChecks": 0,
+  "checks": [
+    {
+      "id": "INT-01",
+      "category": "MongoDB Documental",
+      "description": "Unicidad y conteo de equipos participantes (sin duplicados ni pérdidas)",
+      "expected": "64 equipos, 64 códigos únicos",
+      "observed": "64 equipos, 64 códigos únicos",
+      "passed": true
+    },
+    {
+      "id": "INT-02",
+      "category": "MongoDB Documental",
+      "description": "Conteo exacto por plantel (24 jugadores/equipo) y rangos de atributos (dorsal 1..99, altura 150..220 cm)",
+      "expected": "1536 jugadores totales, 64 planteles de 24, rangos válidos=true",
+      "observed": "1536 jugadores totales, 64 planteles de 24=true, rangos válidos=true",
+      "passed": true
+    },
+    {
+      "id": "INT-03",
+      "category": "Consistencia Cruzada MongoDB <-> Neo4j",
+      "description": "Correspondencia 1 a 1 de UUID v5 entre equipos de MongoDB y nodos :Equipo de Neo4j",
+      "expected": "64 coincidencias exactas de UUID v5",
+      "observed": "64 coincidencias exactas de UUID v5",
+      "passed": true
+    },
+    {
+      "id": "INT-04",
+      "category": "Neo4j Grafo",
+      "description": "Integridad de conteos y distribución de eventos por partido (post-carga)",
+      "expected": "32 partidos, 384 eventos enlazados (320 H12, min=12, max=12 por partido), 0 huérfanos, total grafo 384",
+      "observed": "32 partidos, 384 eventos (320 H12, min=12, max=12 por partido), 0 huérfanos, total grafo 384",
+      "passed": true
+    },
+    {
+      "id": "INT-05",
+      "category": "Redis Sesiones",
+      "description": "Integridad de sesiones activas del lote (post-carga)",
+      "expected": "Exactamente 20 sesiones esperadas presentes con estado_acceso=autorizado y PTTL en (0, 1800000]",
+      "observed": "20/20 sesiones válidas observadas (20/20 del lote identificadas)",
+      "passed": true
+    },
+    {
+      "id": "INT-06",
+      "category": "Consistencia Fuente Operacional <-> Proyección Caché",
+      "description": "Todas las proyecciones cacheadas coinciden exactamente con MongoDB y Neo4j (post-carga)",
+      "expected": "Al menos 1 clave activa cacheada; 100% con TTL > 0 y contenido íntegro verificado contra MongoDB y Neo4j",
+      "observed": "158 claves activas en caché; 158 con TTL > 0; 158 íntegras",
+      "passed": true
+    },
+    {
+      "id": "INT-07",
+      "category": "Contabilidad de Operaciones de Carga",
+      "description": "Verificación de solicitudes generadas vs aceptadas vs validadas en Corrida Línea Base (resultados_linea_base.json)",
+      "expected": "generadas == exitosas + fallidas; 100% payloads HTTP 200 íntegros",
+      "observed": "generadas=2009, exitosas=2009, fallidas=0, íntegros=2009, corruptos=0",
+      "passed": true
+    },
+    {
+      "id": "INT-08",
+      "category": "Contabilidad de Operaciones de Carga",
+      "description": "Verificación de solicitudes generadas vs aceptadas vs validadas en Corrida Optimizada (resultados_optimizados.json)",
+      "expected": "generadas == exitosas + fallidas; 100% payloads HTTP 200 íntegros",
+      "observed": "generadas=8249, exitosas=8249, fallidas=0, íntegros=8249, corruptos=0",
+      "passed": true
+    }
+  ]
+}

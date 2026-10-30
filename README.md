@@ -80,6 +80,18 @@ La prueba compila las clases, guarda un arbol de objetos con una sola invocacion
 
 ## Consultas y operaciones
 
+### Inicio del Hito 12
+
+El [módulo de pruebas de carga y optimización del Hito 12](hito-12-carga-optimizacion/README.md) evalúa y optimiza el flujo multi-motor de consulta en vivo del torneo (`Fastify + Redis + Neo4j + MongoDB`) bajo un escenario determinístico de 24 usuarios concurrentes y distribución 80/20. Incluye preparación idempotente de datos, medición de línea base, optimizaciones de pool/proyección/batching/caché Read-Aside, validación de integridad post-carga y limpieza no destructiva.
+
+```bash
+cd hito-10-api
+pnpm h12:preparar
+pnpm h12:linea-base
+pnpm h12:optimizada
+pnpm h12:validar
+```
+
 ### Inicio del Hito 10
 
 La [base de la API REST](hito-10-api/README.md) usa Node.js, TypeScript,
@@ -297,3 +309,5 @@ No agregar `volumes` salvo que se quiera borrar la informacion local de la base 
 - [Modulo de comentarios del Hito 6](cassandra/README.md)
 - [Módulo de sesiones y caché del Hito 7](redis/README.md)
 - [Modulo de entidades complejas del Hito 9](iris/README.md)
+- [Evaluación de conectividad del Hito 11](hito-11-conectividad/README.md)
+- [Pruebas de carga y optimización del Hito 12](hito-12-carga-optimizacion/README.md)

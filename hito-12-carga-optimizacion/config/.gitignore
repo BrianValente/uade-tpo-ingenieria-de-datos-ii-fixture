@@ -1,0 +1,6 @@
+# Excluir archivos de configuración local con secretos (RNF8)
+.env
+.env.*
+!configuracion-ejemplo.env
+*.secret*
+*.local*

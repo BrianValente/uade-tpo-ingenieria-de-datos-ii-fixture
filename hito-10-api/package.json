@@ -20,6 +20,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "typecheck:hito-11": "tsc --noEmit -p ../hito-11-conectividad/tsconfig.json",
+    "typecheck:hito-12": "tsc --noEmit -p ../hito-12-carga-optimizacion/tsconfig.json",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier . ../.github/workflows/hito-10-api.yml --check",
     "format:write": "prettier . ../.github/workflows/hito-10-api.yml --write",
@@ -38,6 +39,12 @@
     "eval:tcp": "node --env-file-if-exists=.env --import tsx ../hito-11-conectividad/scripts/prueba_tcp.ts",
     "eval:nativos": "node --env-file-if-exists=.env --import tsx ../hito-11-conectividad/scripts/prueba_clientes_nativos.ts",
     "eval:api": "node --env-file-if-exists=.env --import tsx ../hito-11-conectividad/scripts/prueba_api.ts",
+    "h12:preparar": "node --env-file-if-exists=.env --import tsx ../hito-12-carga-optimizacion/scripts/preparar_datos.ts",
+    "h12:linea-base": "node --env-file-if-exists=.env --import tsx ../hito-12-carga-optimizacion/scripts/ejecutar_linea_base.ts",
+    "h12:optimizada": "node --env-file-if-exists=.env --import tsx ../hito-12-carga-optimizacion/scripts/ejecutar_prueba_optimizada.ts",
+    "h12:validar": "node --env-file-if-exists=.env --import tsx ../hito-12-carga-optimizacion/scripts/validar_integridad.ts",
+    "h12:limpiar": "node --env-file-if-exists=.env --import tsx ../hito-12-carga-optimizacion/scripts/limpiar_datos_de_prueba.ts",
+    "h12:smoke": "node --import tsx ../hito-12-carga-optimizacion/scripts/ejecutar_carga.ts --smoke",
     "validate": "pnpm lint && pnpm format && pnpm typecheck && pnpm test:unit && pnpm build && pnpm openapi:check"
   },
   "dependencies": {
