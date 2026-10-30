@@ -2,11 +2,11 @@
 
 Este documento consolida la comparación verificable entre la **Línea Base** (`baseline`) y la **Prueba Optimizada** (`optimized`) bajo el mismo escenario reproducible de carga (RF9, RF10, RNF3, RNF5).
 
-- **Fecha corrida Línea Base:** `2026-10-30T12:58:10.366Z` (Commit `acb8fc0`, estado: `clean`)
-- **Fecha corrida Optimizada:** `2026-10-30T12:59:05.508Z` (Commit `acb8fc0`, estado: `clean`)
+- **Fecha corrida Línea Base:** `2026-10-30T14:56:01.876Z` (Commit `5533d42`, estado: `clean`)
+- **Fecha corrida Optimizada:** `2026-10-30T14:56:55.226Z` (Commit `5533d42`, estado: `clean`)
 - **Condiciones configuradas:** Concurrencia = **24 VUs**, Semilla PRNG = `203012`, Warm-up = 3 s, Ramp-up = 4 s, Sostenimiento = 12 s, Tope de seguridad = 50000 ops, Distribución Hotspot 80/20.
-- **Ventana observada Línea Base:** `16.084 s` (Ramp-up observado: `4 s`, Sostenimiento observado: `12.084 s`, Motivo de cierre: `TIME_WINDOW_COMPLETED`)
-- **Ventana observada Optimizada:** `16.029 s` (Ramp-up observado: `4 s`, Sostenimiento observado: `12.029 s`, Motivo de cierre: `TIME_WINDOW_COMPLETED`)
+- **Ventana observada Línea Base:** `16.125 s` (Ramp-up observado: `4 s`, Sostenimiento observado: `12.125 s`, Motivo de cierre: `TIME_WINDOW_COMPLETED`)
+- **Ventana observada Optimizada:** `16.018 s` (Ramp-up observado: `4 s`, Sostenimiento observado: `12.018 s`, Motivo de cierre: `TIME_WINDOW_COMPLETED`)
 
 ---
 
@@ -14,19 +14,19 @@ Este documento consolida la comparación verificable entre la **Línea Base** (`
 
 | Métrica / Indicador | Unidad | Línea Base (`baseline`) | Flujo Optimizado (`optimized`) | Variación Relativa | Interpretación |
 |:---|:---:|---:|---:|---:|:---|
-| **Duración de Ventana Medida** | s | 16.084 | **16.029** | **-0.3 %** | Cierre: `TIME_WINDOW_COMPLETED` vs. `TIME_WINDOW_COMPLETED` (sostenimiento completo: `true` / `true`) |
-| **Operaciones Totales Generadas** | ops | 2227 | **7129** | **+220.1 %** | Mayor capacidad procesada durante la ventana completa (16.1 s base vs. 16.0 s opt) |
-| **Operaciones Exitosas (`HTTP 200`)** | ops | 2227 | **7129** | **+220.1 %** | 100 % de respuestas válidas con integridad comprobada |
-| **Tasa de Error** | % | 0 % | **0 %** | 0 pp | Cero pérdida ni degradación HTTP |
-| **Throughput Global Sostenido** | ops/s | 138.46 | **444.76** | **+221.2 %** | Incremento sustancial de caudal por eliminación de contención y lecturas redundantes |
-| **Latencia Media E2E** | ms | 155.692 | **48.5** | **-68.8 %** | Reducción del tiempo medio de respuesta al cliente |
-| **Latencia p50 (Mediana) E2E** | ms | 157.768 | **43.478** | **-72.4 %** | Mejora en el caso típico (dominado por claves calientes) |
-| **Latencia p90 E2E** | ms | 210.811 | **59.541** | **-71.8 %** | Reducción del encolamiento bajo concurrencia de 24 VUs |
-| **Latencia p95 E2E** | ms | 242.841 | **87.16** | **-64.1 %** | Mitigación de espera en pools de MongoDB y Neo4j |
-| **Latencia p99 E2E** | ms | 380.44 | **178.09** | **-53.2 %** | Reducción de la cola extrema de latencia |
-| **Latencia Máxima E2E** | ms | 677.89 | **340.889** | **-49.7 %** | Pico aislado de cold-miss / GC |
-| **Latencia p95 Claves Calientes (80 %)** | ms | 237.75 | **86.587** | **-63.6 %** |Servidas mayoritariamente desde caché Read-Aside en Redis |
-| **Latencia p95 Claves Frías (20 %)** | ms | 263.206 | **89.258** | **-66.1 %** | Efecto conjunto (O1+O2): claves de baja frecuencia que tras su primer miss se benefician de pools ampliados, proyección BSON y caché subsecuente |
+| **Duración de Ventana Medida** | s | 16.125 | **16.018** | **-0.7 %** | Cierre: `TIME_WINDOW_COMPLETED` vs. `TIME_WINDOW_COMPLETED` (sostenimiento completo: `true` / `true`) |
+| **Operaciones Totales Generadas** | ops | 2009 | **8249** | **+310.6 %** | Volumen procesado en ventana observada (16.1 s base vs. 16.0 s opt) |
+| **Operaciones Exitosas (`HTTP 200`)** | ops | 2009 | **8249** | **+310.6 %** | 100.00 % base vs. 100.00 % opt de respuestas válidas con integridad comprobada (0 fallos en ambas corridas) |
+| **Tasa de Error** | % | 0 % | **0 %** | 0.00 pp | 0 errores HTTP y 0 errores de integridad observados en ambas corridas |
+| **Throughput Global Sostenido** | ops/s | 124.59 | **514.98** | **+313.3 %** | Variación de caudal medida bajo efecto conjunto del paquete aplicado (O1+O2+O3+O4) |
+| **Latencia Media E2E** | ms | 172.95 | **41.892** | **-75.8 %** | Variación del tiempo medio de respuesta al cliente (efecto conjunto O1–O4) |
+| **Latencia p50 (Mediana) E2E** | ms | 167.838 | **39.298** | **-76.6 %** | Variación en la mediana de latencia bajo distribución Pareto 80/20 |
+| **Latencia p90 E2E** | ms | 247.187 | **54.375** | **-78.0 %** | Variación del percentil 90 bajo 24 VUs concurrentes (efecto conjunto O1–O4) |
+| **Latencia p95 E2E** | ms | 308.75 | **65.572** | **-78.8 %** | Variación del percentil 95 extremo a extremo bajo efecto conjunto (O1–O4) |
+| **Latencia p99 E2E** | ms | 532.104 | **83.586** | **-84.3 %** | Variación del percentil 99 de cola extremo a extremo (efecto conjunto O1–O4) |
+| **Latencia Máxima E2E** | ms | 756.323 | **254.803** | **-66.3 %** | Valor extremo puntual observado en la muestra (sin aislamiento individual de causa) |
+| **Latencia p95 Claves Calientes (80 %)** | ms | 304.542 | **61.587** | **-79.8 %** | Tráfico concentrado en 4 partidos y 8 equipos; servido mayoritariamente desde caché Read-Aside tras el primer miss |
+| **Latencia p95 Claves Frías (20 %)** | ms | 340.348 | **72.343** | **-78.7 %** | Efecto conjunto (O1+O2+O4): claves de baja frecuencia de selección PRNG que se cachean tras su primer acceso y comparten motores descargados |
 
 ---
 
@@ -34,10 +34,10 @@ Este documento consolida la comparación verificable entre la **Línea Base** (`
 
 | Endpoint | Throughput Base (ops/s) | Throughput Opt. (ops/s) | p50 Base (ms) | p50 Opt. (ms) | p95 Base (ms) | p95 Opt. (ms) | p99 Base (ms) | p99 Opt. (ms) |
 |:---|---:|---:|---:|---:|---:|---:|---:|---:|
-| `GET /partidos/:id` | 56.02 | **180.67** (+222.5 %) | 163.44 | **43.185** (-73.6 %) | 263.111 | **89.016** (-66.2 %) | 380.44 | **192.822** (-49.3 %) |
-| `GET /equipos/:codigo/jugadores?page=1&limit=24` | 41.35 | **132.07** (+219.4 %) | 185.362 | **43.731** (-76.4 %) | 247.483 | **86.748** (-64.9 %) | 442.563 | **178.432** (-59.7 %) |
-| `GET /partidos/:id/eventos?limit=20` | 28.48 | **88.09** (+209.3 %) | 100.227 | **43.435** (-56.7 %) | 189.794 | **85.771** (-54.8 %) | 304.858 | **135.003** (-55.7 %) |
-| `GET /equipos/:codigo` | 12.62 | **43.92** (+248.0 %) | 116.867 | **43.547** (-62.7 %) | 150.017 | **87.068** (-42.0 %) | 177.849 | **145.593** (-18.1 %) |
+| `GET /partidos/:id` | 50.23 | **208.52** (+315.1 %) | 179.245 | **39.011** (-78.2 %) | 417.604 | **59.855** (-85.7 %) | 630.289 | **79.499** (-87.4 %) |
+| `GET /equipos/:codigo/jugadores?page=1&limit=24` | 36.9 | **153.2** (+315.2 %) | 195.359 | **39.648** (-79.7 %) | 279.189 | **67.092** (-76.0 %) | 366.64 | **86.379** (-76.4 %) |
+| `GET /partidos/:id/eventos?limit=20` | 25.86 | **102.14** (+295.0 %) | 111.358 | **39.44** (-64.6 %) | 433.125 | **67.185** (-84.5 %) | 595.518 | **89.053** (-85.0 %) |
+| `GET /equipos/:codigo` | 11.6 | **51.13** (+340.8 %) | 125.796 | **39.021** (-69.0 %) | 190.517 | **67.616** (-64.5 %) | 232.487 | **84.42** (-63.7 %) |
 
 ---
 
@@ -45,15 +45,15 @@ Este documento consolida la comparación verificable entre la **Línea Base** (`
 
 | Motor / Recurso | Métrica | Línea Base (`baseline`) | Flujo Optimizado (`optimized`) | Variación / Efecto |
 |:---|:---|---:|---:|:---|
-| **MongoDB 7.0** | Consultas ejecutadas al motor | 4000 | **84** | **-97.9 %** de descarga sobre el motor documental |
-| **MongoDB 7.0** | Latencia p95 del driver | 94.668 ms | **25.591 ms** | **-73.0 %** (Pool `5` -> `25` + proyección + `$in`) |
-| **Neo4j 5.x** | Consultas Cypher ejecutadas | 1359 | **47** | **-96.5 %** de descarga sobre el motor de grafos |
-| **Neo4j 5.x** | Latencia p95 del driver Bolt | 101.74 ms | **74.836 ms** | **-26.4 %** (Pool `5` -> `25` + menor contención) |
-| **Redis (Sesiones)** | Evaluaciones Lua de sesión | 2227 | **7129** | +220.1 % (1 por request HTTP) |
-| **Redis (Sesiones)** | Escrituras `HSET`+`EXPIRE` ejecutadas | 2227 | **0** | **0 -> 7129** escrituras evitadas por throttle de 60 s |
-| **Redis (Caché Read-Aside)** | Hit Ratio de Caché | 0 % (Inactivo) | **98.27 %** | **7006 hits** / 123 misses (123 escrituras) |
-| **Redis (Memoria)** | Memoria usada post-prueba (`used_memory`) | 1.79M (1877248 B) | **2.43M (2547080 B)** | Trade-off de memoria en RAM para alojar claves de caché con TTL |
-| **Node.js (Proceso)** | Memoria RSS final | 233.89 MiB | **274.21 MiB** | Incremento acotado por pools de conexión más amplios |
+| **MongoDB** | Consultas ejecutadas al motor | 3592 | **83** | **-97.7 %** de variación en llamadas al motor documental |
+| **MongoDB** | Latencia p95 del driver | 109.793 ms | **33.85 ms** | **-69.2 %** en las consultas restantes (efecto conjunto O1+O2+O4, pool `5` -> `25`) |
+| **Neo4j** | Consultas Cypher ejecutadas | 1227 | **43** | **-96.5 %** de variación en llamadas al motor de grafos |
+| **Neo4j** | Latencia p95 del driver Bolt | 355.53 ms | **48.454 ms** | **-86.4 %** en las consultas restantes (efecto conjunto O1+O4, pool `5` -> `25`) |
+| **Redis (Sesiones)** | Evaluaciones Lua de sesión | 2009 | **8249** | +310.6 % (1 por request HTTP) |
+| **Redis (Sesiones)** | Escrituras `HSET`+`EXPIRE` ejecutadas | 2009 | **0** | **0 -> 8249** escrituras omitidas por ventana de throttle (60 s) |
+| **Redis (Caché Read-Aside)** | Hit Ratio de Caché | 0 % (Inactivo) | **98.57 %** | **8131 hits** / 118 misses (118 escrituras) |
+| **Redis (Memoria)** | Memoria usada post-prueba (`used_memory`) | 1.81M (1901008 B) | **2.42M (2536848 B)** | Instantánea post-prueba (`INFO memory`) con claves de caché activas |
+| **Node.js (Proceso)** | Memoria RSS final | 219.94 MiB | **327.32 MiB** | Instantánea RSS al cierre del proceso (+48.8 %, sin atribución aislada) |
 
 ---
 
@@ -65,9 +65,9 @@ Este documento consolida la comparación verificable entre la **Línea Base** (`
 xychart-beta
     title "Latencia Extremo a Extremo (ms): Linea Base vs Optimizado"
     x-axis ["Media", "p50 (Mediana)", "p90", "p95", "p99"]
-    y-axis "Latencia (ms)" 0 --> 438
-    bar [155.692, 157.768, 210.811, 242.841, 380.44]
-    bar [48.5, 43.478, 59.541, 87.16, 178.09]
+    y-axis "Latencia (ms)" 0 --> 612
+    bar [172.95, 167.838, 247.187, 308.75, 532.104]
+    bar [41.892, 39.298, 54.375, 65.572, 83.586]
 ```
 
 > *Primera serie de barras: Línea Base (`baseline`). Segunda serie de barras: Flujo Optimizado (`optimized`).*
@@ -78,9 +78,9 @@ xychart-beta
 xychart-beta
     title "Throughput Sostenido (ops/s): Linea Base vs Optimizado"
     x-axis ["Global", "GET /partidos/:id", "GET /jugadores", "GET /eventos", "GET /equipos/:cod"]
-    y-axis "Operaciones / seg" 0 --> 512
-    bar [138.46, 56.02, 41.35, 28.48, 12.62]
-    bar [444.76, 180.67, 132.07, 88.09, 43.92]
+    y-axis "Operaciones / seg" 0 --> 593
+    bar [124.59, 50.23, 36.9, 25.86, 11.6]
+    bar [514.98, 208.52, 153.2, 102.14, 51.13]
 ```
 
 ---

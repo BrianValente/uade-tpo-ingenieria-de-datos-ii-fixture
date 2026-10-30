@@ -25,22 +25,22 @@ El trabajo sigue una metodología experimental rigurosa en seis etapas:
 
 ## 2. Resumen Ejecutivo de Resultados (Línea Base vs. Optimizado)
 
-Ambas corridas se ejecutaron completando la ventana temporal configurada (`TIME_WINDOW_COMPLETED`: `16.084 s` en base vs. `16.029 s` en optimizado, tras `3 s` de warm-up excluido, con `4 s` de ramp-up y `12 s` de sostenimiento completados al 100 %, tope de seguridad `50.000` ops, `24` usuarios virtuales concurrentes, distribución 40/30/20/10 sobre 4 partidos y 8 selecciones calientes en proporción 80/20 con semilla PRNG `203012`):
+Ambas corridas se ejecutaron completando la ventana temporal configurada (`TIME_WINDOW_COMPLETED`: `16.125 s` en base vs. `16.018 s` en optimizado, tras `3 s` de warm-up excluido, con `4 s` de ramp-up y `12 s` de sostenimiento completados al 100 %, tope de seguridad `50.000` ops, `24` usuarios virtuales concurrentes, distribución 40/30/20/10 sobre 4 partidos y 8 selecciones calientes en proporción 80/20 con semilla PRNG `203012`, commit `5533d42` `clean`):
 
 | Indicador Clave | Línea Base (`baseline`) | Prueba Optimizada (`optimized`) | Variación |
 | :--- | ---: | ---: | ---: |
-| **Ventana Medida (Cierre)** | `16.084 s` (`TIME_WINDOW_COMPLETED`) | **`16.029 s`** (`TIME_WINDOW_COMPLETED`) | **`-0.3 %` (ventanas equivalentes)** |
-| **Throughput Global Sostenido** | `138.46 ops/s` (`2.227` ops) | **`444.76 ops/s`** (`7.129` ops) | **`+221.2 %` ($3,21\times$)** |
+| **Ventana Medida (Cierre)** | `16.125 s` (`TIME_WINDOW_COMPLETED`) | **`16.018 s`** (`TIME_WINDOW_COMPLETED`) | **`-0.7 %` (ventanas equivalentes)** |
+| **Throughput Global Sostenido** | `124.59 ops/s` (`2.009` ops) | **`514.98 ops/s`** (`8.249` ops) | **`+313.3 %` ($4,13\times$)** |
 | **Tasa de Error HTTP** | `0.00 %` (`0` errores) | **`0.00 %`** (`0` errores) | **`0.00 pp` (100 % éxito e integridad)** |
-| **Latencia Media E2E (`avg`)** | `155.69 ms` | **`48.50 ms`** | **`-68.8 %`** |
-| **Latencia Mediana E2E (`p50`)** | `157.77 ms` | **`43.48 ms`** | **`-72.4 %`** |
-| **Latencia Percentil 90 (`p90`)** | `210.81 ms` | **`59.54 ms`** | **`-71.8 %`** |
-| **Latencia Percentil 95 (`p95`)** | `242.84 ms` | **`87.16 ms`** | **`-64.1 %` ($2,79\times$)** |
-| **Latencia Percentil 99 (`p99`)** | `380.44 ms` | **`178.09 ms`** | **`-53.2 %` ($2,14\times$)** |
-| **Consultas Driver MongoDB** | `4.000` llamadas (`pool=5`) | **`84` llamadas** (`pool=25`) | **`-97.9 %`** |
-| **Consultas Driver Neo4j** | `1.359` llamadas (`pool=5`) | **`47` llamadas** (`pool=25`) | **`-96.5 %`** |
-| **Cache Hit Ratio (Read-Aside Redis)** | `0.00 %` (sin caché) | **`98.27 %`** (`7.006` hits / `123` misses) | **`+98.27 pp`** |
-| **Renovaciones de Sesión Ahorradas** | `0` (`2.227` escrituras) | **`7.129` escrituras evitadas** (`0` ejecutadas) | **`100 %` en ventana $<60\text{ s}$** |
+| **Latencia Media E2E (`avg`)** | `172.95 ms` | **`41.89 ms`** | **`-75.8 %`** |
+| **Latencia Mediana E2E (`p50`)** | `167.84 ms` | **`39.30 ms`** | **`-76.6 %`** |
+| **Latencia Percentil 90 (`p90`)** | `247.19 ms` | **`54.38 ms`** | **`-78.0 %`** |
+| **Latencia Percentil 95 (`p95`)** | `308.75 ms` | **`65.57 ms`** | **`-78.8 %` ($4,71\times$)** |
+| **Latencia Percentil 99 (`p99`)** | `532.10 ms` | **`83.59 ms`** | **`-84.3 %` ($6,37\times$)** |
+| **Consultas Driver MongoDB** | `3.592` llamadas (`pool=5`) | **`83` llamadas** (`pool=25`) | **`-97.7 %`** |
+| **Consultas Driver Neo4j** | `1.227` llamadas (`pool=5`) | **`43` llamadas** (`pool=25`) | **`-96.5 %`** |
+| **Cache Hit Ratio (Read-Aside Redis)** | `0.00 %` (sin caché) | **`98.57 %`** (`8.131` hits / `118` misses) | **`+98.57 pp`** |
+| **Renovaciones de Sesión Ahorradas** | `0` (`2.009` escrituras) | **`8.249` escrituras evitadas** (`0` ejecutadas) | **`100 %` en ventana $<60\text{ s}$** |
 
 ---
 
