@@ -1,0 +1,222 @@
+{
+  "reportType": "HITO_13_CONTROLLED_FAILURE_TEST",
+  "environment": {
+    "timestamp": "2026-10-31T00:29:52.163Z",
+    "gitCommit": "73665cc",
+    "gitBranch": "feature/hito-13-monitoreo-defensa",
+    "gitTreeState": "clean",
+    "host": {
+      "platform": "win32",
+      "release": "10.0.22631",
+      "arch": "x64",
+      "cpuModel": "AMD Ryzen 5 5600U with Radeon Graphics",
+      "logicalCpus": 12,
+      "totalMemoryGiB": 7.31,
+      "freeMemoryGiB": 0.49,
+      "nodeVersion": "v22.18.0"
+    },
+    "products": {
+      "mongodbVersion": "db version v7.0.40",
+      "neo4jVersion": "neo4j 2026.10.1",
+      "neo4jClientVersion": "Cypher-Shell 2026.10.1",
+      "redisVersion": "Redis server v=8.10.2 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=9afb359f90603816",
+      "fastifyVersion": "5.12.7"
+    }
+  },
+  "description": "Prueba controlada y no destructiva de indisponibilidad de target de infraestructura (redis-exporter) y falla de dependencia políglota (Neo4j), seguida de recuperación completa.",
+  "inducedActions": [
+    "Detención controlada del contenedor `redis-exporter` (`docker compose stop redis-exporter`) para observar `up{job=\"redis_exporter\"} == 0`.",
+    "Activación de indisponibilidad controlada en el conector de `neo4j` e invalidación de `fixture2030:h13:cache:partido:F2030-001` para observar `fixture2030_component_up{component=\"neo4j\"} == 0` y respuestas `HTTP 503 DEPENDENCY_UNAVAILABLE`.",
+    "Espera de 18s (superior a `scrape_interval: 5s` y `for: 5s`) para verificar transición de reglas de alerta a `FIRING` en Prometheus."
+  ],
+  "recoveryActions": [
+    "Restauración del conector de `neo4j` y reinicio del contenedor `redis-exporter` (`docker compose start redis-exporter`).",
+    "Ejecución de 40 solicitudes válidas y espera de 12s para verificar retorno de los 3 targets a `UP (1)` y retorno de `GET /partidos/F2030-001` a `HTTP 200 OK`."
+  ],
+  "phases": {
+    "before": {
+      "phase": "antes_de_la_falla",
+      "timestampUtc": "2026-10-31T00:30:40.445Z",
+      "apiCheckStatus": 200,
+      "apiCheckBodySnippet": "{\"id\":\"F2030-001\",\"date\":\"2030-06-13\",\"time\":\"16:00:00Z\",\"phase\":\"Fase de grupos\",\"homeCode\":\"ARG\",\"awayCode\":\"BRA\",\"venue\":{\"id\":\"SED-001\",",
+      "targetsUp": 3,
+      "targetsDown": 0,
+      "targetsState": [
+        {
+          "job": "fixture2030_api",
+          "instance": "host.docker.internal:8013",
+          "health": "up"
+        },
+        {
+          "job": "prometheus",
+          "instance": "localhost:9090",
+          "health": "up"
+        },
+        {
+          "job": "redis_exporter",
+          "instance": "redis-exporter:9121",
+          "health": "up"
+        }
+      ],
+      "neo4jComponentUp": 1,
+      "redisExporterUp": 1,
+      "http5xxTotal": 0,
+      "neo4jErrorsTotal": 0,
+      "alertStates": [
+        {
+          "name": "Fixture2030TargetPrometheusCaido",
+          "severity": "critical",
+          "state": "inactive"
+        },
+        {
+          "name": "Fixture2030MotorPoliglotaInaccesible",
+          "severity": "critical",
+          "state": "inactive"
+        },
+        {
+          "name": "Fixture2030LatenciaHttpP95Elevada",
+          "severity": "warning",
+          "state": "inactive"
+        },
+        {
+          "name": "Fixture2030TasaErroresHttp5xxAlta",
+          "severity": "critical",
+          "state": "inactive"
+        },
+        {
+          "name": "Fixture2030CacheHitRatioBajoBajoCarga",
+          "severity": "warning",
+          "state": "inactive"
+        },
+        {
+          "name": "Fixture2030RedisMemoriaSaturada",
+          "severity": "warning",
+          "state": "inactive"
+        }
+      ]
+    },
+    "during": {
+      "phase": "durante_la_falla_controlada",
+      "timestampUtc": "2026-10-31T00:31:03.750Z",
+      "apiCheckStatus": 503,
+      "apiCheckBodySnippet": "{\"code\":\"DEPENDENCY_UNAVAILABLE\",\"message\":\"Una dependencia no está disponible.\",\"requestId\":\"754ede89-34b6-4f4d-98c7-37b40713dd55\"}",
+      "targetsUp": 2,
+      "targetsDown": 1,
+      "targetsState": [
+        {
+          "job": "fixture2030_api",
+          "instance": "host.docker.internal:8013",
+          "health": "up"
+        },
+        {
+          "job": "prometheus",
+          "instance": "localhost:9090",
+          "health": "up"
+        },
+        {
+          "job": "redis_exporter",
+          "instance": "redis-exporter:9121",
+          "health": "down"
+        }
+      ],
+      "neo4jComponentUp": 0,
+      "redisExporterUp": 0,
+      "http5xxTotal": 30,
+      "neo4jErrorsTotal": 30,
+      "alertStates": [
+        {
+          "name": "Fixture2030TargetPrometheusCaido",
+          "severity": "critical",
+          "state": "firing"
+        },
+        {
+          "name": "Fixture2030MotorPoliglotaInaccesible",
+          "severity": "critical",
+          "state": "firing"
+        },
+        {
+          "name": "Fixture2030LatenciaHttpP95Elevada",
+          "severity": "warning",
+          "state": "inactive"
+        },
+        {
+          "name": "Fixture2030TasaErroresHttp5xxAlta",
+          "severity": "critical",
+          "state": "pending"
+        },
+        {
+          "name": "Fixture2030CacheHitRatioBajoBajoCarga",
+          "severity": "warning",
+          "state": "inactive"
+        },
+        {
+          "name": "Fixture2030RedisMemoriaSaturada",
+          "severity": "warning",
+          "state": "inactive"
+        }
+      ]
+    },
+    "after": {
+      "phase": "despues_de_la_recuperacion",
+      "timestampUtc": "2026-10-31T00:31:18.981Z",
+      "apiCheckStatus": 200,
+      "apiCheckBodySnippet": "{\"id\":\"F2030-001\",\"date\":\"2030-06-13\",\"time\":\"16:00:00Z\",\"phase\":\"Fase de grupos\",\"homeCode\":\"ARG\",\"awayCode\":\"BRA\",\"venue\":{\"id\":\"SED-001\",",
+      "targetsUp": 3,
+      "targetsDown": 0,
+      "targetsState": [
+        {
+          "job": "fixture2030_api",
+          "instance": "host.docker.internal:8013",
+          "health": "up"
+        },
+        {
+          "job": "prometheus",
+          "instance": "localhost:9090",
+          "health": "up"
+        },
+        {
+          "job": "redis_exporter",
+          "instance": "redis-exporter:9121",
+          "health": "up"
+        }
+      ],
+      "neo4jComponentUp": 1,
+      "redisExporterUp": 1,
+      "http5xxTotal": 31,
+      "neo4jErrorsTotal": 31,
+      "alertStates": [
+        {
+          "name": "Fixture2030TargetPrometheusCaido",
+          "severity": "critical",
+          "state": "inactive"
+        },
+        {
+          "name": "Fixture2030MotorPoliglotaInaccesible",
+          "severity": "critical",
+          "state": "inactive"
+        },
+        {
+          "name": "Fixture2030LatenciaHttpP95Elevada",
+          "severity": "warning",
+          "state": "inactive"
+        },
+        {
+          "name": "Fixture2030TasaErroresHttp5xxAlta",
+          "severity": "critical",
+          "state": "firing"
+        },
+        {
+          "name": "Fixture2030CacheHitRatioBajoBajoCarga",
+          "severity": "warning",
+          "state": "inactive"
+        },
+        {
+          "name": "Fixture2030RedisMemoriaSaturada",
+          "severity": "warning",
+          "state": "inactive"
+        }
+      ]
+    }
+  },
+  "verificationPassed": true
+}

@@ -1,0 +1,209 @@
+{
+  "reportType": "HITO_13_PROMETHEUS_TARGETS",
+  "environment": {
+    "timestamp": "2026-10-31T00:29:52.163Z",
+    "gitCommit": "73665cc",
+    "gitBranch": "feature/hito-13-monitoreo-defensa",
+    "gitTreeState": "clean",
+    "host": {
+      "platform": "win32",
+      "release": "10.0.22631",
+      "arch": "x64",
+      "cpuModel": "AMD Ryzen 5 5600U with Radeon Graphics",
+      "logicalCpus": 12,
+      "totalMemoryGiB": 7.31,
+      "freeMemoryGiB": 0.49,
+      "nodeVersion": "v22.18.0"
+    },
+    "products": {
+      "mongodbVersion": "db version v7.0.40",
+      "neo4jVersion": "neo4j 2026.10.1",
+      "neo4jClientVersion": "Cypher-Shell 2026.10.1",
+      "redisVersion": "Redis server v=8.10.2 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=9afb359f90603816",
+      "fastifyVersion": "5.12.7"
+    }
+  },
+  "prometheusVersion": "3.2.1",
+  "scrapeInterval": "5s",
+  "evaluationInterval": "5s",
+  "targetsTotal": 3,
+  "targetsUp": 3,
+  "targetsDown": 0,
+  "activeTargets": [
+    {
+      "job": "fixture2030_api",
+      "instance": "host.docker.internal:8013",
+      "scrapePool": "fixture2030_api",
+      "scrapeUrl": "http://host.docker.internal:8013/metrics",
+      "health": "up",
+      "lastScrape": "2026-10-31T00:30:36.61095381Z",
+      "lastScrapeDurationMs": 173.976,
+      "lastError": "",
+      "labels": {
+        "instance": "host.docker.internal:8013",
+        "job": "fixture2030_api",
+        "layer": "application-and-probes",
+        "service_target": "api-fastify"
+      }
+    },
+    {
+      "job": "prometheus",
+      "instance": "localhost:9090",
+      "scrapePool": "prometheus",
+      "scrapeUrl": "http://localhost:9090/metrics",
+      "health": "up",
+      "lastScrape": "2026-10-31T00:30:38.362036598Z",
+      "lastScrapeDurationMs": 196.054,
+      "lastError": "",
+      "labels": {
+        "instance": "localhost:9090",
+        "job": "prometheus",
+        "layer": "observability",
+        "service_target": "prometheus"
+      }
+    },
+    {
+      "job": "redis_exporter",
+      "instance": "redis-exporter:9121",
+      "scrapePool": "redis_exporter",
+      "scrapeUrl": "http://redis-exporter:9121/metrics",
+      "health": "up",
+      "lastScrape": "2026-10-31T00:30:32.981780567Z",
+      "lastScrapeDurationMs": 274.546,
+      "lastError": "",
+      "labels": {
+        "instance": "redis-exporter:9121",
+        "job": "redis_exporter",
+        "layer": "database-exporter",
+        "service_target": "redis"
+      }
+    }
+  ],
+  "alertRules": [
+    {
+      "name": "Fixture2030TargetPrometheusCaido",
+      "query": "up == 0",
+      "durationSeconds": 5,
+      "severity": "critical",
+      "tier": "infrastructure",
+      "state": "inactive",
+      "activeAlertsCount": 0,
+      "summary": "Target de Prometheus caído ({{ $labels.job }} / {{ $labels.instance }})"
+    },
+    {
+      "name": "Fixture2030MotorPoliglotaInaccesible",
+      "query": "fixture2030_component_up{monitored_mode=\"active_probe\"} == 0",
+      "durationSeconds": 5,
+      "severity": "critical",
+      "tier": "database",
+      "state": "inactive",
+      "activeAlertsCount": 0,
+      "summary": "Componente activo inaccesible: {{ $labels.component }} ({{ $labels.model }})"
+    },
+    {
+      "name": "Fixture2030LatenciaHttpP95Elevada",
+      "query": "histogram_quantile(0.95, sum by (le) (rate(fixture2030_http_request_duration_ms_bucket[1m]))) > 250",
+      "durationSeconds": 30,
+      "severity": "warning",
+      "tier": "application",
+      "state": "inactive",
+      "activeAlertsCount": 0,
+      "summary": "Latencia HTTP p95 global superior a 250 ms"
+    },
+    {
+      "name": "Fixture2030TasaErroresHttp5xxAlta",
+      "query": "(sum(rate(fixture2030_http_requests_total{status_class=\"5xx\"}[1m])) / clamp_min(sum(rate(fixture2030_http_requests_total[1m])), 0.001)) > 0.01",
+      "durationSeconds": 10,
+      "severity": "critical",
+      "tier": "application",
+      "state": "inactive",
+      "activeAlertsCount": 0,
+      "summary": "Tasa de errores HTTP 5xx superior al 1% en la API"
+    },
+    {
+      "name": "Fixture2030CacheHitRatioBajoBajoCarga",
+      "query": "(sum(rate(fixture2030_cache_events_total{result=\"hit\"}[1m])) / clamp_min(sum(rate(fixture2030_cache_events_total{result=~\"hit|miss\"}[1m])), 0.001)) < 0.7 and sum(rate(fixture2030_cache_events_total{result=~\"hit|miss\"}[1m])) > 1",
+      "durationSeconds": 30,
+      "severity": "warning",
+      "tier": "cache",
+      "state": "inactive",
+      "activeAlertsCount": 0,
+      "summary": "Cache Hit Ratio de Redis inferior al 70% bajo tráfico activo"
+    },
+    {
+      "name": "Fixture2030RedisMemoriaSaturada",
+      "query": "(redis_memory_used_bytes / clamp_min(redis_memory_max_bytes, 1)) > 0.85 and redis_memory_max_bytes > 0",
+      "durationSeconds": 30,
+      "severity": "warning",
+      "tier": "database",
+      "state": "inactive",
+      "activeAlertsCount": 0,
+      "summary": "Uso de memoria en Redis superior al 85% de maxmemory"
+    }
+  ],
+  "polyglotComponentsStatus": [
+    {
+      "component": "api-fastify",
+      "model": "api-rest",
+      "role": "integracion-poliglota",
+      "monitoredMode": "active_probe",
+      "up": 1,
+      "latencyMs": 0.15,
+      "detail": "Fastify event loop active"
+    },
+    {
+      "component": "mongodb",
+      "model": "documental",
+      "role": "equipos-jugadores-auditoria",
+      "monitoredMode": "active_probe",
+      "up": 1,
+      "latencyMs": 16.43,
+      "detail": "MongoDB ping:1 ok"
+    },
+    {
+      "component": "neo4j",
+      "model": "grafo",
+      "role": "fixture-sedes-eventos",
+      "monitoredMode": "active_probe",
+      "up": 1,
+      "latencyMs": 61.682,
+      "detail": "Neo4j Bolt RETURN 1 ok"
+    },
+    {
+      "component": "redis",
+      "model": "clave-valor",
+      "role": "sesiones-y-cache",
+      "monitoredMode": "active_probe",
+      "up": 1,
+      "latencyMs": 10.959,
+      "detail": "Redis PING PONG ok"
+    },
+    {
+      "component": "cassandra",
+      "model": "columnar",
+      "role": "eventos-y-consultas-por-particion",
+      "monitoredMode": "tcp_socket_probe",
+      "up": 0,
+      "latencyMs": 1.906,
+      "detail": "TCP 127.0.0.1:9042 connect ECONNREFUSED 127.0.0.1:9042"
+    },
+    {
+      "component": "influxdb",
+      "model": "series-temporales",
+      "role": "telemetria-iot-sensores",
+      "monitoredMode": "tcp_socket_probe",
+      "up": 0,
+      "latencyMs": 1.98,
+      "detail": "TCP 127.0.0.1:8181 connect ECONNREFUSED 127.0.0.1:8181"
+    },
+    {
+      "component": "iris",
+      "model": "multimodelo",
+      "role": "datamart-analitico-bi",
+      "monitoredMode": "tcp_socket_probe",
+      "up": 0,
+      "latencyMs": 2.232,
+      "detail": "TCP 127.0.0.1:1972 connect ECONNREFUSED 127.0.0.1:1972"
+    }
+  ]
+}
