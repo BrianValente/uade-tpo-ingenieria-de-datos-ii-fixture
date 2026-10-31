@@ -21,6 +21,7 @@
     "typecheck": "tsc --noEmit",
     "typecheck:hito-11": "tsc --noEmit -p ../hito-11-conectividad/tsconfig.json",
     "typecheck:hito-12": "tsc --noEmit -p ../hito-12-carga-optimizacion/tsconfig.json",
+    "typecheck:hito-13": "tsc --noEmit -p ../hito-13-monitoreo/tsconfig.json",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier . ../.github/workflows/hito-10-api.yml --check",
     "format:write": "prettier . ../.github/workflows/hito-10-api.yml --write",
@@ -45,6 +46,12 @@
     "h12:validar": "node --env-file-if-exists=.env --import tsx ../hito-12-carga-optimizacion/scripts/validar_integridad.ts",
     "h12:limpiar": "node --env-file-if-exists=.env --import tsx ../hito-12-carga-optimizacion/scripts/limpiar_datos_de_prueba.ts",
     "h12:smoke": "node --import tsx ../hito-12-carga-optimizacion/scripts/ejecutar_carga.ts --smoke",
+    "h13:iniciar": "node --env-file-if-exists=.env --import tsx ../hito-13-monitoreo/scripts/iniciar_monitoreo.ts",
+    "h13:servidor": "node --env-file-if-exists=.env --import tsx ../hito-13-monitoreo/scripts/servidor_monitoreo.ts",
+    "h13:verificar-targets": "node --env-file-if-exists=.env --import tsx ../hito-13-monitoreo/scripts/verificar_targets.ts",
+    "h13:prueba-controlada": "node --env-file-if-exists=.env --import tsx ../hito-13-monitoreo/scripts/ejecutar_prueba_controlada.ts",
+    "h13:smoke": "node --import tsx ../hito-13-monitoreo/scripts/ejecutar_prueba_controlada.ts --smoke",
+    "h13:limpiar": "node --env-file-if-exists=.env --import tsx ../hito-13-monitoreo/scripts/limpiar_entorno.ts",
     "validate": "pnpm lint && pnpm format && pnpm typecheck && pnpm test:unit && pnpm build && pnpm openapi:check"
   },
   "dependencies": {

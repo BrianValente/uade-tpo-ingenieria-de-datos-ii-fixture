@@ -1,0 +1,39 @@
+# Condiciones de Alerta y Umbrales Operativos — Hito 13 (§5.4, RF9)
+
+## 1. Diseño del Sistema de Alertas
+
+Las reglas de alerta se encuentran declaradas en [`prometheus/reglas-o-alertas.yml`](../prometheus/reglas-o-alertas.yml) y son evaluadas automáticamente por **Prometheus (`v3.2.1`)** cada `5s` (`evaluation_interval: 5s`).
+
+Se definieron **6 reglas operativas** que cubren las cuatro dimensiones críticas de la arquitectura políglota:
+1. **Disponibilidad de infraestructura de monitoreo (`up == 0`)**
+2. **Disponibilidad de motores políglotas activos (`fixture2030_component_up == 0`)**
+3. **Degradación de latencia `p95` HTTP (`> 250 ms`)**
+4. **Tasa de errores HTTP `5xx` (`> 1%`)**
+5. **Degradación de eficiencia de caché Read-Aside (`Hit Ratio < 70%`)**
+6. **Saturación de memoria en Redis (`> 85%` de `maxmemory`)**
+
+> **Nota sobre calibración de umbrales (RNF8):** Los valores de umbral y las ventanas de permanencia (`for: 5s` a `30s`) están calibrados empíricamente sobre los resultados medidos en los **Hitos 11 y 12** dentro del laboratorio local (donde la latencia `p95` optimizada fue `3,48 ms`, el `Cache Hit Ratio` fue `99,36%` y la ventana de prueba controlada dura decenas de segundos). En un despliegue productivo distribuido de la Copa Mundial 2030, las ventanas `for` se extenderían a `1m–5m` para evitar falsos positivos por micro-ráfagas de red.
+
+---
+
+## 2. Matriz Completa de Reglas de Alerta (§5.4 — 8 campos obligatorios por alerta)
+
+| # | Nombre de la Alerta | Métrica / Expresión PromQL | Condición y Ventana (`for`) | Severidad | Componente Afectado | Impacto en el Fixture Mundial 2030 | Acción Inicial de Investigación / Recuperación | Justificación del Umbral (Experimental vs. Diseño) |
+| :---: | :--- | :--- | :---: | :---: | :--- | :--- | :--- | :--- |
+| **A1** | `Fixture2030TargetPrometheusCaido` | `up == 0` | Valor igual a `0` durante `for: 5s` (al menos 2 evaluaciones consecutivas fallidas) | `critical` | Target raspado (`prometheus`, `fixture2030_api` o `redis_exporter`) | Pérdida de observabilidad sobre el componente caído o caída total del proceso API que atiende a los usuarios del Fixture | 1) Consultar `http://127.0.0.1:9090/api/v1/targets`<br>2) Ejecutar `docker compose ps` y revisar logs del contenedor caído<br>3) Reiniciar el servicio con `docker compose start <servicio>` | **Experimental:** Con `scrape_interval: 5s` y `evaluation_interval: 5s`, `for: 5s` evita falsas alarmas por un corte instantáneo y permite observar la transición `PENDING -> FIRING` en la prueba controlada (RF10) |
+| **A2** | `Fixture2030MotorPoliglotaInaccesible` | `fixture2030_component_up{monitored_mode="active_probe"} == 0` | Valor igual a `0` durante `for: 5s` | `critical` | Motores activos del flujo integrado (`mongodb`, `neo4j`, `redis`, `api-fastify`) | Fallo inmediato en endpoints que dependen del motor: sin `redis` fallan sesiones/caché; sin `neo4j` u `mongodb` fallan los cache misses devolviendo `HTTP 503 DEPENDENCY_UNAVAILABLE` | 1) Identificar la etiqueta `component` en la alerta activa<br>2) Verificar contenedor (`docker ps`, `docker logs fixture2030-<motor>-1`)<br>3) Validar conectividad con `pnpm --dir hito-10-api eval:tcp` | **Experimental:** La sonda activa se ejecuta en cada scrape sobre los 3 motores críticos. Un fallo sostenido por `5s` con timeouts de driver de `3.000 ms` confirma indisponibilidad real de la base de datos |
+| **A3** | `Fixture2030LatenciaHttpP95Elevada` | `histogram_quantile(0.95, sum by (le) (rate(fixture2030_http_request_duration_ms_bucket[1m]))) > 250` | Cuantil `0.95` superior a `250 ms` durante `for: 30s` | `warning` | Capa de aplicación `fixture2030-api` y motores subyacentes | Experiencia de usuario degradada al consultar partidos en vivo, planteles o eventos del minuto a minuto | 1) Desglosar latencia `p95` por motor con `fixture2030_db_operation_duration_ms_bucket`<br>2) Verificar si hubo caída de `Cache Hit Ratio` en Redis<br>3) Revisar saturación de pool de conexiones en MongoDB/Neo4j | **Basado en evidencia Hito 12:** En Hito 12 la línea base sin optimizar tuvo `p95 = 24,52 ms` y la versión optimizada `p95 = 3,48 ms`. Superar `250 ms` durante `30s` indica contención severa o degradación de un motor |
+| **A4** | `Fixture2030TasaErroresHttp5xxAlta` | `(sum(rate(fixture2030_http_requests_total{status_class="5xx"}[1m])) / clamp_min(sum(rate(fixture2030_http_requests_total[1m])), 0.001)) > 0.01` | Proporción de respuestas `5xx` superior al `1%` (`0.01`) durante `for: 10s` | `critical` | API REST Políglota (`GET /partidos/:id`, `/equipos/:codigo`, etc.) | Más del 1% de los usuarios reciben errores de servidor (`503 DEPENDENCY_UNAVAILABLE` o `504 DEPENDENCY_TIMEOUT`) al navegar el fixture | 1) Consultar `fixture2030_db_operations_total{status="error"}` para aislar el motor causante<br>2) Verificar salud de Neo4j, MongoDB y Redis<br>3) Restaurar el conector o contenedor afectado | **Experimental y SLO de diseño:** En Hito 12 ambas corridas registraron `0,00%` de errores HTTP. Un umbral de `1%` permite detectar inmediatamente fallas parciales de dependencias (como la inducida en RF10) |
+| **A5** | `Fixture2030CacheHitRatioBajoBajoCarga` | `(sum(rate(fixture2030_cache_events_total{result="hit"}[1m])) / clamp_min(sum(rate(fixture2030_cache_events_total{result=~"hit\|miss"}[1m])), 0.001)) < 0.70 and sum(rate(fixture2030_cache_events_total{result=~"hit\|miss"}[1m])) > 1` | Hit ratio menor a `70%` (`0.70`) con tráfico `> 1 op/s` durante `for: 30s` | `warning` | Subsistema `redis_cache` (Read-Aside Cache) | Aumento drástico de consultas directas a Neo4j y MongoDB (riesgo de *cache stampede* en partidos calientes como `F2030-001`) | 1) Verificar si Redis fue reiniciado o vaciado (`FLUSHDB`)<br>2) Revisar configuración de TTLs (`120s` partidos, `300s` equipos, `15s` eventos)<br>3) Monitorear latencia de Neo4j mientras la caché se recalienta | **Basado en evidencia Hito 12:** Con distribución 80/20 de claves calientes, el hit ratio medido en Hito 12 fue `99,36%`. Caer bajo `70%` bajo carga sostenida señala pérdida de efectividad de la capa Read-Aside |
+| **A6** | `Fixture2030RedisMemoriaSaturada` | `(redis_memory_used_bytes / clamp_min(redis_memory_max_bytes, 1)) > 0.85 and redis_memory_max_bytes > 0` | Uso de memoria Redis `> 85%` del límite `maxmemory` durante `for: 30s` | `warning` | Motor Clave-Valor `Redis` (reportado por `redis_exporter`) | Riesgo de desalojo prematuro (*eviction*) de sesiones activas o de entradas calientes de caché bajo pico de usuarios concurrentes | 1) Consultar `redis_db_keys` y `redis_evicted_keys_total` en Prometheus<br>2) Auditar el espacio de nombres (`sesion:*` vs `cache:*`)<br>3) Ajustar TTLs o ampliar `maxmemory` del contenedor Redis | **Umbral operativo preventivo:** En laboratorio Redis consume `~1,83 MiB` sin presión de memoria (`maxmemory = 0`), pero la regla deja instrumentada la protección estándar (`85%`) para entornos con cuota de RAM |
+
+---
+
+## 3. Verificación Empírica de las Alertas
+
+Durante la ejecución de [`scripts/ejecutar_prueba_controlada.ts`](../scripts/ejecutar_prueba_controlada.ts):
+1. **En estado normal (`Fase 1`):** las 6 reglas permanecen en estado `INACTIVE`.
+2. **Durante la falla controlada (`Fase 2`):** al detener `redis-exporter` e inducir la indisponibilidad de Neo4j sobre `/partidos/F2030-001`, las reglas `Fixture2030TargetPrometheusCaido`, `Fixture2030MotorPoliglotaInaccesible` y `Fixture2030TasaErroresHttp5xxAlta` transicionan a `FIRING` en `/api/v1/rules`.
+3. **Tras la recuperación (`Fase 3`):** al restaurar `redis-exporter` y `neo4j`, las alertas vuelven automáticamente a estado `INACTIVE`.
+
+Los resultados reales quedan registrados en [`evidencia/prueba_de_falla.md`](../evidencia/prueba_de_falla.md) y [`evidencia/prueba_de_falla.json`](../evidencia/prueba_de_falla.json).

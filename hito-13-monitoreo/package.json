@@ -1,0 +1,15 @@
+{
+  "name": "fixture2030-hito-13-monitoreo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "iniciar": "npx tsx scripts/iniciar_monitoreo.ts",
+    "servidor": "npx tsx scripts/servidor_monitoreo.ts",
+    "verificar-targets": "npx tsx scripts/verificar_targets.ts",
+    "prueba-controlada": "npx tsx scripts/ejecutar_prueba_controlada.ts",
+    "smoke": "npx tsx scripts/ejecutar_prueba_controlada.ts --smoke",
+    "limpiar": "npx tsx scripts/limpiar_entorno.ts",
+    "typecheck": "tsc --noEmit"
+  }
+}

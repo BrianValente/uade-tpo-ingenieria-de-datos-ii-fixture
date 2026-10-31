@@ -1,0 +1,75 @@
+groups:
+  - name: fixture2030_alertas_operativas
+    interval: 5s
+    rules:
+      - alert: Fixture2030TargetPrometheusCaido
+        expr: up == 0
+        for: 5s
+        labels:
+          severity: critical
+          tier: infrastructure
+          hito: "13"
+        annotations:
+          summary: "Target de Prometheus caído ({{ $labels.job }} / {{ $labels.instance }})"
+          description: "El job {{ $labels.job }} ({{ $labels.instance }}) no responde al scrape de Prometheus durante al menos 5s."
+          runbook: "Verificar estado del contenedor o proceso con docker compose ps / pnpm h13:verificar-targets."
+
+      - alert: Fixture2030MotorPoliglotaInaccesible
+        expr: fixture2030_component_up{monitored_mode="active_probe"} == 0
+        for: 5s
+        labels:
+          severity: critical
+          tier: database
+          hito: "13"
+        annotations:
+          summary: "Componente activo inaccesible: {{ $labels.component }} ({{ $labels.model }})"
+          description: "La sonda activa de {{ $labels.component }} ({{ $labels.role }}) reporta indisponibilidad (valor {{ $value }}). Impacta lecturas o sesiones del Fixture 2030."
+          runbook: "Inspeccionar contenedor Docker del motor afectado, revisar logs y verificar conectividad TCP/driver."
+
+      - alert: Fixture2030LatenciaHttpP95Elevada
+        expr: histogram_quantile(0.95, sum by (le) (rate(fixture2030_http_request_duration_ms_bucket[1m]))) > 250
+        for: 30s
+        labels:
+          severity: warning
+          tier: application
+          hito: "13"
+        annotations:
+          summary: "Latencia HTTP p95 global superior a 250 ms"
+          description: "El percentil 95 de latencia HTTP en ventana de 1m superó los 250 ms (valor actual: {{ $value }} ms), excediendo el objetivo de laboratorio post-optimización."
+          runbook: "Comparar latencia por motor (fixture2030_db_operation_duration_ms_bucket) y verificar hit ratio de caché Redis."
+
+      - alert: Fixture2030TasaErroresHttp5xxAlta
+        expr: (sum(rate(fixture2030_http_requests_total{status_class="5xx"}[1m])) / clamp_min(sum(rate(fixture2030_http_requests_total[1m])), 0.001)) > 0.01
+        for: 10s
+        labels:
+          severity: critical
+          tier: application
+          hito: "13"
+        annotations:
+          summary: "Tasa de errores HTTP 5xx superior al 1% en la API"
+          description: "La proporción de respuestas HTTP 5xx (incluyendo 503 DEPENDENCY_UNAVAILABLE y 504 DEPENDENCY_TIMEOUT) superó el 1% en el último minuto."
+          runbook: "Verificar métricas fixture2030_db_operations_total{status=\"error\"} y disponibilidad de MongoDB, Neo4j y Redis."
+
+      - alert: Fixture2030CacheHitRatioBajoBajoCarga
+        expr: (sum(rate(fixture2030_cache_events_total{result="hit"}[1m])) / clamp_min(sum(rate(fixture2030_cache_events_total{result=~"hit|miss"}[1m])), 0.001)) < 0.70 and sum(rate(fixture2030_cache_events_total{result=~"hit|miss"}[1m])) > 1
+        for: 30s
+        labels:
+          severity: warning
+          tier: cache
+          hito: "13"
+        annotations:
+          summary: "Cache Hit Ratio de Redis inferior al 70% bajo tráfico activo"
+          description: "El ratio de aciertos de la caché Read-Aside cayó por debajo de 70% con tráfico activo, incrementando la presión de lectura sobre MongoDB y Neo4j."
+          runbook: "Revisar expiración de TTLs, invalidaciones masivas o reinicio reciente de Redis."
+
+      - alert: Fixture2030RedisMemoriaSaturada
+        expr: (redis_memory_used_bytes / clamp_min(redis_memory_max_bytes, 1)) > 0.85 and redis_memory_max_bytes > 0
+        for: 30s
+        labels:
+          severity: warning
+          tier: database
+          hito: "13"
+        annotations:
+          summary: "Uso de memoria en Redis superior al 85% de maxmemory"
+          description: "Redis utiliza más del 85% de su límite de memoria configurado, aumentando el riesgo de desalojos prematuros de llaves de caché o sesiones."
+          runbook: "Inspeccionar redis_db_keys, cardinalidad de sesiones vs caché y política maxmemory-policy."
