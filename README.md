@@ -311,3 +311,4 @@ No agregar `volumes` salvo que se quiera borrar la informacion local de la base 
 - [Modulo de entidades complejas del Hito 9](iris/README.md)
 - [Evaluación de conectividad del Hito 11](hito-11-conectividad/README.md)
 - [Pruebas de carga y optimización del Hito 12](hito-12-carga-optimizacion/README.md)
+- [Monitoreo y defensa técnica final del Hito 13](hito-13-monitoreo/README.md)

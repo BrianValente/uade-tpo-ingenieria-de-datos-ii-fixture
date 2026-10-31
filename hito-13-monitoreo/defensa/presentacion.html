@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Defensa Técnica Final — Fixture Mundial FIFA 2030 (Hito 13)</title>
+    <style>
+      :root {
+        --bg: #0b1120;
+        --panel: #111827;
+        --border: #1e293b;
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --accent: #38bdf8;
+        --emerald: #10b981;
+        --amber: #f59e0b;
+        --rose: #f43f5e;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 2rem;
+        background: rgba(17, 24, 39, 0.95);
+        border-bottom: 1px solid var(--border);
+      }
+      header h1 {
+        margin: 0;
+        font-size: 1.05rem;
+        color: var(--accent);
+      }
+      .controls {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      button {
+        background: #1e293b;
+        color: var(--text);
+        border: 1px solid #334155;
+        border-radius: 6px;
+        padding: 0.4rem 0.85rem;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button:hover {
+        border-color: var(--accent);
+      }
+      main {
+        max-width: 1180px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem 3rem;
+      }
+      .slide {
+        display: none;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 2rem 2.5rem;
+        min-height: 74vh;
+      }
+      .slide.active {
+        display: block;
+      }
+      .badge {
+        display: inline-block;
+        padding: 0.2rem 0.65rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        background: rgba(56, 189, 248, 0.15);
+        color: var(--accent);
+        margin-bottom: 0.75rem;
+      }
+      h2 {
+        margin-top: 0.25rem;
+        font-size: 1.85rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.6rem;
+      }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.25rem;
+        margin-top: 1rem;
+      }
+      .card {
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.1rem 1.25rem;
+      }
+      .card h3 {
+        margin-top: 0;
+        color: var(--accent);
+        font-size: 1.1rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        font-size: 0.92rem;
+      }
+      th,
+      td {
+        border: 1px solid var(--border);
+        padding: 0.55rem 0.75rem;
+        text-align: left;
+      }
+      th {
+        background: #1e293b;
+        color: var(--accent);
+      }
+      code {
+        background: #0f172a;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        color: #7dd3fc;
+        font-size: 0.88em;
+      }
+      .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 1.25rem 0;
+      }
+      .kpi {
+        background: #0f172a;
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--emerald);
+        padding: 1rem;
+        border-radius: 8px;
+      }
+      .kpi .val {
+        font-size: 1.7rem;
+        font-weight: 800;
+        color: var(--emerald);
+      }
+      .kpi .lbl {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>UADE · Ingeniería de Datos II · Defensa Técnica FIFA Mundial 2030 (Hito 13)</h1>
+      <div class="controls">
+        <button id="prevBtn" type="button">◀ Anterior</button>
+        <span id="counter">1 / 8</span>
+        <button id="nextBtn" type="button">Siguiente ▶</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="slide active">
+        <span class="badge">Bloque 1 · Minutos 00:00 – 02:00 · Inicio</span>
+        <h2>1. El Problema: Por Qué el Fixture Mundial 2030 Requiere Persistencia Políglota</h2>
+        <p>
+          La Copa Mundial FIFA 2030 abarca <strong>127 partidos</strong> en 3 continentes con patrones de acceso
+          incompatibles para un único motor de base de datos monolítico (RF12):
+        </p>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Cargas Operativas en Vivo (OLTP)</h3>
+            <ul>
+              <li><strong>Perfiles jerárquicos:</strong> 64 selecciones y 1.536 jugadores con atributos ricos.</li>
+              <li><strong>Red topológica conexa:</strong> fases, sedes, llaves eliminatorias y eventos por minuto.</li>
+              <li><strong>Estado efímero sub-milisegundo:</strong> sesiones autenticadas y caché de partidos calientes (80/20).</li>
+              <li><strong>Ingesta masiva particionada:</strong> cronología de comentarios y sensores IoT de estadios.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Tesis Central de la Defensa (§1.1)</h3>
+            <p>
+              Combinamos <strong>6 modelos especializados</strong> detrás de una API Fastify instrumentada con
+              <strong>Prometheus y Grafana</strong>, separando el tráfico OLTP de baja latencia del
+              <strong>Data Mart Analítico en InterSystems IRIS</strong> (RF15).
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 2 · Minutos 02:00 – 06:00 · Arquitectura</span>
+        <h2>2. Mapa de Responsabilidades de los 6 Motores NoSQL (RF11)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Motor</th>
+              <th>Modelo</th>
+              <th>Responsabilidad en el Fixture 2030</th>
+              <th>Estructura / Clave Principal</th>
+              <th>Estado Monitoreo Hito 13</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>MongoDB 7.0</strong></td>
+              <td>Documental</td>
+              <td>Maestro de selecciones, planteles (24 jugadores) y auditoría</td>
+              <td><code>equipos(codigo)</code>, <code>jugadores(equipoCodigo, posicion, dorsal)</code></td>
+              <td>Sonda activa + métricas driver</td>
+            </tr>
+            <tr>
+              <td><strong>Neo4j 5.26.24</strong></td>
+              <td>Grafo</td>
+              <td>Partidos, sedes, fases, cruces y eventos minuto a minuto</td>
+              <td><code>(:Equipo)-[:DISPUTA]-&gt;(:Partido)-[:SE_JUEGA_EN]-&gt;(:Sede)</code></td>
+              <td>Sonda activa Bolt + métricas driver</td>
+            </tr>
+            <tr>
+              <td><strong>Redis 7.2</strong></td>
+              <td>Clave-Valor</td>
+              <td>Sesiones con TTL deslizable (O3) y caché Read-Aside (O2)</td>
+              <td><code>HASH sesion:&lt;digest&gt;</code>, <code>STRING cache:*</code></td>
+              <td><code>redis_exporter (:9121)</code> + sonda API</td>
+            </tr>
+            <tr>
+              <td><strong>Cassandra 5.0</strong></td>
+              <td>Columnar</td>
+              <td>Consultas particionadas de eventos y comentarios por partido</td>
+              <td><code>PRIMARY KEY ((partido_id), minuto, evento_id)</code></td>
+              <td>Sonda TCP informativa (<code>:9042</code>)</td>
+            </tr>
+            <tr>
+              <td><strong>InfluxDB 3 Core</strong></td>
+              <td>Series Temporales</td>
+              <td>Telemetría IoT de estadios (clima, césped, ruido) por ventana</td>
+              <td>Tags: <code>sede_id, partido_id</code> · Fields: <code>temp, humedad</code></td>
+              <td>Sonda TCP informativa (<code>:8181</code>)</td>
+            </tr>
+            <tr>
+              <td><strong>InterSystems IRIS</strong></td>
+              <td>Multimodelo / BI</td>
+              <td>Data Mart dimensional en estrella (OLAP desacoplado de OLTP)</td>
+              <td><code>HechoPartido</code>, <code>DimSede</code>, <code>DimSeleccion</code>, <code>DimTiempo</code></td>
+              <td>Sonda TCP informativa (<code>:1972</code>)</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 3 · Minutos 06:00 – 10:00 · Decisiones Técnicas</span>
+        <h2>3. Integración Políglota, Distribución y Consistencia (CAP / PACELC)</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Flujo Compuesto: <code>GET /partidos/F2030-001</code></h3>
+            <ol>
+              <li><strong>Redis Session (Lua):</strong> valida Bearer token y aplica <em>throttling</em> de renovación TTL (<code>1800s</code>).</li>
+              <li><strong>Redis Cache (Read-Aside):</strong> busca <code>partido:F2030-001</code> en <code>~1 ms</code>.</li>
+              <li><strong>Neo4j (en Cache Miss):</strong> recorre partido, sede y códigos <code>ARG</code> / <code>BRA</code>.</li>
+              <li><strong>MongoDB (Lote <code>$in</code>):</strong> proyecta ambos equipos en 1 sola consulta y hidrata la caché (<code>TTL 120s</code>).</li>
+            </ol>
+          </div>
+          <div class="card">
+            <h3>Estrategia de Distribución y Consistencia</h3>
+            <ul>
+              <li><strong>MongoDB:</strong> Replica Set (<code>majority</code> en escrituras, lectura proyectada por <code>equipoCodigo</code>).</li>
+              <li><strong>Neo4j:</strong> grafo completo en <em>page cache</em> + <em>Read Replicas</em> regionales.</li>
+              <li><strong>Cassandra:</strong> <code>NetworkTopologyStrategy RF=3</code> con <code>LOCAL_QUORUM</code>.</li>
+              <li><strong>Data Mart IRIS:</strong> alineación explícita entre timestamp UTC (<code>DimTiempo</code>) y minuto oficial de juego (<code>1T/2T/ET/PEN</code>).</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 4 · Minutos 10:00 – 14:00 · Observabilidad en Vivo</span>
+        <h2>4. Arquitectura de Monitoreo: Prometheus + Redis Exporter + Grafana</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Recolección en Prometheus (<code>:9090</code>)</h3>
+            <ul>
+              <li><code>scrape_interval: 5s</code> · <code>evaluation_interval: 5s</code> · Retención <code>7d</code>.</li>
+              <li><strong>Job 1 (<code>prometheus</code>):</strong> auto-monitoreo TSDB (<code>localhost:9090</code>).</li>
+              <li><strong>Job 2 (<code>fixture2030_api</code>):</strong> métricas HTTP, histogramas por motor y sondas activas (<code>:8013/metrics</code>).</li>
+              <li><strong>Job 3 (<code>redis_exporter</code>):</strong> telemetría interna de memoria y llaves Redis (<code>:9121/metrics</code>).</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Dashboard Provisionado en Grafana (<code>:3000</code>)</h3>
+            <ul>
+              <li><strong>Paneles 1–2:</strong> Disponibilidad <code>up</code> y sondas políglotas activas.</li>
+              <li><strong>Paneles 3–4:</strong> Latencia HTTP (<code>p50/p95/p99</code>) y comparativa <strong>MongoDB vs Neo4j vs Redis</strong>.</li>
+              <li><strong>Paneles 5–6:</strong> Throughput HTTP (<code>req/s</code>) y operaciones por base (<code>ops/s</code>).</li>
+              <li><strong>Paneles 7–9:</strong> Errores <code>4xx/5xx</code>, Cache Hit Ratio y memoria RSS / Redis.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 5 · Minutos 14:00 – 16:00 · Evidencia Hitos 11 y 12</span>
+        <h2>5. Evidencia Cuantitativa de Conectividad (Hito 11) y Optimización (Hito 12)</h2>
+        <div class="kpi-row">
+          <div class="kpi">
+            <div class="val">-85,81%</div>
+            <div class="lbl">Reducción Latencia p95 (24,52 ms ➔ 3,48 ms)</div>
+          </div>
+          <div class="kpi">
+            <div class="val">+616,53%</div>
+            <div class="lbl">Aumento Throughput (992,99 ➔ 7.115,07 req/s)</div>
+          </div>
+          <div class="kpi">
+            <div class="val">99,36%</div>
+            <div class="lbl">Cache Hit Ratio en Redis Read-Aside (O2)</div>
+          </div>
+          <div class="kpi">
+            <div class="val">-99,98%</div>
+            <div class="lbl">Escrituras de sesión ahorradas por Throttling (O3)</div>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Indicador Medido (Ventana 16s · 24 VUs)</th>
+              <th>Línea Base (Antes)</th>
+              <th>Optimizado (O1 + O2 + O3)</th>
+              <th>Impacto Directo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Operaciones totales completadas (0% error)</td>
+              <td><code>15.971 ops</code></td>
+              <td><code>114.047 ops</code></td>
+              <td><strong>7,14x</strong> más capacidad en el mismo hardware</td>
+            </tr>
+            <tr>
+              <td>Consultas ejecutadas en MongoDB / Neo4j</td>
+              <td><code>27.107</code> / <code>9.546</code></td>
+              <td><code>192 (-99,29%)</code> / <code>332 (-96,52%)</code></td>
+              <td>Protección efectiva del grafo y del motor documental</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 5 · Minutos 16:00 – 18:00 · Evidencia Hito 13 (RF9 y RF10)</span>
+        <h2>6. Alertas Operativas y Prueba Controlada de Falla y Recuperación</h2>
+        <p>
+          Se ejecutó una prueba no destructiva en 3 fases verificando la detección automática en Prometheus y la
+          recuperación limpia del servicio (<code>evidencia/prueba_de_falla.md</code>):
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Indicador Observado en Prometheus</th>
+              <th>Fase 1: Normal</th>
+              <th>Fase 2: Falla Controlada</th>
+              <th>Fase 3: Recuperación</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Targets Prometheus (<code>up</code>)</td>
+              <td><strong>3 UP / 0 DOWN</strong></td>
+              <td><strong>2 UP / 1 DOWN</strong> (<code>redis_exporter=0</code>)</td>
+              <td><strong>3 UP / 0 DOWN</strong></td>
+            </tr>
+            <tr>
+              <td>Sonda Activa Neo4j (<code>fixture2030_component_up</code>)</td>
+              <td><code>1 (ACTIVO)</code></td>
+              <td><code>0 (CAÍDO)</code></td>
+              <td><code>1 (ACTIVO)</code></td>
+            </tr>
+            <tr>
+              <td>Respuesta <code>GET /partidos/F2030-001</code></td>
+              <td><code>HTTP 200 OK</code></td>
+              <td><code>HTTP 503 DEPENDENCY_UNAVAILABLE</code></td>
+              <td><code>HTTP 200 OK</code></td>
+            </tr>
+            <tr>
+              <td>Reglas de Alerta en <code>/api/v1/rules</code></td>
+              <td><code>INACTIVE</code></td>
+              <td><code>FIRING</code> (TargetCaido, MotorInaccesible, Errores5xx)</td>
+              <td><code>INACTIVE / RECOVERED</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 6 · Minutos 18:00 – 19:00 · Rigor Metodológico (RNF8)</span>
+        <h2>7. Limitaciones del Laboratorio vs. Producción Mundial 2030</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Lo Medido en Laboratorio Local</h3>
+            <ul>
+              <li>Flujo activo <strong>API + MongoDB + Neo4j + Redis</strong> instrumentado y raspado cada <code>5s</code>.</li>
+              <li>Sondas TCP informativas (<code>tcp_socket_probe</code>) para <strong>Cassandra, InfluxDB e IRIS</strong> (detenidos bajo demanda para preservar RAM del host).</li>
+              <li>Dataset canónico de 32 partidos, 64 selecciones y 1.536 jugadores en un único nodo físico.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Proyección a Producción FIFA 2030</h3>
+            <ul>
+              <li>127 partidos distribuidos en clústeres multi-región (Sudamérica, Península Ibérica, Marruecos).</li>
+              <li><strong>Propuesta 1:</strong> <em>Singleflight / Request Coalescing</em> ante expiración de caché.</li>
+              <li><strong>Propuesta 2:</strong> Invalidación <code>REDIS PUB/SUB</code> para eventos en vivo.</li>
+              <li><strong>Propuesta 3:</strong> <em>Circuit Breaker</em> con <em>Stale-If-Error</em> ante caída temporal de Neo4j.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 6 · Minutos 19:00 – 20:00 · Conclusión y Preguntas</span>
+        <h2>8. Síntesis Ejecutiva para el Comité Evaluador de la FIFA</h2>
+        <div class="card">
+          <h3>¿Por qué esta arquitectura es adecuada para el Fixture Mundial 2030?</h3>
+          <p>
+            Porque <strong>cada motor resuelve exactamente el problema para el cual fue diseñado</strong>: documentos en
+            MongoDB, relaciones del torneo en Neo4j, sesiones y caché en memoria en Redis, particiones masivas en
+            Cassandra, telemetría temporal en InfluxDB y analítica estrella desacoplada en InterSystems IRIS — todo
+            verificado con pruebas automatizadas (Hito 11), validado bajo carga con mejoras superiores a 7x (Hito 12) y
+            monitoreado extremo a extremo con alertas verificadas ante fallas (Hito 13).
+          </p>
+        </div>
+        <p style="margin-top: 1.5rem; color: var(--muted)">
+          Use las teclas <code>←</code> y <code>→</code> o los botones superiores para navegar durante las preguntas del comité.
+        </p>
+      </section>
+    </main>
+
+    <script>
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const counter = document.getElementById('counter');
+      let current = 0;
+
+      function render(idx) {
+        current = (idx + slides.length) % slides.length;
+        slides.forEach((s, i) => s.classList.toggle('active', i === current));
+        counter.textContent = `${current + 1} / ${slides.length}`;
+      }
+
+      document.getElementById('prevBtn').addEventListener('click', () => render(current - 1));
+      document.getElementById('nextBtn').addEventListener('click', () => render(current + 1));
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'PageDown') render(current + 1);
+        if (e.key === 'ArrowLeft' || e.key === 'PageUp') render(current - 1);
+      });
+    </script>
+  </body>
+</html>

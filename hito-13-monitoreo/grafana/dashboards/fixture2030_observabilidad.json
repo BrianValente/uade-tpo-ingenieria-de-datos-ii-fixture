@@ -1,0 +1,670 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_fixture2030"
+      },
+      "description": "Estado de los targets directos de Prometheus (up == 1 indica scrape exitoso; up == 0 indica target caído).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "DOWN (0)"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "UP (1)"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      },
+      "title": "1. Disponibilidad de Targets de Prometheus (up)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "up",
+          "legendFormat": "{{job}} ({{component}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_fixture2030"
+      },
+      "description": "Disponibilidad en tiempo real de los motores activos del flujo integrado (MongoDB, Neo4j, Redis y API Fastify) verificada mediante sondas activas de driver.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "CAÍDO (0)"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "ACTIVO (1)"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      },
+      "title": "2. Disponibilidad de Componentes Políglotas Activos (Sondas)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "fixture2030_component_up{monitored_mode=\"active_probe\"}",
+          "legendFormat": "{{component}} [{{model}}]",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_fixture2030"
+      },
+      "description": "Percentiles p50, p95 y p99 de latencia HTTP extremo a extremo en la API (ventana móvil de 1m) con umbral de alerta en 250 ms.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisLabel": "Latencia (ms)",
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "showPoints": "auto",
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 100
+              },
+              {
+                "color": "red",
+                "value": 250
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 5
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "3. Latencia HTTP API (p50, p95, p99 - Ventana 1m)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(fixture2030_http_request_duration_ms_bucket[1m])))",
+          "legendFormat": "p50 HTTP Global",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(fixture2030_http_request_duration_ms_bucket[1m])))",
+          "legendFormat": "p95 HTTP Global (Umbral: 250 ms)",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(fixture2030_http_request_duration_ms_bucket[1m])))",
+          "legendFormat": "p99 HTTP Global",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_fixture2030"
+      },
+      "description": "Comparación directa entre motores políglotas: latencia p95 de operaciones en MongoDB, Neo4j, Redis Session y Redis Cache (ventana 1m).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisLabel": "Latencia p95 (ms)",
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "showPoints": "auto"
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 5
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "4. Comparación de Latencia p95 por Motor de Datos (MongoDB vs Neo4j vs Redis)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le, engine) (rate(fixture2030_db_operation_duration_ms_bucket[1m])))",
+          "legendFormat": "p95 {{engine}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "fixture2030_component_probe_latency_ms{monitored_mode=\"active_probe\"}",
+          "legendFormat": "Sonda {{component}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_fixture2030"
+      },
+      "description": "Tasa de solicitudes HTTP por segundo desglosada por ruta de la API y clase de código de estado (2xx, 4xx, 5xx).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisLabel": "Requests / seg",
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 13
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "5. Throughput / Volumen de Peticiones HTTP por Ruta (req/s)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "sum by (route, status_class) (rate(fixture2030_http_requests_total[1m]))",
+          "legendFormat": "{{route}} [{{status_class}}]",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_fixture2030"
+      },
+      "description": "Comparación del volumen de operaciones por segundo ejecutadas en cada subsistema de base de datos (MongoDB, Neo4j, Redis Session, Redis Cache).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisLabel": "Operaciones / seg",
+            "drawStyle": "bars",
+            "fillOpacity": 50,
+            "lineWidth": 1
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 13
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "6. Comparación de Volumen de Operaciones por Base de Datos (ops/s)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "sum by (engine, operation) (rate(fixture2030_db_operations_total[1m]))",
+          "legendFormat": "{{engine}} :: {{operation}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_fixture2030"
+      },
+      "description": "Tasa de respuestas HTTP no exitosas (4xx/5xx) y errores de driver/dependencia por motor de base de datos.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisLabel": "Errores / seg",
+            "drawStyle": "line",
+            "fillOpacity": 25,
+            "lineWidth": 2
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 21
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "7. Tasa de Errores HTTP (4xx/5xx) y Fallos de Dependencia",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "sum by (status_class, status_code) (rate(fixture2030_http_requests_total{status_class=~\"4xx|5xx\"}[1m]))",
+          "legendFormat": "HTTP {{status_code}} ({{status_class}})",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "sum by (engine) (rate(fixture2030_db_operations_total{status=\"error\"}[1m]))",
+          "legendFormat": "Error Driver {{engine}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_fixture2030"
+      },
+      "description": "Efectividad de las optimizaciones del Hito 12: Cache Hit Ratio en Redis y tasa de aciertos vs misses vs renovaciones de sesión ahorradas por throttling.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisLabel": "Eventos / seg",
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 21
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "8. Eficiencia de Caché Redis y Throttling de Sesiones",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "sum by (result) (rate(fixture2030_cache_events_total[1m]))",
+          "legendFormat": "Cache {{result}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "sum by (action) (rate(fixture2030_session_renewals_total[1m]))",
+          "legendFormat": "Sesión {{action}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_fixture2030"
+      },
+      "description": "Métricas de infraestructura: uso de memoria RSS y Heap de la API Node.js junto con la memoria consumida en Redis reportada por redis_exporter.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisLabel": "Memoria",
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 21
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "9. Recursos de Infraestructura: Memoria API Node.js y Redis",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "process_resident_memory_bytes{job=\"fixture2030_api\"}",
+          "legendFormat": "API Node.js RSS",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "nodejs_heap_used_bytes{job=\"fixture2030_api\"}",
+          "legendFormat": "API Node.js Heap Used",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_fixture2030"
+          },
+          "expr": "redis_memory_used_bytes",
+          "legendFormat": "Redis Used Memory (Exporter)",
+          "refId": "C"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["fixture2030", "hito-13", "poliglota", "prometheus"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Fixture Mundial 2030 — Observabilidad Políglota (Hito 13)",
+  "uid": "fixture2030-hito13-obs",
+  "version": 1,
+  "weekStart": ""
+}
