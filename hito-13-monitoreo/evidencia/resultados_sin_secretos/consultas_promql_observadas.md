@@ -2,22 +2,22 @@
 
 ## 1. Metadatos de Ejecución (RF8, RNF2, RNF6)
 
-- **Fecha UTC:** `2026-11-06T18:45:37.672Z`
-- **Commit Git:** `cd653d6` (rama `fix/hito13-complete`, árbol `clean`)
+- **Fecha UTC:** `2026-11-06T19:57:42.169Z`
+- **Commit Git:** `46af5f5` (rama `fix/hito13-complete`, árbol `clean`)
 - **Endpoint Consultado:** `http://127.0.0.1:9090/api/v1/query`
 
 ## 2. Resumen Tabular de Consultas PromQL Ejecutadas
 
 | ID | Métrica / Consulta | Categoría | Unidad | Ventana | Series | Muestra Principal Observada |
 | :---: | :--- | :---: | :---: | :---: | :---: | :--- |
-| `Q1` | Disponibilidad de targets raspados por Prometheus | `availability` | `booleano (1 = UP, 0 = DOWN)` | `instantánea (scrape_interval = 5s)` | 3 | `1.000 {instance="host.docker.internal:8013", job="fixture2030_api", layer="application-and-probes", ...}` |
+| `Q1` | Disponibilidad de targets raspados por Prometheus | `availability` | `booleano (1 = UP, 0 = DOWN)` | `instantánea (scrape_interval = 5s)` | 3 | `1.000 {instance="redis-exporter:9121", job="redis_exporter", layer="database-exporter", ...}` |
 | `Q2` | Disponibilidad de componentes políglotas activos (sondas de driver) | `availability` | `booleano (1 = ACTIVO, 0 = CAÍDO)` | `instantánea (5s)` | 4 | `1.000 {component="api-fastify", instance="host.docker.internal:8013", job="fixture2030_api", ...}` |
-| `Q3` | Latencia HTTP p95 global de la API en ventana móvil de 1m | `latency` | `milisegundos (ms)` | `1m (rate)` | 1 | `10.603 {}` |
-| `Q4` | Comparación de latencia p95 por motor de base de datos | `latency` | `milisegundos (ms)` | `1m (rate)` | 4 | `2.345 {engine="redis_session"}` |
-| `Q5` | Throughput HTTP por plantilla de ruta y clase de estado | `throughput` | `solicitudes por segundo (req/s)` | `1m (rate)` | 4 | `2.074 {route="/partidos/:id", status_class="2xx"}` |
-| `Q6` | Volumen de operaciones por segundo en cada base de datos | `throughput` | `operaciones por segundo (ops/s)` | `1m (rate)` | 8 | `0.249 {engine="mongodb", operation="team"}` |
-| `Q7` | Cache Hit Ratio en Redis Read-Aside | `cache` | `proporción (0.0 a 1.0)` | `1m (rate)` | 1 | `0.830 {}` |
-| `Q8` | Memoria utilizada por Redis y RSS del proceso Node.js | `resources` | `bytes` | `instantánea (5s)` | 2 | `2271288.000 {instance="redis-exporter:9121", job="redis_exporter", layer="database-exporter", ...}` |
+| `Q3` | Latencia HTTP p95 global de la API en ventana móvil de 1m | `latency` | `milisegundos (ms)` | `1m (rate)` | 1 | `9.109 {}` |
+| `Q4` | Comparación de latencia p95 por motor de base de datos | `latency` | `milisegundos (ms)` | `1m (rate)` | 4 | `2.427 {engine="redis_cache"}` |
+| `Q5` | Throughput HTTP por plantilla de ruta y clase de estado | `throughput` | `solicitudes por segundo (req/s)` | `1m (rate)` | 4 | `1.772 {route="/partidos/:id", status_class="2xx"}` |
+| `Q6` | Volumen de operaciones por segundo en cada base de datos | `throughput` | `operaciones por segundo (ops/s)` | `1m (rate)` | 8 | `0.213 {engine="mongodb", operation="team"}` |
+| `Q7` | Cache Hit Ratio en Redis Read-Aside | `cache` | `proporción (0.0 a 1.0)` | `1m (rate)` | 1 | `0.833 {}` |
+| `Q8` | Memoria utilizada por Redis y RSS del proceso Node.js | `resources` | `bytes` | `instantánea (5s)` | 2 | `2196480.000 {instance="redis-exporter:9121", job="redis_exporter", layer="database-exporter", ...}` |
 
 ## 3. Detalle de Expresiones y Resultados Reales
 
@@ -30,9 +30,9 @@
 
 | Etiquetas (`metric`) | Valor Observado |
 | :--- | ---: |
+| `{"__name__":"up","instance":"redis-exporter:9121","job":"redis_exporter","layer":"database-exporter","service_target":"redis"}` | `1.0000` |
 | `{"__name__":"up","instance":"host.docker.internal:8013","job":"fixture2030_api","layer":"application-and-probes","service_target":"api-fastify"}` | `1.0000` |
 | `{"__name__":"up","instance":"localhost:9090","job":"prometheus","layer":"observability","service_target":"prometheus"}` | `1.0000` |
-| `{"__name__":"up","instance":"redis-exporter:9121","job":"redis_exporter","layer":"database-exporter","service_target":"redis"}` | `1.0000` |
 
 ### Q2 — Disponibilidad de componentes políglotas activos (sondas de driver)
 
@@ -57,7 +57,7 @@
 
 | Etiquetas (`metric`) | Valor Observado |
 | :--- | ---: |
-| `{}` | `10.6035` |
+| `{}` | `9.1089` |
 
 ### Q4 — Comparación de latencia p95 por motor de base de datos
 
@@ -68,10 +68,10 @@
 
 | Etiquetas (`metric`) | Valor Observado |
 | :--- | ---: |
-| `{"engine":"redis_session"}` | `2.3448` |
-| `{"engine":"redis_cache"}` | `2.4361` |
-| `{"engine":"mongodb"}` | `20.1250` |
-| `{"engine":"neo4j"}` | `4.8393` |
+| `{"engine":"redis_cache"}` | `2.4265` |
+| `{"engine":"neo4j"}` | `4.8594` |
+| `{"engine":"mongodb"}` | `8.9167` |
+| `{"engine":"redis_session"}` | `2.2955` |
 
 ### Q5 — Throughput HTTP por plantilla de ruta y clase de estado
 
@@ -82,10 +82,10 @@
 
 | Etiquetas (`metric`) | Valor Observado |
 | :--- | ---: |
-| `{"route":"/partidos/:id","status_class":"2xx"}` | `2.0737` |
-| `{"route":"/equipos/:codigo","status_class":"2xx"}` | `0.3314` |
-| `{"route":"/equipos/:codigo/jugadores","status_class":"2xx"}` | `1.3256` |
-| `{"route":"/partidos/:id/eventos","status_class":"2xx"}` | `0.6628` |
+| `{"route":"/partidos/:id","status_class":"2xx"}` | `1.7722` |
+| `{"route":"/equipos/:codigo","status_class":"2xx"}` | `0.3660` |
+| `{"route":"/equipos/:codigo/jugadores","status_class":"2xx"}` | `1.4641` |
+| `{"route":"/partidos/:id/eventos","status_class":"2xx"}` | `0.7321` |
 
 ### Q6 — Volumen de operaciones por segundo en cada base de datos
 
@@ -96,12 +96,12 @@
 
 | Etiquetas (`metric`) | Valor Observado |
 | :--- | ---: |
-| `{"engine":"mongodb","operation":"team"}` | `0.2489` |
-| `{"engine":"neo4j","operation":"match"}` | `0.4148` |
-| `{"engine":"redis_session","operation":"readAndRenew"}` | `4.9772` |
-| `{"engine":"redis_cache","operation":"get"}` | `4.9772` |
-| `{"engine":"redis_cache","operation":"setex"}` | `0.5303` |
-| `{"engine":"mongodb","operation":"players"}` | `0.0994` |
+| `{"engine":"mongodb","operation":"team"}` | `0.2127` |
+| `{"engine":"neo4j","operation":"match"}` | `0.3544` |
+| `{"engine":"redis_session","operation":"readAndRenew"}` | `4.2532` |
+| `{"engine":"redis_cache","operation":"get"}` | `4.2532` |
+| `{"engine":"mongodb","operation":"matchTeamsBatch"}` | `0.2196` |
+| `{"engine":"redis_cache","operation":"setex"}` | `0.5857` |
 
 ### Q7 — Cache Hit Ratio en Redis Read-Aside
 
@@ -112,7 +112,7 @@
 
 | Etiquetas (`metric`) | Valor Observado |
 | :--- | ---: |
-| `{}` | `0.8298` |
+| `{}` | `0.8328` |
 
 ### Q8 — Memoria utilizada por Redis y RSS del proceso Node.js
 
@@ -123,6 +123,6 @@
 
 | Etiquetas (`metric`) | Valor Observado |
 | :--- | ---: |
-| `{"__name__":"redis_memory_used_bytes","instance":"redis-exporter:9121","job":"redis_exporter","layer":"database-exporter","service_target":"redis"}` | `2271288.0000` |
-| `{"__name__":"process_resident_memory_bytes","instance":"host.docker.internal:8013","job":"fixture2030_api","layer":"application-and-probes","service_target":"api-fastify"}` | `301584384.0000` |
+| `{"__name__":"redis_memory_used_bytes","instance":"redis-exporter:9121","job":"redis_exporter","layer":"database-exporter","service_target":"redis"}` | `2196480.0000` |
+| `{"__name__":"process_resident_memory_bytes","instance":"host.docker.internal:8013","job":"fixture2030_api","layer":"application-and-probes","service_target":"api-fastify"}` | `289693696.0000` |
 

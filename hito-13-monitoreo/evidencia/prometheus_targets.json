@@ -1,19 +1,19 @@
 {
   "reportType": "HITO_13_PROMETHEUS_TARGETS",
   "environment": {
-    "timestamp": "2026-11-06T18:45:37.672Z",
-    "gitCommit": "cd653d6",
+    "timestamp": "2026-11-06T19:57:42.169Z",
+    "gitCommit": "46af5f5",
     "gitBranch": "fix/hito13-complete",
     "gitTreeState": "clean",
-    "executionNotes": "Laboratorio funcional con motores oficiales reales. MongoDB 7 e InfluxDB 3 bajo QEMU user-mode; IRIS 2026.2 en VM Linux QEMU TCG sin ISCAgent; plugins de paquetes Influx deshabilitados. H11 nativo y API H10 sobre Node 24.13/Ubuntu 24.04 para SDK IRIS oficial; H12/H13 sobre Node 24.13/Linux host. CPU fisica sin AVX. Tiempos de laboratorio emulado, no capacidad de produccion.",
+    "executionNotes": "MongoDB7/InfluxDB3 oficiales bajo QEMU user-mode e IRIS2026.2 oficial en VM QEMU TCG. AVX no expuesto en esta VM; no se infiere hardware del host fisico. SDK oficial en Node24.13/Ubuntu24.04. Emulacion y RAM visible variable: no representa capacidad de produccion.",
     "host": {
       "platform": "linux",
       "release": "7.2.11-arch1-1",
       "arch": "x64",
       "cpuModel": "QEMU Virtual CPU version 2.5+",
       "logicalCpus": 24,
-      "totalMemoryGiB": 31.26,
-      "freeMemoryGiB": 20.71,
+      "totalMemoryGiB": 16.52,
+      "freeMemoryGiB": 5.81,
       "nodeVersion": "v24.13.0"
     },
     "products": {
@@ -37,8 +37,8 @@
       "scrapePool": "fixture2030_api",
       "scrapeUrl": "http://host.docker.internal:8013/metrics",
       "health": "up",
-      "lastScrape": "2026-11-06T18:45:55.349365051Z",
-      "lastScrapeDurationMs": 1.403,
+      "lastScrape": "2026-11-06T19:58:00.349394917Z",
+      "lastScrapeDurationMs": 1.301,
       "lastError": "",
       "labels": {
         "instance": "host.docker.internal:8013",
@@ -53,8 +53,8 @@
       "scrapePool": "prometheus",
       "scrapeUrl": "http://localhost:9090/metrics",
       "health": "up",
-      "lastScrape": "2026-11-06T18:45:57.765889996Z",
-      "lastScrapeDurationMs": 3.974,
+      "lastScrape": "2026-11-06T19:58:02.766122088Z",
+      "lastScrapeDurationMs": 3.939,
       "lastError": "",
       "labels": {
         "instance": "localhost:9090",
@@ -69,8 +69,8 @@
       "scrapePool": "redis_exporter",
       "scrapeUrl": "http://redis-exporter:9121/metrics",
       "health": "up",
-      "lastScrape": "2026-11-06T18:45:54.042709218Z",
-      "lastScrapeDurationMs": 13.918,
+      "lastScrape": "2026-11-06T19:57:59.042458606Z",
+      "lastScrapeDurationMs": 12.009,
       "lastError": "",
       "labels": {
         "instance": "redis-exporter:9121",
@@ -158,7 +158,7 @@
       "role": "equipos-jugadores-auditoria",
       "monitoredMode": "active_probe",
       "up": 1,
-      "latencyMs": 0.844,
+      "latencyMs": 1.228,
       "detail": "MongoDB ping:1 ok"
     },
     {
@@ -167,7 +167,7 @@
       "role": "fixture-sedes-eventos",
       "monitoredMode": "active_probe",
       "up": 1,
-      "latencyMs": 2.056,
+      "latencyMs": 1.943,
       "detail": "Neo4j Bolt RETURN 1 ok"
     },
     {
@@ -176,7 +176,7 @@
       "role": "sesiones-y-cache",
       "monitoredMode": "active_probe",
       "up": 1,
-      "latencyMs": 0.266,
+      "latencyMs": 0.261,
       "detail": "Redis PING PONG ok"
     },
     {
@@ -185,7 +185,7 @@
       "role": "eventos-y-consultas-por-particion",
       "monitoredMode": "tcp_socket_probe",
       "up": 1,
-      "latencyMs": 0.233,
+      "latencyMs": 0.256,
       "detail": "TCP 127.0.0.1:9042 reachable"
     },
     {
@@ -194,7 +194,7 @@
       "role": "estadisticas-partido",
       "monitoredMode": "tcp_socket_probe",
       "up": 1,
-      "latencyMs": 0.198,
+      "latencyMs": 0.267,
       "detail": "TCP 127.0.0.1:8181 reachable"
     },
     {
@@ -203,7 +203,7 @@
       "role": "objetos-partido-estado",
       "monitoredMode": "tcp_socket_probe",
       "up": 1,
-      "latencyMs": 0.196,
+      "latencyMs": 0.292,
       "detail": "TCP 127.0.0.1:1972 reachable"
     }
   ]

@@ -1,19 +1,19 @@
 {
   "reportType": "HITO_13_CONTROLLED_FAILURE_TEST",
   "environment": {
-    "timestamp": "2026-11-06T18:45:37.672Z",
-    "gitCommit": "cd653d6",
+    "timestamp": "2026-11-06T19:57:42.169Z",
+    "gitCommit": "46af5f5",
     "gitBranch": "fix/hito13-complete",
     "gitTreeState": "clean",
-    "executionNotes": "Laboratorio funcional con motores oficiales reales. MongoDB 7 e InfluxDB 3 bajo QEMU user-mode; IRIS 2026.2 en VM Linux QEMU TCG sin ISCAgent; plugins de paquetes Influx deshabilitados. H11 nativo y API H10 sobre Node 24.13/Ubuntu 24.04 para SDK IRIS oficial; H12/H13 sobre Node 24.13/Linux host. CPU fisica sin AVX. Tiempos de laboratorio emulado, no capacidad de produccion.",
+    "executionNotes": "MongoDB7/InfluxDB3 oficiales bajo QEMU user-mode e IRIS2026.2 oficial en VM QEMU TCG. AVX no expuesto en esta VM; no se infiere hardware del host fisico. SDK oficial en Node24.13/Ubuntu24.04. Emulacion y RAM visible variable: no representa capacidad de produccion.",
     "host": {
       "platform": "linux",
       "release": "7.2.11-arch1-1",
       "arch": "x64",
       "cpuModel": "QEMU Virtual CPU version 2.5+",
       "logicalCpus": 24,
-      "totalMemoryGiB": 31.26,
-      "freeMemoryGiB": 20.71,
+      "totalMemoryGiB": 16.52,
+      "freeMemoryGiB": 5.81,
       "nodeVersion": "v24.13.0"
     },
     "products": {
@@ -37,7 +37,7 @@
   "phases": {
     "before": {
       "phase": "antes_de_la_falla",
-      "timestampUtc": "2026-11-06T18:45:57.869Z",
+      "timestampUtc": "2026-11-06T19:58:03.914Z",
       "apiCheckStatus": 200,
       "apiCheckBodySnippet": "{\"id\":\"F2030-001\",\"date\":\"2030-06-13\",\"time\":\"16:00:00Z\",\"phase\":\"Fase de grupos\",\"homeCode\":\"ARG\",\"awayCode\":\"BRA\",\"venue\":{\"id\":\"SED-001\",",
       "targetsUp": 3,
@@ -62,7 +62,7 @@
       "neo4jComponentUp": 1,
       "redisExporterUp": 1,
       "redisNativeUp": 1,
-      "redisMemoryUsedBytes": 2271288,
+      "redisMemoryUsedBytes": 2196480,
       "http5xxTotal": 0,
       "neo4jErrorsTotal": 0,
       "alertStates": [
@@ -100,9 +100,9 @@
     },
     "during": {
       "phase": "durante_la_falla_controlada",
-      "timestampUtc": "2026-11-06T18:46:16.102Z",
+      "timestampUtc": "2026-11-06T19:58:22.155Z",
       "apiCheckStatus": 503,
-      "apiCheckBodySnippet": "{\"code\":\"DEPENDENCY_UNAVAILABLE\",\"message\":\"Una dependencia no está disponible.\",\"requestId\":\"3d72b7dc-57d9-4323-850b-664cb42e0382\"}",
+      "apiCheckBodySnippet": "{\"code\":\"DEPENDENCY_UNAVAILABLE\",\"message\":\"Una dependencia no está disponible.\",\"requestId\":\"3d8ecf02-1c4e-4b54-be95-33ba1897fc7b\"}",
       "targetsUp": 2,
       "targetsDown": 1,
       "targetsState": [
@@ -162,7 +162,7 @@
     },
     "after": {
       "phase": "despues_de_la_recuperacion",
-      "timestampUtc": "2026-11-06T18:46:28.307Z",
+      "timestampUtc": "2026-11-06T19:58:34.375Z",
       "apiCheckStatus": 200,
       "apiCheckBodySnippet": "{\"id\":\"F2030-001\",\"date\":\"2030-06-13\",\"time\":\"16:00:00Z\",\"phase\":\"Fase de grupos\",\"homeCode\":\"ARG\",\"awayCode\":\"BRA\",\"venue\":{\"id\":\"SED-001\",",
       "targetsUp": 3,
@@ -187,7 +187,7 @@
       "neo4jComponentUp": 1,
       "redisExporterUp": 1,
       "redisNativeUp": 1,
-      "redisMemoryUsedBytes": 2276976,
+      "redisMemoryUsedBytes": 2191400,
       "http5xxTotal": 31,
       "neo4jErrorsTotal": 31,
       "alertStates": [

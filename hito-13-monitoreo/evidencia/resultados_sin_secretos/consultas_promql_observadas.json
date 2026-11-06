@@ -1,19 +1,19 @@
 {
   "reportType": "HITO_13_PROMQL_CATALOG",
   "environment": {
-    "timestamp": "2026-11-06T18:45:37.672Z",
-    "gitCommit": "cd653d6",
+    "timestamp": "2026-11-06T19:57:42.169Z",
+    "gitCommit": "46af5f5",
     "gitBranch": "fix/hito13-complete",
     "gitTreeState": "clean",
-    "executionNotes": "Laboratorio funcional con motores oficiales reales. MongoDB 7 e InfluxDB 3 bajo QEMU user-mode; IRIS 2026.2 en VM Linux QEMU TCG sin ISCAgent; plugins de paquetes Influx deshabilitados. H11 nativo y API H10 sobre Node 24.13/Ubuntu 24.04 para SDK IRIS oficial; H12/H13 sobre Node 24.13/Linux host. CPU fisica sin AVX. Tiempos de laboratorio emulado, no capacidad de produccion.",
+    "executionNotes": "MongoDB7/InfluxDB3 oficiales bajo QEMU user-mode e IRIS2026.2 oficial en VM QEMU TCG. AVX no expuesto en esta VM; no se infiere hardware del host fisico. SDK oficial en Node24.13/Ubuntu24.04. Emulacion y RAM visible variable: no representa capacidad de produccion.",
     "host": {
       "platform": "linux",
       "release": "7.2.11-arch1-1",
       "arch": "x64",
       "cpuModel": "QEMU Virtual CPU version 2.5+",
       "logicalCpus": 24,
-      "totalMemoryGiB": 31.26,
-      "freeMemoryGiB": 20.71,
+      "totalMemoryGiB": 16.52,
+      "freeMemoryGiB": 5.81,
       "nodeVersion": "v24.13.0"
     },
     "products": {
@@ -38,6 +38,16 @@
         {
           "labels": {
             "__name__": "up",
+            "instance": "redis-exporter:9121",
+            "job": "redis_exporter",
+            "layer": "database-exporter",
+            "service_target": "redis"
+          },
+          "value": "1"
+        },
+        {
+          "labels": {
+            "__name__": "up",
             "instance": "host.docker.internal:8013",
             "job": "fixture2030_api",
             "layer": "application-and-probes",
@@ -52,16 +62,6 @@
             "job": "prometheus",
             "layer": "observability",
             "service_target": "prometheus"
-          },
-          "value": "1"
-        },
-        {
-          "labels": {
-            "__name__": "up",
-            "instance": "redis-exporter:9121",
-            "job": "redis_exporter",
-            "layer": "database-exporter",
-            "service_target": "redis"
           },
           "value": "1"
         }
@@ -147,7 +147,7 @@
       "observedSamples": [
         {
           "labels": {},
-          "value": "10.603476021886062"
+          "value": "9.108893201706746"
         }
       ]
     },
@@ -163,27 +163,27 @@
       "observedSamples": [
         {
           "labels": {
-            "engine": "redis_session"
-          },
-          "value": "2.344827586206897"
-        },
-        {
-          "labels": {
             "engine": "redis_cache"
           },
-          "value": "2.436131762028012"
-        },
-        {
-          "labels": {
-            "engine": "mongodb"
-          },
-          "value": "20.124999999999996"
+          "value": "2.426530612244898"
         },
         {
           "labels": {
             "engine": "neo4j"
           },
-          "value": "4.8392857142857135"
+          "value": "4.859375"
+        },
+        {
+          "labels": {
+            "engine": "mongodb"
+          },
+          "value": "8.916666666666664"
+        },
+        {
+          "labels": {
+            "engine": "redis_session"
+          },
+          "value": "2.295454545454546"
         }
       ]
     },
@@ -202,28 +202,28 @@
             "route": "/partidos/:id",
             "status_class": "2xx"
           },
-          "value": "2.0736666666666665"
+          "value": "1.772151515151515"
         },
         {
           "labels": {
             "route": "/equipos/:codigo",
             "status_class": "2xx"
           },
-          "value": "0.3314"
+          "value": "0.3660333333333333"
         },
         {
           "labels": {
             "route": "/equipos/:codigo/jugadores",
             "status_class": "2xx"
           },
-          "value": "1.3256"
+          "value": "1.4641333333333333"
         },
         {
           "labels": {
             "route": "/partidos/:id/eventos",
             "status_class": "2xx"
           },
-          "value": "0.6628"
+          "value": "0.7320666666666666"
         }
       ]
     },
@@ -242,56 +242,56 @@
             "engine": "mongodb",
             "operation": "team"
           },
-          "value": "0.24886000000000003"
+          "value": "0.21266181818181817"
         },
         {
           "labels": {
             "engine": "neo4j",
             "operation": "match"
           },
-          "value": "0.4147666666666667"
+          "value": "0.35443636363636366"
         },
         {
           "labels": {
             "engine": "redis_session",
             "operation": "readAndRenew"
           },
-          "value": "4.9772"
+          "value": "4.253236363636364"
         },
         {
           "labels": {
             "engine": "redis_cache",
             "operation": "get"
           },
-          "value": "4.9772"
-        },
-        {
-          "labels": {
-            "engine": "redis_cache",
-            "operation": "setex"
-          },
-          "value": "0.5302933333333333"
-        },
-        {
-          "labels": {
-            "engine": "mongodb",
-            "operation": "players"
-          },
-          "value": "0.09942999999999999"
+          "value": "4.253236363636364"
         },
         {
           "labels": {
             "engine": "mongodb",
             "operation": "matchTeamsBatch"
           },
-          "value": "0.19885999999999998"
+          "value": "0.21963999999999997"
+        },
+        {
+          "labels": {
+            "engine": "redis_cache",
+            "operation": "setex"
+          },
+          "value": "0.5857066666666666"
+        },
+        {
+          "labels": {
+            "engine": "mongodb",
+            "operation": "players"
+          },
+          "value": "0.10981999999999999"
         },
         {
           "labels": {
             "engine": "neo4j",
             "operation": "events"
           },
-          "value": "0.09942999999999999"
+          "value": "0.10981999999999999"
         }
       ]
     },
@@ -307,7 +307,7 @@
       "observedSamples": [
         {
           "labels": {},
-          "value": "0.8298499749198194"
+          "value": "0.8328195466257042"
         }
       ]
     },
@@ -329,7 +329,7 @@
             "layer": "database-exporter",
             "service_target": "redis"
           },
-          "value": "2271288"
+          "value": "2196480"
         },
         {
           "labels": {
@@ -339,7 +339,7 @@
             "layer": "application-and-probes",
             "service_target": "api-fastify"
           },
-          "value": "301584384"
+          "value": "289693696"
         }
       ]
     }

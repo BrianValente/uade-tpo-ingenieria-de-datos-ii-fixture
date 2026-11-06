@@ -2,8 +2,8 @@
 
 ## 1. Metadatos y Alcance (RF10, RNF2, RNF5, RNF11)
 
-- **Fecha UTC:** `2026-11-06T18:45:37.672Z`
-- **Commit Git:** `cd653d6` (rama `fix/hito13-complete`, estado `clean`)
+- **Fecha UTC:** `2026-11-06T19:57:42.169Z`
+- **Commit Git:** `46af5f5` (rama `fix/hito13-complete`, estado `clean`)
 - **Descripción:** Prueba controlada y no destructiva de indisponibilidad de target de infraestructura mediante caída real del contenedor redis-exporter y falla de dependencia políglota mediante inyección simulada en el adaptador/driver de Neo4j, seguida de recuperación completa.
 - **Verificación Integral Exitosa:** `true`
 
@@ -20,7 +20,7 @@
 
 | Indicador Observado | Fase 1: Antes de la Falla (`Normal`) | Fase 2: Durante la Falla Controlada (`Degradado`) | Fase 3: Después de la Recuperación (`Restaurado`) |
 | :--- | :---: | :---: | :---: |
-| **Timestamp UTC** | `2026-11-06T18:45:57.869Z` | `2026-11-06T18:46:16.102Z` | `2026-11-06T18:46:28.307Z` |
+| **Timestamp UTC** | `2026-11-06T19:58:03.914Z` | `2026-11-06T19:58:22.155Z` | `2026-11-06T19:58:34.375Z` |
 | **Targets Prometheus UP / DOWN** | **3 UP / 0 DOWN** | **2 UP / 1 DOWN** | **3 UP / 0 DOWN** |
 | **Target `redis_exporter` (`up`)** | `1` (UP) | `0` (**DOWN**) | `1` (UP) |
 | **Métrica Nativa Redis (`redis_up`)** | `1` (CONECTADO) | `0` (DESCONOCIDO) | `1` (CONECTADO) |

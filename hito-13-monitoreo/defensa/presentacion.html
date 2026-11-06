@@ -437,8 +437,8 @@
         <span class="badge">Bloque 5 · Minutos 17:15 – 18:30 · Evidencia Hito 13 (Julián Curi)</span>
         <h2>9. Prueba Controlada de Disponibilidad, Falla y Recuperación (RF9, RF10)</h2>
         <p>
-          Código <code>cd653d6</code>: caída real del exporter e inyección <strong>simulada</strong> Neo4j.
-          El ciclo Redis real H11 acredita por separado sesión, entidad y mounts conservados.
+          Código <code>46af5f5</code>: caída real del exporter e inyección <strong>simulada</strong> Neo4j.
+          Los ciclos Redis reales H11 y H13 acreditan por separado sesión, entidad y mounts conservados.
         </p>
         <table>
           <thead>
@@ -487,7 +487,7 @@
             <ul>
               <li><strong>Monitoreo Profundo Activo:</strong> API Fastify, MongoDB, Neo4j y Redis bajo carga real.</li>
               <li><strong>Sondas TCP:</strong> Cassandra, InfluxDB e IRIS no tienen exporter propio en H13; H11 verifica además protocolo, contexto y datos reales.</li>
-              <li><strong>Límite experimental:</strong> Mongo/Influx e IRIS emulados por falta de AVX físico, SDK oficial en Ubuntu compatible y RAM visible variable. No es capacidad de producción.</li>
+              <li><strong>Límite experimental:</strong> Mongo/Influx e IRIS emulados porque AVX no está expuesto en la VM, SDK oficial en Ubuntu compatible y RAM visible variable. No es capacidad de producción.</li>
               <li><strong>Sin Secretos (RNF6):</strong> toda la evidencia JSON/Markdown está sanitizada y versionada.</li>
             </ul>
           </div>

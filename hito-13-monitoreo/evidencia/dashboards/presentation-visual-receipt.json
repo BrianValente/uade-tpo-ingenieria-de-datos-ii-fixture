@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-06T19:19:56.417Z",
+  "timestamp": "2026-11-06T20:02:09.568Z",
   "captures": [
     {
       "file": "presentation-before-desktop.png",
@@ -36,7 +36,7 @@
     {
       "file": "presentation-after-desktop.png",
       "source": "working tree; bound by source SHA256",
-      "sourceSha256": "6d3f8f0e4e3480ab325c1f2d0cde1b0de6e19c840561965c55aec4d618921296",
+      "sourceSha256": "5fd502d6e944df58b73ad5b3d42561a82e3385eb17f1f8d2d482eb457e3c9104",
       "viewport": {
         "width": 1600,
         "height": 1000
@@ -52,7 +52,7 @@
     {
       "file": "presentation-after-mobile.png",
       "source": "working tree; bound by source SHA256",
-      "sourceSha256": "6d3f8f0e4e3480ab325c1f2d0cde1b0de6e19c840561965c55aec4d618921296",
+      "sourceSha256": "5fd502d6e944df58b73ad5b3d42561a82e3385eb17f1f8d2d482eb457e3c9104",
       "viewport": {
         "width": 430,
         "height": 932

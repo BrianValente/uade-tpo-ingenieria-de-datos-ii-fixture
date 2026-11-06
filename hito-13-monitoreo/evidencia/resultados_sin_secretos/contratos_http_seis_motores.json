@@ -1,6 +1,6 @@
 {
-  "codeCommit": "cd653d6dcd5ab9633a00bd3657d858d7bab55e2e",
-  "timestamp": "2026-11-06T18:57:33.317Z",
+  "codeCommit": "46af5f5ddc111a2561da43442560b3f6e42a0182",
+  "timestamp": "2026-11-06T19:58:48.047Z",
   "client": "Node24.13/Ubuntu24.04, official SDK unchanged",
   "baseUrl": "http://127.0.0.1:8013",
   "results": [
@@ -16,8 +16,8 @@
       "statusHttp": 200,
       "expectedStatus": 200,
       "statusMatches": true,
-      "responseTimeMs": 25,
-      "requestId": "e6a8ec8a-cd8e-4d70-a754-b44b480fc304",
+      "responseTimeMs": 26,
+      "requestId": "39d32698-2e53-4ad2-b244-7b8da52e2579",
       "resultSummary": "SUCCESS",
       "interpretation": "Operación completada exitosamente a través de la cadena completa.",
       "responseSnippet": "{\"status\":\"ok\",\"service\":\"fixture2030-api\"}"
@@ -34,8 +34,8 @@
       "statusHttp": 200,
       "expectedStatus": 200,
       "statusMatches": true,
-      "responseTimeMs": 23,
-      "requestId": "3699f7a6-9474-46e1-ab45-f4e4f81a3f41",
+      "responseTimeMs": 25,
+      "requestId": "f8599ac2-ad3f-408d-8361-d208c1923b56",
       "resultSummary": "SUCCESS",
       "interpretation": "Operación completada exitosamente a través de la cadena completa.",
       "responseSnippet": "{\"openapi\":\"3.0.3\",\"info\":{\"title\":\"Fixture 2030 API\",\"version\":\"0.1.0\",\"description\":\"API integrada del Fixture 2030..."
@@ -56,8 +56,8 @@
       "statusHttp": 200,
       "expectedStatus": 200,
       "statusMatches": true,
-      "responseTimeMs": 51,
-      "requestId": "b82fe915-54d2-417e-835c-5971d4178940",
+      "responseTimeMs": 91,
+      "requestId": "22149606-0dcf-4c8e-b39a-3a6b70bfb06a",
       "resultSummary": "SUCCESS",
       "interpretation": "Operación completada exitosamente a través de la cadena completa.",
       "responseSnippet": "{\"accessToken\":\"******\",\"tokenType\":\"Bearer\",\"expiresIn\":1800,\"user\":{\"id\":\"40d0130c-1db9-4617-ad16-01194274fdf4\",\"us..."
@@ -74,8 +74,8 @@
       "statusHttp": 200,
       "expectedStatus": 200,
       "statusMatches": true,
-      "responseTimeMs": 8,
-      "requestId": "6022dc6f-82be-4331-b6ee-6ed4ab81babd",
+      "responseTimeMs": 11,
+      "requestId": "8194139b-8ff9-46d7-bd68-4520c15065ea",
       "resultSummary": "SUCCESS",
       "interpretation": "Operación completada exitosamente a través de la cadena completa.",
       "responseSnippet": "{\"id\":\"4fe7c544-b1ce-5020-afae-7429c4c02d50\",\"code\":\"ARG\",\"name\":\"Argentina\",\"confederation\":\"CONMEBOL\",\"selectionOri..."
@@ -92,11 +92,11 @@
       "statusHttp": 404,
       "expectedStatus": 404,
       "statusMatches": true,
-      "responseTimeMs": 4,
-      "requestId": "9358f1b5-ac96-4c63-aefc-61773662387d",
+      "responseTimeMs": 12,
+      "requestId": "994eea65-910b-4ed8-a3ee-3ff054b56ead",
       "resultSummary": "NOT_FOUND_VALID",
       "interpretation": "Ausencia válida esperada: recurso inexistente retornó 404 correctamente.",
-      "responseSnippet": "{\"code\":\"RESOURCE_NOT_FOUND\",\"message\":\"El recurso no existe.\",\"requestId\":\"9358f1b5-ac96-4c63-aefc-61773662387d\"}"
+      "responseSnippet": "{\"code\":\"RESOURCE_NOT_FOUND\",\"message\":\"El recurso no existe.\",\"requestId\":\"994eea65-910b-4ed8-a3ee-3ff054b56ead\"}"
     },
     {
       "route": {
@@ -110,11 +110,11 @@
       "statusHttp": 400,
       "expectedStatus": 400,
       "statusMatches": true,
-      "responseTimeMs": 2,
-      "requestId": "c34802f5-42a5-4e6b-adb7-570b6c97c489",
+      "responseTimeMs": 4,
+      "requestId": "4590fb76-488d-445b-84b2-0a89167bc5de",
       "resultSummary": "VALIDATION_ERROR",
       "interpretation": "Error de validación sintáctica esperado: esquema Zod interceptó el parámetro inválido (400).",
-      "responseSnippet": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"La entrada no es válida.\",\"requestId\":\"c34802f5-42a5-4e6b-adb7-570b6c97c489\"}"
+      "responseSnippet": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"La entrada no es válida.\",\"requestId\":\"4590fb76-488d-445b-84b2-0a89167bc5de\"}"
     },
     {
       "route": {
@@ -128,8 +128,8 @@
       "statusHttp": 200,
       "expectedStatus": 200,
       "statusMatches": true,
-      "responseTimeMs": 20,
-      "requestId": "1ddfe328-c4a5-43bf-bad2-19829549ac77",
+      "responseTimeMs": 42,
+      "requestId": "7abaece7-3534-41fc-b075-0c7fb06263dd",
       "resultSummary": "SUCCESS",
       "interpretation": "Operación completada exitosamente a través de la cadena completa.",
       "responseSnippet": "{\"items\":[{\"id\":\"893fc2d2-0f0d-5793-8781-53bcf1a72a8e\",\"teamId\":\"4fe7c544-b1ce-5020-afae-7429c4c02d50\",\"teamCode\":\"AR..."
@@ -146,8 +146,8 @@
       "statusHttp": 200,
       "expectedStatus": 200,
       "statusMatches": true,
-      "responseTimeMs": 8,
-      "requestId": "9eefabae-7316-4241-8019-e0b34af948f2",
+      "responseTimeMs": 7,
+      "requestId": "22d48774-b078-49cf-9fb4-8d2149560cd7",
       "resultSummary": "SUCCESS",
       "interpretation": "Operación completada exitosamente a través de la cadena completa.",
       "responseSnippet": "{\"id\":\"F2030-001\",\"date\":\"2030-06-13\",\"time\":\"16:00:00Z\",\"phase\":\"Fase de grupos\",\"homeCode\":\"ARG\",\"awayCode\":\"BRA\",\"..."
@@ -164,8 +164,8 @@
       "statusHttp": 200,
       "expectedStatus": 200,
       "statusMatches": true,
-      "responseTimeMs": 5,
-      "requestId": "f24c7ce5-222c-4a59-90f8-6b369499e4fe",
+      "responseTimeMs": 16,
+      "requestId": "04f110ad-1256-451d-ae25-09656dea15fd",
       "resultSummary": "SUCCESS",
       "interpretation": "Operación completada exitosamente a través de la cadena completa.",
       "responseSnippet": "{\"items\":[{\"id\":\"F2030-H12-EVT-0001\",\"type\":\"Gol\",\"minute\":5,\"detail\":\"Evento sintético Hito 12 (Gol) de ARG #1 en F2..."
@@ -182,8 +182,8 @@
       "statusHttp": 200,
       "expectedStatus": 200,
       "statusMatches": true,
-      "responseTimeMs": 23,
-      "requestId": "afb0cff8-db6c-4185-a3d5-733904abaf13",
+      "responseTimeMs": 55,
+      "requestId": "01eac68c-78b0-49f8-bd69-58360740509c",
       "resultSummary": "SUCCESS",
       "interpretation": "Operación completada exitosamente a través de la cadena completa.",
       "responseSnippet": "{\"items\":[],\"nextCursor\":null}"
@@ -200,8 +200,8 @@
       "statusHttp": 200,
       "expectedStatus": 200,
       "statusMatches": true,
-      "responseTimeMs": 23,
-      "requestId": "ee3a0703-0643-4d4a-a8ce-51fd02fb1c3a",
+      "responseTimeMs": 49,
+      "requestId": "042e79fe-cc49-49a8-840b-5a57812dd937",
       "resultSummary": "SUCCESS",
       "interpretation": "Operación completada exitosamente a través de la cadena completa.",
       "responseSnippet": "{\"matchId\":\"F2030-001\",\"start\":\"2030-06-13T20:00:00.000Z\",\"end\":\"2030-06-13T22:00:00.000Z\",\"teams\":[]}"
@@ -218,8 +218,8 @@
       "statusHttp": 200,
       "expectedStatus": 200,
       "statusMatches": true,
-      "responseTimeMs": 231,
-      "requestId": "aa7b9f56-3c8b-4a13-a888-3dc6ae7ff08c",
+      "responseTimeMs": 266,
+      "requestId": "37f5390b-9cc0-48a4-b4ce-128569fab1b6",
       "resultSummary": "SUCCESS",
       "interpretation": "Operación completada exitosamente a través de la cadena completa.",
       "responseSnippet": "{\"code\":\"F2030-IRIS-0001\",\"dateTime\":\"2030-06-13 16:00:00\",\"homeCode\":\"ARG\",\"awayCode\":\"BRA\",\"state\":\"Finalizado\",\"re..."

@@ -2,7 +2,7 @@
 
 ## Dashboard
 
-[grafana-real-dashboard.png](grafana-real-dashboard.png) muestra los nueve paneles del Grafana local con sus series y tres targets UP. Se capturó con Chromium sobre la instancia real, no es un diseño ilustrativo. El servidor instrumentado ejecuta el código `cd653d6`; el [resumen de consultas](resumen_dashboard_observado.md) conserva la verificación por datasource de las dieciséis expresiones. La captura posterior y la consulta guardada son observaciones en momentos distintos, no una misma muestra de latencia.
+[grafana-real-dashboard.png](grafana-real-dashboard.png) muestra los nueve paneles del Grafana local con sus series y tres targets UP. Se capturó con Chromium sobre la instancia real, no es un diseño ilustrativo. El servidor instrumentado ejecutaba el código `cd653d6` al capturar la imagen; el [resumen de consultas](resumen_dashboard_observado.md) conserva la verificación por datasource de las dieciséis expresiones. La captura posterior y la consulta guardada son observaciones en momentos distintos, no una misma muestra de latencia.
 
 ## Presentación antes/después
 
