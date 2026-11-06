@@ -14,6 +14,7 @@ export interface EnvironmentMetadata {
   gitCommit: string
   gitBranch: string
   gitTreeState: 'clean' | 'modified'
+  executionNotes?: string
   host: {
     platform: string
     release: string
@@ -94,7 +95,9 @@ export function sanitizeSecrets(text: string): string {
     .replace(/([?&](?:token|password|auth|secret)=)([^&\s]+)/gi, '$1******')
 }
 
-export async function loadLocalEnvironment(): Promise<Record<string, string | undefined>> {
+export async function loadLocalEnvironment(): Promise<
+  Record<string, string | undefined>
+> {
   const env: Record<string, string | undefined> = { ...process.env }
 
   const candidatePaths = [
@@ -108,7 +111,11 @@ export async function loadLocalEnvironment(): Promise<Record<string, string | un
       const content = await readFile(url, 'utf8')
       const parsed = parseEnv(content)
       for (const [k, v] of Object.entries(parsed)) {
-        if ((env[k] === undefined || env[k] === '') && v !== undefined && v !== '') {
+        if (
+          (env[k] === undefined || env[k] === '') &&
+          v !== undefined &&
+          v !== ''
+        ) {
           env[k] = v
         }
       }
@@ -162,6 +169,28 @@ export function getGitTreeState(): 'clean' | 'modified' {
 }
 
 function resolveContainerName(candidates: string[]): string | null {
+  try {
+    const ids = execFileSync(
+      'docker',
+      [
+        'compose',
+        '--project-directory',
+        fileURLToPath(new URL('../../', import.meta.url)),
+        'ps',
+        '--status',
+        'running',
+        '-q',
+        candidates[candidates.length - 1]!,
+      ],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000 },
+    )
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+    if (ids.length === 1) return ids[0]!
+  } catch {
+    /* Compatibilidad con los alias de contenedores de las entregas previas. */
+  }
   for (const name of candidates) {
     try {
       execFileSync('docker', ['inspect', '--type=container', name], {
@@ -236,11 +265,15 @@ function safeNeo4jServerVersion(candidates: string[]): string {
   if (!container) return 'no-disponible'
   let execOut: string | null = null
   try {
-    execOut = execFileSync('docker', ['exec', container, 'neo4j', '--version'], {
-      encoding: 'utf8',
-      timeout: 10000,
-      stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim()
+    execOut = execFileSync(
+      'docker',
+      ['exec', container, 'neo4j', '--version'],
+      {
+        encoding: 'utf8',
+        timeout: 10000,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      },
+    ).trim()
   } catch {
     execOut = null
   }
@@ -274,6 +307,9 @@ export function collectEnvironmentMetadata(): EnvironmentMetadata {
     gitCommit: getGitCommitSha(),
     gitBranch: getGitBranch(),
     gitTreeState: getGitTreeState(),
+    ...(process.env.H12_EXECUTION_NOTES
+      ? { executionNotes: process.env.H12_EXECUTION_NOTES }
+      : {}),
     host: {
       platform: platform(),
       release: release(),
@@ -285,27 +321,32 @@ export function collectEnvironmentMetadata(): EnvironmentMetadata {
       nodeVersion: process.version,
     },
     products: {
-      mongodbVersion: safeDockerExecVersion(['fixture2030-mongodb-1', 'fixture2030_mongodb_1', 'mongodb'], [
-        'mongod',
-        '--version',
+      mongodbVersion: safeDockerExecVersion(
+        ['fixture2030-mongodb-1', 'fixture2030_mongodb_1', 'mongodb'],
+        ['mongod', '--version'],
+      ),
+      neo4jVersion: safeNeo4jServerVersion([
+        'fixture2030-neo4j-1',
+        'fixture2030_neo4j_1',
+        'neo4j',
       ]),
-      neo4jVersion: safeNeo4jServerVersion(['fixture2030-neo4j-1', 'fixture2030_neo4j_1', 'neo4j']),
-      neo4jClientVersion: safeDockerExecVersion(['fixture2030-neo4j-1', 'fixture2030_neo4j_1', 'neo4j'], [
-        'cypher-shell',
-        '--version',
-      ]),
-      redisVersion: safeDockerExecVersion(['fixture2030-redis-1', 'fixture2030_redis_1', 'redis'], [
-        'redis-server',
-        '--version',
-      ]),
+      neo4jClientVersion: safeDockerExecVersion(
+        ['fixture2030-neo4j-1', 'fixture2030_neo4j_1', 'neo4j'],
+        ['cypher-shell', '--version'],
+      ),
+      redisVersion: safeDockerExecVersion(
+        ['fixture2030-redis-1', 'fixture2030_redis_1', 'redis'],
+        ['redis-server', '--version'],
+      ),
       fastifyVersion: '5.12.7',
     },
   }
 }
 
-export function takeProcessSnapshot(
-  previousCpu?: NodeJS.CpuUsage,
-): { snapshot: ProcessResourceSnapshot; rawCpu: NodeJS.CpuUsage } {
+export function takeProcessSnapshot(previousCpu?: NodeJS.CpuUsage): {
+  snapshot: ProcessResourceSnapshot
+  rawCpu: NodeJS.CpuUsage
+} {
   const mem = process.memoryUsage()
   const cpu = process.cpuUsage(previousCpu)
   const round2 = (n: number) => Math.round(n * 100) / 100
@@ -328,7 +369,10 @@ export function collectDockerContainerStats(): ContainerResourceStat[] {
     ['fixture2030-neo4j-1', 'fixture2030_neo4j_1', 'neo4j'],
     ['fixture2030-redis-1', 'fixture2030_redis_1', 'redis'],
   ]
-  const containers = candidateList.map(c => resolveContainerName(c)).filter((c): c is string => Boolean(c))
+  const containers = candidateList
+    .map((c) => resolveContainerName(c))
+    .filter((c): c is string => Boolean(c))
+  if (containers.length === 0) return []
   try {
     const out = execFileSync(
       'docker',
@@ -350,8 +394,14 @@ export function collectDockerContainerStats(): ContainerResourceStat[] {
       .split(/\r?\n/)
       .filter(Boolean)
       .map((line) => {
-        const [container = '', cpuPercent = '', memUsage = '', memPercent = '', netIO = '', blockIO = ''] =
-          line.split('|')
+        const [
+          container = '',
+          cpuPercent = '',
+          memUsage = '',
+          memPercent = '',
+          netIO = '',
+          blockIO = '',
+        ] = line.split('|')
         return {
           container: container.trim(),
           cpuPercent: cpuPercent.trim(),
@@ -370,7 +420,16 @@ export function collectRedisEngineMetrics(): RedisEngineMetrics | null {
   try {
     const out = execFileSync(
       'docker',
-      ['exec', resolveContainerName(['fixture2030-redis-1', 'fixture2030_redis_1', 'redis']) || 'fixture2030-redis-1', 'redis-cli', 'INFO'],
+      [
+        'exec',
+        resolveContainerName([
+          'fixture2030-redis-1',
+          'fixture2030_redis_1',
+          'redis',
+        ]) || 'fixture2030-redis-1',
+        'redis-cli',
+        'INFO',
+      ],
       {
         encoding: 'utf8',
         timeout: 4000,
@@ -407,7 +466,9 @@ function nearestRank(sorted: number[], percentile: number): number {
   return sorted[index] ?? 0
 }
 
-export function calculateLatencyDistribution(samplesMs: number[]): LatencyDistribution {
+export function calculateLatencyDistribution(
+  samplesMs: number[],
+): LatencyDistribution {
   const round3 = (n: number) => Math.round(n * 1000) / 1000
   if (samplesMs.length === 0) {
     return {

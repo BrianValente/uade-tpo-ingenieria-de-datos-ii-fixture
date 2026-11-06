@@ -136,9 +136,15 @@ En cumplimiento de la sección §5.7 del enunciado (que habilita realizar una si
 
 ---
 
-### 3.2 Procedimiento Operativo de Referencia con Docker Compose (Guía Operativa No Ejecutada en este Host)
+### 3.2 Caída y recuperación reales de Redis con Docker Compose
 
-*(Nota: Los siguientes pasos constituyen el procedimiento operativo de referencia para verificar en vivo la detención, restauración y conservación de volúmenes de MongoDB en un entorno con el stack Docker Compose activo; esta verificación end-to-end contra contenedores reales no fue ejecutada en este host).*
+La ejecución reproducible de `pnpm eval:recuperacion --allow-stop=redis`, desde `hito-10-api` con la API viva y un laboratorio propio, genera el [informe del ciclo real](evidencia/ciclo_falla_recuperacion_real.md) y su [JSON](evidencia/ciclo_falla_recuperacion_real.json). Comprueba 200 → 503 → 200 con el mismo token, sesión y entidad persistida, junto con identidad del contenedor y mounts antes/después. La restauración se realiza en `finally`; no se reinicia la API ni se eliminan volúmenes. Esto es distinto de la simulación híbrida de la sección 3.1.
+
+Para un laboratorio con overrides, exportar `COMPOSE_FILE` con rutas absolutas a la configuración efectiva. No interrumpir un servicio compartido.
+
+### 3.3 Diagnóstico manual de MongoDB
+
+Estos comandos permiten inspeccionar una dependencia por separado; no sustituyen la comparación estructurada de sesión/datos/mounts del ciclo real documentado arriba.
 
 1. **Verificación inicial con stack activo:**
    ```bash

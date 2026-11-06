@@ -84,4 +84,40 @@ xychart-beta
 ```
 
 ---
-*Generado automáticamente por `ejecutar_prueba_optimizada.ts` a partir de las mediciones reales de laboratorio (RNF14).*
+
+## 5. Aislamiento Experimental de Variables y Atribución Causal
+
+Para resolver la observación académica de causalidad (*aislar la optimización experimental cambiando una sola variable respecto de la línea base*), ejecutamos pruebas aisladas con `ejecutar_prueba_aislada.ts` (`pnpm --dir hito-10-api h12:aislada`) bajo idénticas condiciones de prueba (24 VUs, semilla `203012`, ventana de ~16,1 s):
+
+### 5.1. Tabla Comparativa de Aislamiento Experimental (Línea Base vs. Solo O1 vs. Conjunto)
+
+| Métrica / Parámetro | Línea Base (Control) | Aislamiento Solo O1 (Medido) | Flujo Optimizado Conjunto (O1+O2+O3) | Nota Metodológica O2 / O3 |
+|:---|---:|---:|---:|:---|
+| **Variable(s) Modificada(s)** | Ninguna | Solo Pools=25 + Proy/Batch | **O1 + O2 + O3** | O2 y O3 no medidos aisladamente |
+| **Pools MongoDB / Neo4j** | 5 / 5 | **25 / 25** | **25 / 25** | O1 elimina contención de sockets |
+| **Caché Read-Aside (Redis)** | Desactivada | Desactivada (0 hits, 0 misses) | **Activa (98,57 %)** | En Solo O1 el 100 % va a base de datos |
+| **Escrituras de Sesión (Redis)** | 2009 (100 %) | 3290 (100 %) | **0 (0 %)** | En Solo O1 cada request renueva sesión |
+| **Throughput Global (ops/s)** | 124.59 | **204.18** (+63.9 %) | **514.98** (+313.3 %) | Solo O1 desbloquea el techo de ~125 ops/s |
+| **Latencia p50 Mediana (ms)** | 167.838 | **90.994** (-45.8 %) | **39.298** (-76.6 %) | Solo O1 reduce latencia a la mitad sin caché |
+| **Latencia p95 (ms)** | 308.750 | **126.126** (-59.1 %) | **65.572** (-78.8 %) | Cola p95 cae fuertemente sin cola en drivers |
+| **Latencia p95 MongoDB (ms)** | 109.793 | **36.754** (-66.5 %) | **33.850** (-69.2 %) | Batching `$in` y proyección BSON |
+| **Latencia p95 Neo4j (ms)** | 355.530 | **64.424** (-81.9 %) | **48.454** (-86.4 %) | Pool 25 erradica la cola de espera Bolt |
+| **Tasa de Error / Integridad** | 0 % (100 % OK) | **0 % (100 % OK)** | **0 % (100 % OK)** | 0 errores en todas las ejecuciones |
+
+### 5.2. Representación Gráfica de la Atribución Causal de Throughput (ops/s)
+
+```mermaid
+xychart-beta
+    title "Throughput Sostenido por Variable Aislada (ops/s - mayor es mejor)"
+    x-axis ["Linea Base", "Solo O1 (Pools/Batch)", "Conjunto (O1+O2+O3)"]
+    y-axis "Operaciones / seg" 0 --> 593
+    bar [124.59, 204.18, 514.98]
+```
+
+### 5.3. Síntesis de Validación de Hipótesis
+1. **Hipótesis H1 (Validada Causalmente por Solo O1):** Al ampliar los pools a 25 y unificar consultas documentales con proyección explícita (`$in`), el throughput aumenta de `124,59` a **`204,18 ops/s` (+63,9 %)** y la latencia p95 de Neo4j se reduce un **`81,9 %`** (de `355,53 ms` a `64,42 ms`), mientras que MongoDB p95 desciende un **`66,5 %`** (de `109,79 ms` a `36,75 ms`). Esto demuestra causalmente y de manera aislada que la contención de conexiones y la amplificación de consultas explicaban el cuello de botella primario en la línea base bajo 24 VUs. El techo en ~204 ops/s evidencia que sin caché, cada petición debe cruzar red y disco.
+2. **Hipótesis H2 (Caché Read-Aside) y H3 (Throttling de Renovación de Sesión):** Se analizan y validan dentro del **Flujo Optimizado Conjunto**, donde la caché en memoria RAM (O2) evita el 98,57 % del I/O primario y el throttle Lua (O3) ahorra el 100 % de las reescrituras de sesión redundantes. Ambas no fueron corridas como benchmarks aislados independientes para mantener estricta fidelidad con las ejecuciones reales de laboratorio.
+3. **Sinergia del Efecto Conjunto:** Las tres técnicas juntas alcanzan **`514,98 ops/s` (+313,3 %)** porque O2 atiende el régimen en memoria, O1 protege los misses y cold starts, y O3 elimina la contención de escrituras en Redis.
+
+---
+*Generado automáticamente a partir de las mediciones reales de laboratorio y ensayos aislados (RNF14).*

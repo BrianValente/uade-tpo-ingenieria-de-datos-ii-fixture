@@ -1,0 +1,346 @@
+{
+  "reportType": "HITO_13_PROMQL_CATALOG",
+  "environment": {
+    "timestamp": "2026-10-31T00:29:52.163Z",
+    "gitCommit": "73665cc",
+    "gitBranch": "feature/hito-13-monitoreo-defensa",
+    "gitTreeState": "clean",
+    "host": {
+      "platform": "win32",
+      "release": "10.0.22631",
+      "arch": "x64",
+      "cpuModel": "AMD Ryzen 5 5600U with Radeon Graphics",
+      "logicalCpus": 12,
+      "totalMemoryGiB": 7.31,
+      "freeMemoryGiB": 0.49,
+      "nodeVersion": "v22.18.0"
+    },
+    "products": {
+      "mongodbVersion": "db version v7.0.40",
+      "neo4jVersion": "neo4j 2026.10.1",
+      "neo4jClientVersion": "Cypher-Shell 2026.10.1",
+      "redisVersion": "Redis server v=8.10.2 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=9afb359f90603816",
+      "fastifyVersion": "5.12.7"
+    }
+  },
+  "queries": [
+    {
+      "id": "Q1",
+      "title": "Disponibilidad de targets raspados por Prometheus",
+      "category": "availability",
+      "expr": "up",
+      "unit": "booleano (1 = UP, 0 = DOWN)",
+      "window": "instantánea (scrape_interval = 5s)",
+      "explanation": "Mide si cada exporter o servicio objetivo (prometheus, fixture2030_api, redis_exporter) respondió exitosamente al último scrape HTTP.",
+      "observedSeriesCount": 3,
+      "observedSamples": [
+        {
+          "labels": {
+            "__name__": "up",
+            "instance": "host.docker.internal:8013",
+            "job": "fixture2030_api",
+            "layer": "application-and-probes",
+            "service_target": "api-fastify"
+          },
+          "value": "1"
+        },
+        {
+          "labels": {
+            "__name__": "up",
+            "instance": "redis-exporter:9121",
+            "job": "redis_exporter",
+            "layer": "database-exporter",
+            "service_target": "redis"
+          },
+          "value": "1"
+        },
+        {
+          "labels": {
+            "__name__": "up",
+            "instance": "localhost:9090",
+            "job": "prometheus",
+            "layer": "observability",
+            "service_target": "prometheus"
+          },
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": "Q2",
+      "title": "Disponibilidad de componentes políglotas activos (sondas de driver)",
+      "category": "availability",
+      "expr": "fixture2030_component_up{monitored_mode=\"active_probe\"}",
+      "unit": "booleano (1 = ACTIVO, 0 = CAÍDO)",
+      "window": "instantánea (5s)",
+      "explanation": "Verifica en tiempo real la conectividad de la API con los tres motores activos del flujo integrado (MongoDB ping:1, Neo4j RETURN 1 y Redis PING).",
+      "observedSeriesCount": 4,
+      "observedSamples": [
+        {
+          "labels": {
+            "__name__": "fixture2030_component_up",
+            "component": "api-fastify",
+            "instance": "host.docker.internal:8013",
+            "job": "fixture2030_api",
+            "layer": "application-and-probes",
+            "model": "api-rest",
+            "monitored_mode": "active_probe",
+            "role": "integracion-poliglota",
+            "service_target": "api-fastify"
+          },
+          "value": "1"
+        },
+        {
+          "labels": {
+            "__name__": "fixture2030_component_up",
+            "component": "mongodb",
+            "instance": "host.docker.internal:8013",
+            "job": "fixture2030_api",
+            "layer": "application-and-probes",
+            "model": "documental",
+            "monitored_mode": "active_probe",
+            "role": "equipos-jugadores-auditoria",
+            "service_target": "api-fastify"
+          },
+          "value": "1"
+        },
+        {
+          "labels": {
+            "__name__": "fixture2030_component_up",
+            "component": "neo4j",
+            "instance": "host.docker.internal:8013",
+            "job": "fixture2030_api",
+            "layer": "application-and-probes",
+            "model": "grafo",
+            "monitored_mode": "active_probe",
+            "role": "fixture-sedes-eventos",
+            "service_target": "api-fastify"
+          },
+          "value": "1"
+        },
+        {
+          "labels": {
+            "__name__": "fixture2030_component_up",
+            "component": "redis",
+            "instance": "host.docker.internal:8013",
+            "job": "fixture2030_api",
+            "layer": "application-and-probes",
+            "model": "clave-valor",
+            "monitored_mode": "active_probe",
+            "role": "sesiones-y-cache",
+            "service_target": "api-fastify"
+          },
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": "Q3",
+      "title": "Latencia HTTP p95 global de la API en ventana móvil de 1m",
+      "category": "latency",
+      "expr": "histogram_quantile(0.95, sum by (le) (rate(fixture2030_http_request_duration_ms_bucket[1m])))",
+      "unit": "milisegundos (ms)",
+      "window": "1m (rate)",
+      "explanation": "Calcula el percentil 95 de tiempo de respuesta HTTP extremo a extremo en la capa Fastify a partir de los buckets del histograma.",
+      "observedSeriesCount": 1,
+      "observedSamples": [
+        {
+          "labels": {},
+          "value": "166.6666666666664"
+        }
+      ]
+    },
+    {
+      "id": "Q4",
+      "title": "Comparación de latencia p95 por motor de base de datos",
+      "category": "latency",
+      "expr": "histogram_quantile(0.95, sum by (le, engine) (rate(fixture2030_db_operation_duration_ms_bucket[1m])))",
+      "unit": "milisegundos (ms)",
+      "window": "1m (rate)",
+      "explanation": "Compara el percentil 95 de latencia de las operaciones ejecutadas sobre MongoDB, Neo4j, Redis Session y Redis Cache.",
+      "observedSeriesCount": 4,
+      "observedSamples": [
+        {
+          "labels": {
+            "engine": "redis_session"
+          },
+          "value": "49.99999999999997"
+        },
+        {
+          "labels": {
+            "engine": "redis_cache"
+          },
+          "value": "23.513157894736842"
+        },
+        {
+          "labels": {
+            "engine": "mongodb"
+          },
+          "value": "231.24999999999997"
+        },
+        {
+          "labels": {
+            "engine": "neo4j"
+          },
+          "value": "233.125"
+        }
+      ]
+    },
+    {
+      "id": "Q5",
+      "title": "Throughput HTTP por plantilla de ruta y clase de estado",
+      "category": "throughput",
+      "expr": "sum by (route, status_class) (rate(fixture2030_http_requests_total[1m]))",
+      "unit": "solicitudes por segundo (req/s)",
+      "window": "1m (rate)",
+      "explanation": "Mide el volumen de tráfico procesado por cada endpoint de la API desglosado por código de estado (2xx, 4xx, 5xx).",
+      "observedSeriesCount": 4,
+      "observedSamples": [
+        {
+          "labels": {
+            "route": "/partidos/:id",
+            "status_class": "2xx"
+          },
+          "value": "1.9688687420838613"
+        },
+        {
+          "labels": {
+            "route": "/equipos/:codigo",
+            "status_class": "2xx"
+          },
+          "value": "0.2536757351470294"
+        },
+        {
+          "labels": {
+            "route": "/partidos/:id/eventos",
+            "status_class": "2xx"
+          },
+          "value": "0.5073514702940588"
+        },
+        {
+          "labels": {
+            "route": "/equipos/:codigo/jugadores",
+            "status_class": "2xx"
+          },
+          "value": "1.0147029405881176"
+        }
+      ]
+    },
+    {
+      "id": "Q6",
+      "title": "Volumen de operaciones por segundo en cada base de datos",
+      "category": "throughput",
+      "expr": "sum by (engine, operation) (rate(fixture2030_db_operations_total[1m]))",
+      "unit": "operaciones por segundo (ops/s)",
+      "window": "1m (rate)",
+      "explanation": "Permite contrastar la carga de lecturas absorbida por Redis (caché y sesiones) frente a las consultas que llegan a MongoDB y Neo4j.",
+      "observedSeriesCount": 8,
+      "observedSamples": [
+        {
+          "labels": {
+            "engine": "mongodb",
+            "operation": "team"
+          },
+          "value": "0.19699797791258358"
+        },
+        {
+          "labels": {
+            "engine": "neo4j",
+            "operation": "match"
+          },
+          "value": "0.3742961580339088"
+        },
+        {
+          "labels": {
+            "engine": "redis_session",
+            "operation": "readAndRenew"
+          },
+          "value": "4.727951469902006"
+        },
+        {
+          "labels": {
+            "engine": "redis_cache",
+            "operation": "get"
+          },
+          "value": "4.727951469902006"
+        },
+        {
+          "labels": {
+            "engine": "redis_cache",
+            "operation": "setex"
+          },
+          "value": "0.32999516569980664"
+        },
+        {
+          "labels": {
+            "engine": "mongodb",
+            "operation": "matchTeamsBatch"
+          },
+          "value": "0.15230546109221843"
+        },
+        {
+          "labels": {
+            "engine": "neo4j",
+            "operation": "events"
+          },
+          "value": "0.07615273054610922"
+        },
+        {
+          "labels": {
+            "engine": "mongodb",
+            "operation": "players"
+          },
+          "value": "0.05076848703073948"
+        }
+      ]
+    },
+    {
+      "id": "Q7",
+      "title": "Cache Hit Ratio en Redis Read-Aside",
+      "category": "cache",
+      "expr": "sum(rate(fixture2030_cache_events_total{result=\"hit\"}[1m])) / clamp_min(sum(rate(fixture2030_cache_events_total{result=~\"hit|miss\"}[1m])), 0.001)",
+      "unit": "proporción (0.0 a 1.0)",
+      "window": "1m (rate)",
+      "explanation": "Mide la proporción de lecturas de partidos, eventos y equipos resueltas directamente desde Redis sin impactar Neo4j ni MongoDB.",
+      "observedSeriesCount": 1,
+      "observedSamples": [
+        {
+          "labels": {},
+          "value": "0.8526833631567904"
+        }
+      ]
+    },
+    {
+      "id": "Q8",
+      "title": "Memoria utilizada por Redis y RSS del proceso Node.js",
+      "category": "resources",
+      "expr": "redis_memory_used_bytes or process_resident_memory_bytes{job=\"fixture2030_api\"}",
+      "unit": "bytes",
+      "window": "instantánea (5s)",
+      "explanation": "Monitorea la huella de memoria de infraestructura tanto en el motor clave-valor (vía redis_exporter) como en el servidor de aplicación Node.js.",
+      "observedSeriesCount": 2,
+      "observedSamples": [
+        {
+          "labels": {
+            "__name__": "redis_memory_used_bytes",
+            "instance": "redis-exporter:9121",
+            "job": "redis_exporter",
+            "layer": "database-exporter",
+            "service_target": "redis"
+          },
+          "value": "2225264"
+        },
+        {
+          "labels": {
+            "__name__": "process_resident_memory_bytes",
+            "instance": "host.docker.internal:8013",
+            "job": "fixture2030_api",
+            "layer": "application-and-probes",
+            "service_target": "api-fastify"
+          },
+          "value": "80404480"
+        }
+      ]
+    }
+  ]
+}

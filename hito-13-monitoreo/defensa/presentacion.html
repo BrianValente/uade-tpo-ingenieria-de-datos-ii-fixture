@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Defensa Técnica Final — Fixture Mundial FIFA 2030 (Hito 13)</title>
+    <style>
+      :root {
+        --bg: #0b1120;
+        --panel: #111827;
+        --border: #1e293b;
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --accent: #38bdf8;
+        --emerald: #10b981;
+        --amber: #f59e0b;
+        --rose: #f43f5e;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 2rem;
+        background: rgba(17, 24, 39, 0.95);
+        border-bottom: 1px solid var(--border);
+      }
+      header h1 {
+        margin: 0;
+        font-size: 1.05rem;
+        color: var(--accent);
+      }
+      .controls {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      button {
+        background: #1e293b;
+        color: var(--text);
+        border: 1px solid #334155;
+        border-radius: 6px;
+        padding: 0.4rem 0.85rem;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button:hover {
+        border-color: var(--accent);
+      }
+      main {
+        max-width: 1180px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem 3rem;
+      }
+      .slide {
+        display: none;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 2rem 2.5rem;
+        min-height: 74vh;
+      }
+      .slide.active {
+        display: block;
+      }
+      .badge {
+        display: inline-block;
+        padding: 0.2rem 0.65rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        background: rgba(56, 189, 248, 0.15);
+        color: var(--accent);
+        margin-bottom: 0.75rem;
+      }
+      h2 {
+        margin-top: 0.25rem;
+        font-size: 1.85rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.6rem;
+      }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.25rem;
+        margin-top: 1rem;
+      }
+      .card {
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.1rem 1.25rem;
+      }
+      .card h3 {
+        margin-top: 0;
+        color: var(--accent);
+        font-size: 1.1rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+      }
+      th,
+      td {
+        border: 1px solid var(--border);
+        padding: 0.52rem 0.7rem;
+        text-align: left;
+      }
+      th {
+        background: #1e293b;
+        color: var(--accent);
+      }
+      code {
+        background: #0f172a;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        color: #7dd3fc;
+        font-size: 0.88em;
+      }
+      .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 1.25rem 0;
+      }
+      .kpi {
+        background: #0f172a;
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--emerald);
+        padding: 1rem;
+        border-radius: 8px;
+      }
+      .kpi .val {
+        font-size: 1.65rem;
+        font-weight: 800;
+        color: var(--emerald);
+      }
+      .kpi .lbl {
+        font-size: 0.84rem;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>UADE · Ingeniería de Datos II · Grupo 5 · Defensa Técnica FIFA Mundial 2030 (Hito 13)</h1>
+      <div class="controls">
+        <button id="prevBtn" type="button">◀ Anterior</button>
+        <span id="counter">1 / 10</span>
+        <button id="nextBtn" type="button">Siguiente ▶</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="slide active">
+        <span class="badge">Bloque 1 · Minutos 00:00 – 02:00 · Inicio (Brian Valente)</span>
+        <h2>1. El Problema: Por Qué el Fixture Mundial 2030 Requiere Persistencia Políglota</h2>
+        <p>
+          La Copa Mundial FIFA 2030 abarca <strong>64 selecciones</strong>, <strong>1.536 jugadores</strong> y
+          <strong>127 partidos</strong> en 3 continentes con patrones de acceso incompatibles para un único motor
+          monolítico (RF14, RF15):
+        </p>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Seis Patrones de Carga Especializados</h3>
+            <ul>
+              <li><strong>Catálogo jerárquico:</strong> 64 selecciones, 1.536 jugadores y cuentas API (MongoDB).</li>
+              <li><strong>Grafo conectado:</strong> partidos, sedes, fases y eventos con involucrados (Neo4j).</li>
+              <li><strong>Escritura masiva particionada:</strong> muro social de comentarios minuto a minuto (Cassandra).</li>
+              <li><strong>Memoria sub-milisegundo:</strong> sesiones con throttling Lua y caché Read-Aside (Redis).</li>
+              <li><strong>Series temporales:</strong> estadísticas de partido cada 10s y resúmenes de 1m (InfluxDB 3 Core).</li>
+              <li><strong>Objetos complejos y BI:</strong> actas/estados en ObjectScript y Data Mart Kimball (IRIS).</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Equipo Expositor — Grupo 5 (RNF12)</h3>
+            <ul>
+              <li><strong>Brian Valente (00:00 – 06:00):</strong> Inicio, contexto FIFA 2030 y Arquitectura General.</li>
+              <li><strong>Tomás Bravo (06:00 – 12:00):</strong> Decisiones de diseño en los 6 modelos y Data Mart.</li>
+              <li><strong>Julián Curi (12:00 – 20:00):</strong> Operación en vivo, Evidencia Hitos 12–13 y Cierre.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 1 · Minutos 01:00 – 02:00 · Tesis Central (§11)</span>
+        <h2>2. Pregunta Central del Hito 13: Monitorear, Interpretar y Defender con Evidencia</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Cómo Monitoreamos e Interpretamos</h3>
+            <ul>
+              <li><strong>Instrumentación de Aplicación (<code>:8013/metrics</code>):</strong> histogramas HTTP y por motor (<code>fixture2030_db_operation_duration_ms</code>), contadores de caché, throttling de sesiones y sondas cada <code>2s</code>.</li>
+              <li><strong>Infraestructura y Exporters:</strong> <code>redis_exporter (:9121)</code> + métricas RSS/Heap/CPU de Node.js.</li>
+              <li><strong>Prometheus (<code>:9090</code>) + Grafana (<code>:3000</code>):</strong> scrape cada <code>5s</code>, 6 reglas de alerta operativas y tablero exportable de 9 paneles.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Por Qué no Usar un Único Motor</h3>
+            <p>
+              Un único motor sufriría contención de locks y <em>buffer pool thrashing</em> al mezclar millones de
+              inserciones de comentarios por minuto (Cassandra) y series de 10s (InfluxDB) con travesías de grafo
+              (Neo4j) y validación de sesiones en cada request (Redis).
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 2 · Minutos 02:00 – 06:00 · Arquitectura (Brian Valente)</span>
+        <h2>3. Arquitectura General y Flujo Extremo a Extremo en Fastify</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Flujo Compuesto: <code>GET /partidos/F2030-001</code></h3>
+            <ol>
+              <li><strong>Redis Session (Lua O3):</strong> valida el token <code>Bearer</code> en 1 round-trip y solo renueva <code>HSET+EXPIRE</code> si el TTL cae de <code>1740s</code>.</li>
+              <li><strong>Redis Cache (Read-Aside O2):</strong> consulta <code>fixture2030:h13:cache:partido:F2030-001</code>. En <em>hit</em> responde sin tocar disco.</li>
+              <li><strong>Neo4j (en Cache Miss):</strong> atraviesa <code>(:Equipo)-[:DISPUTA]-&gt;(:Partido)-[:SE_JUEGA_EN]-&gt;(:Sede)</code> vía Bolt.</li>
+              <li><strong>MongoDB (Batch <code>$in</code> + Proyección BSON O1):</strong> recupera local y visitante en una sola operación y almacena en Redis (<code>TTL 120s</code>).</li>
+            </ol>
+          </div>
+          <div class="card">
+            <h3>Aislamiento de Fallas y Contrato Uniforme</h3>
+            <ul>
+              <li>Validación estricta de entrada con <strong>Zod</strong> (<code>400 VALIDATION_ERROR</code>).</li>
+              <li>Timeouts acotados por operación (<code>DEPENDENCY_TIMEOUT_MS</code>).</li>
+              <li>Si un motor cae, el adaptador registra el error en Prometheus y devuelve <code>HTTP 503 DEPENDENCY_UNAVAILABLE</code> o <code>503 REQUEST_TIMEOUT</code> sin colapsar el proceso.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 3 · Minutos 06:00 – 09:00 · Decisiones por Modelo I (Tomás Bravo)</span>
+        <h2>4. Defensa de los 6 Modelos (Parte 1: MongoDB, Neo4j y Cassandra)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Motor / Hito</th>
+              <th>Estructura Concreta Implementada</th>
+              <th>Escalado y Consistencia</th>
+              <th>Evidencia en el Repositorio</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>MongoDB 7.0</strong><br />(Hito 4)</td>
+              <td><code>equipos</code>, <code>jugadores</code> y <code>usuarios_api</code> con <code>$jsonSchema</code>, UUID v5 e índice compuesto <code>{equipoId:1, posicion:1, dorsal:1}</code>.</td>
+              <td>Replica Set (<code>w:"majority"</code> en altas; lectura proyectada + caché <code>300s</code>).</td>
+              <td>Plan indexado examina <code>24</code> claves vs <code>1.536</code>. En Hito 12: <code>3.592 ➔ 83</code> consultas (<code>-97,7%</code>).</td>
+            </tr>
+            <tr>
+              <td><strong>Neo4j 5.x</strong><br />(Hito 5)</td>
+              <td>Nodos <code>Partido, Equipo, Sede, Evento, Jugador</code> y relaciones <code>DISPUTA, SE_JUEGA_EN, OCURRE_EN, INVOLUCRA</code>.</td>
+              <td>Grafo en <em>page cache</em> + Read Replicas (<code>routing:'READ'</code>) y caché de <code>15s / 120s</code>.</td>
+              <td>En Hito 12: consultas Cypher bajan de <code>1.227 ➔ 43</code> (<code>-96,5%</code>) y <code>p95</code> de <code>355,53 ➔ 48,45 ms</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>Cassandra 5.0</strong><br />(Hito 6)</td>
+              <td>Keyspace <code>fixture2030_comentarios</code>: <code>comentarios_por_partido PRIMARY KEY ((partido_id, bucket_minuto, grupo), creado_en, comentario_id)</code> con <strong>16 grupos (0..15)</strong> y <code>comentarios_por_usuario</code>.</td>
+              <td>Anillo masterless multi-DC con <code>LOCAL_QUORUM</code> y <em>write-sharding</em> para evitar <em>hot partitions</em>.</td>
+              <td>Prueba de volumen de <strong>1.000.000+ comentarios</strong> en Hito 6 y paginación por cursor base64url en Hito 10.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 3 · Minutos 09:00 – 12:00 · Decisiones por Modelo II (Tomás Bravo)</span>
+        <h2>5. Defensa de los 6 Modelos (Parte 2: Redis, InfluxDB 3 Core e IRIS / Data Mart)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Motor / Hito</th>
+              <th>Estructura Concreta Implementada</th>
+              <th>Escalado y Consistencia</th>
+              <th>Evidencia en el Repositorio</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Redis 7.x / 8.x</strong><br />(Hito 7 y 12)</td>
+              <td><code>HASH sesion:&lt;sha256&gt;</code> (TTL <code>1800s</code> + Lua throttling <code>60s</code>), <code>STRING cache:*</code> y rankings <code>ZSET</code>.</td>
+              <td>Redis Cluster (16.384 slots). <em>Fail-open</em> en caché Read-Aside y <em>fail-closed</em> en sesiones.</td>
+              <td><strong>98,57% Hit Ratio</strong> (<code>8.131 hits / 118 misses</code>) y <strong>100% de escrituras de sesión omitidas</strong> (<code>8.249</code>) en Hito 12.</td>
+            </tr>
+            <tr>
+              <td><strong>InfluxDB 3 Core</strong><br />(Hito 8)</td>
+              <td><code>estadisticas_equipo</code> cada 10s en <code>fixture2030_h8_lab_detalle</code> (retención <strong>7d</strong>) y <code>estadisticas_minuto</code> (6 muestras) en <code>fixture2030_h8_lab_resumen</code> (retención <strong>90d</strong>).</td>
+              <td>Compresión columnar Arrow/Parquet + downsampling por minuto completo para acotar disco.</td>
+              <td>Muestra de 12 puntos + lote de <strong>34.560 puntos (32 partidos)</strong> y proyección a <strong>15,08M puntos</strong> (22 jugadores a 1 Hz).</td>
+            </tr>
+            <tr>
+              <td><strong>InterSystems IRIS</strong><br />(Hito 9 y 12)</td>
+              <td>Clases persistentes <code>Fixture.Partido, Arbitro, Tecnico, Evento</code> + trigger SQL de solo lectura y diseño de <strong>Data Mart Kimball</strong> en bloques de 15m (<code>B1..B6</code>).</td>
+              <td>ACID en <code>partido.%Save()</code> y desacoplamiento OLAP en <code>fact_rendimiento_equipo_bloque15m</code> y <code>fact_interaccion_partido_bloque15m</code>.</td>
+              <td>Persistencia de árbol completo en 1 llamada, bloqueo de mutación SQL por trigger y homologación temporal <code>1-based</code> vs <code>0-based</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 4 · Minutos 12:00 – 14:00 · Operación en Vivo I (Julián Curi)</span>
+        <h2>6. Recolección en Prometheus (<code>:9090</code>) y Catálogo PromQL (RF2, RF4, RF8)</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>3 Jobs de Scrape (<code>scrape_interval: 5s</code>)</h3>
+            <ul>
+              <li><code>fixture2030_api (host.docker.internal:8013)</code>: métricas HTTP, drivers y sondas (<code>173,98 ms</code> scrape).</li>
+              <li><code>redis_exporter (redis-exporter:9121)</code>: memoria (<code>2,23 MB</code>), clientes y llaves de Redis.</li>
+              <li><code>prometheus (localhost:9090)</code>: salud interna del servidor TSDB.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Consultas PromQL Observadas (<code>Q1–Q8</code>)</h3>
+            <ul>
+              <li><code>Q1 (up)</code>: <code>3/3</code> targets en <code>1.0000</code>.</li>
+              <li><code>Q2 (fixture2030_component_up)</code>: <code>4/4</code> sondas activas en <code>1.0000</code>.</li>
+              <li><code>Q3 (p95 HTTP 1m)</code>: <code>166,67 ms</code> en calentamiento inicial (&lt; umbral <code>250 ms</code>).</li>
+              <li><code>Q4 (p95 por motor)</code>: <code>redis_cache 23,51 ms</code> vs <code>mongodb 231,25 ms</code> y <code>neo4j 233,13 ms</code> en misses de arranque.</li>
+              <li><code>Q7 (Cache Hit Ratio)</code>: <code>85,27%</code> en arranque en frío y <code>98,57%</code> en régimen estacionario.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 4 · Minutos 14:00 – 16:00 · Operación en Vivo II (Julián Curi)</span>
+        <h2>7. Dashboard de 9 Paneles en Grafana (<code>:3000</code>) y Decisiones Operativas (§6.3.e)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Paneles del Dashboard (<code>uid: fixture2030-hito13-obs</code>)</th>
+              <th>Qué Permiten Diagnosticar</th>
+              <th>Decisión Técnica que Dispara el Equipo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>1. Targets Prometheus (<code>up</code>)</strong><br /><strong>2. Sondas Políglotas (<code>fixture2030_component_up</code>)</strong></td>
+              <td>Distingue caída de proceso/exporter vs caída de motor NoSQL (<code>mongodb, neo4j, redis</code>).</td>
+              <td>Activar runbook del motor caído y verificar respuesta rápida <code>503</code> sin bloqueo de sockets.</td>
+            </tr>
+            <tr>
+              <td><strong>3. Latencia HTTP (<code>p50, p95, p99</code>)</strong><br /><strong>4. Latencia <code>p95</code> por Motor de Datos</strong></td>
+              <td>Compara el <code>p95</code> global contra el umbral de <code>250 ms</code> y aísla qué base introdujo latencia.</td>
+              <td>Si sube <code>neo4j</code> o <code>mongodb</code>, inspeccionar Hit Ratio en Panel 8 y planes de consulta.</td>
+            </tr>
+            <tr>
+              <td><strong>5. Throughput HTTP por Ruta (<code>req/s</code>)</strong><br /><strong>6. Volumen por Base de Datos (<code>ops/s</code>)</strong><br /><strong>7. Errores HTTP (<code>4xx/5xx</code>) y Fallos Driver</strong></td>
+              <td>Contrasta tráfico entrante frente a carga real en cada motor y tasa de errores <code>503</code>.</td>
+              <td>Identificar rutas calientes y aislar el conector que genera <code>status="error"</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>8. Eficiencia Caché y Throttling Sesiones</strong><br /><strong>9. Memoria API Node.js RSS y Redis</strong></td>
+              <td>Monitorea <code>hit/miss</code>, ahorros <code>throttled_skip</code> y huella de RAM (<code>80,4 MB</code> Node / <code>2,23 MB</code> Redis).</td>
+              <td>Aplicar <em>cache warming</em> si cae el Hit Ratio (&lt; 70%) o escalar <code>maxmemory</code> si supera el 85%.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 5 · Minutos 16:00 – 17:15 · Evidencia Hito 12 (Julián Curi)</span>
+        <h2>8. Evidencia Medida de Carga y Optimización en el Hito 12 (Commit <code>5533d42</code>)</h2>
+        <div class="kpi-row">
+          <div class="kpi">
+            <div class="val">+313,3%</div>
+            <div class="lbl">Throughput (124,59 ➔ 514,98 ops/s · 4,11x)</div>
+          </div>
+          <div class="kpi">
+            <div class="val">-78,8%</div>
+            <div class="lbl">Latencia HTTP p95 (308,75 ms ➔ 65,572 ms)</div>
+          </div>
+          <div class="kpi">
+            <div class="val">98,57%</div>
+            <div class="lbl">Cache Hit Ratio en Redis Read-Aside (8.131 hits)</div>
+          </div>
+          <div class="kpi">
+            <div class="val">-100%</div>
+            <div class="lbl">Escrituras de sesión ahorradas por Lua O3 (8.249 omitidas)</div>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Indicador Medido (24 VUs · Semilla 203012 · Pareto 80/20 · ~16s)</th>
+              <th>Línea Base (Antes)</th>
+              <th>Arquitectura Optimizada (O1–O3)</th>
+              <th>Variación Verificada</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Operaciones completadas exitosas (<code>HTTP 200</code>, <code>0%</code> error)</td>
+              <td><code>2.009 ops</code></td>
+              <td><code>8.249 ops</code></td>
+              <td><strong>+310,6% (4,11x)</strong> con <code>8/8</code> checks de integridad</td>
+            </tr>
+            <tr>
+              <td>Latencia media / <code>p50</code> / <code>p95</code> / <code>p99</code> global</td>
+              <td><code>172,95 / 167,84 / 308,75 / 532,10 ms</code></td>
+              <td><code>41,89 / 39,30 / 65,57 / 83,59 ms</code></td>
+              <td>Reducción de <strong>-75,8%</strong> en media y <strong>-84,3%</strong> en <code>p99</code></td>
+            </tr>
+            <tr>
+              <td>Operaciones ejecutadas en MongoDB / Neo4j</td>
+              <td><code>3.592</code> / <code>1.227</code></td>
+              <td><code>83 (-97,7%)</code> / <code>43 (-96,5%)</code></td>
+              <td>Drástica reducción de presión sobre disco y grafo</td>
+            </tr>
+            <tr>
+              <td><strong>Aislamiento Experimental (1 sola variable vs base)</strong></td>
+              <td colspan="2"><code>Solo O1: 204,18 ops/s (+63,9%, p50 90,99 ms)</code> · <code>Flujo Conjunto O1+O2+O3: 514,98 ops/s (+313,3%)</code></td>
+              <td>Atribución causal demostrada: O1 elimina cuellos de botella en drivers; O2 y O3 operan sinérgicamente en el conjunto.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 5 · Minutos 17:15 – 18:30 · Evidencia Hito 13 (Julián Curi)</span>
+        <h2>9. Prueba Controlada de Disponibilidad, Falla y Recuperación (RF9, RF10)</h2>
+        <p>
+          Evidencia real capturada en <code>evidencia/prueba_de_falla.md</code> (commit <code>73665cc</code>) sin
+          eliminar volúmenes ni datos funcionales (RNF5, RNF11):
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Indicador Observado</th>
+              <th>Fase 1: Antes de la Falla</th>
+              <th>Fase 2: Durante la Falla Controlada</th>
+              <th>Fase 3: Después de la Recuperación</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Targets Prometheus (<code>up</code> — caída real contenedor <code>redis-exporter</code>)</td>
+              <td><strong>3 UP / 0 DOWN</strong></td>
+              <td><strong>2 UP / 1 DOWN</strong> (<code>redis_exporter = 0</code>)</td>
+              <td><strong>3 UP / 0 DOWN</strong></td>
+            </tr>
+            <tr>
+              <td>Sonda Driver Neo4j (<code>fixture2030_component_up</code> — inyección simulada)</td>
+              <td><code>1 (ACTIVO)</code></td>
+              <td><code>0 (FALLA SIMULADA)</code></td>
+              <td><code>1 (ACTIVO)</code></td>
+            </tr>
+            <tr>
+              <td>Respuesta <code>GET /partidos/F2030-001</code></td>
+              <td><code>HTTP 200 OK</code></td>
+              <td><code>HTTP 503 DEPENDENCY_UNAVAILABLE</code> (<code>+30</code>)</td>
+              <td><code>HTTP 200 OK</code> (<code>0</code> nuevos errores en Fase 3)</td>
+            </tr>
+            <tr>
+              <td>Estado de Reglas de Alerta en Prometheus</td>
+              <td>Las 6 reglas en <code>INACTIVE</code></td>
+              <td><code>TargetPrometheusCaido = FIRING</code><br /><code>MotorPoliglotaInaccesible = FIRING</code><br /><code>TasaErroresHttp5xxAlta = PENDING</code></td>
+              <td><code>TargetPrometheusCaido = INACTIVE</code><br /><code>MotorPoliglotaInaccesible = INACTIVE</code><br />(<code>TasaErroresHttp5xxAlta</code> cierra tras ventana <code>[1m]</code>)</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="slide">
+        <span class="badge">Bloque 6 · Minutos 18:30 – 20:00 · Cierre y Conclusiones (Julián Curi)</span>
+        <h2>10. Rigor Metodológico: Medido vs. Sonda vs. Proyección 2030 (RNF3, RNF8)</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Transparencia sobre el Laboratorio Local</h3>
+            <ul>
+              <li><strong>Monitoreo Profundo Activo:</strong> API Fastify, MongoDB, Neo4j y Redis bajo carga real.</li>
+              <li><strong>Sondas TCP (<code>tcp_socket_probe</code>):</strong> Cassandra (<code>:9042</code>), InfluxDB (<code>:8181</code>) e IRIS (<code>:1972</code>) verificados en sus hitos y monitoreados por puerto para respetar los <code>~7,31 GiB</code> de RAM del host local.</li>
+              <li><strong>Sin Secretos (RNF6):</strong> toda la evidencia JSON/Markdown está sanitizada y versionada.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Próximos Pasos Prioritarios hacia FIFA 2030</h3>
+            <ul>
+              <li><strong>1. Singleflight (Request Coalescing) + Stale-If-Error:</strong> eliminar picos de <em>cold start</em> (<code>166,67 ms ➔ &lt; 70 ms</code>) y servir caché de respaldo si cae Neo4j.</li>
+              <li><strong>2. Pipeline ETL/ELT al Data Mart Kimball:</strong> automatizar la carga cada 15 min (<code>B1..B6</code>) en IRIS.</li>
+              <li><strong>3. Topología Multi-Región:</strong> Replica Sets, Read Replicas y anillo Cassandra <code>RF=3</code> en las 3 regiones sede.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const counter = document.getElementById('counter');
+      let current = 0;
+
+      function render(idx) {
+        current = (idx + slides.length) % slides.length;
+        slides.forEach((s, i) => s.classList.toggle('active', i === current));
+        counter.textContent = `${current + 1} / ${slides.length}`;
+      }
+
+      document.getElementById('prevBtn').addEventListener('click', () => render(current - 1));
+      document.getElementById('nextBtn').addEventListener('click', () => render(current + 1));
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'PageDown') render(current + 1);
+        if (e.key === 'ArrowLeft' || e.key === 'PageUp') render(current - 1);
+      });
+    </script>
+  </body>
+</html>
