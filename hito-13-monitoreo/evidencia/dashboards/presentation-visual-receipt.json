@@ -1,0 +1,69 @@
+{
+  "timestamp": "2026-11-06T20:02:09.568Z",
+  "captures": [
+    {
+      "file": "presentation-before-desktop.png",
+      "source": "5a7cc55cf7131ebce43cb73b93ae71878844045e",
+      "sourceSha256": "ff413c54e90116e97df39118f002bd0a4407191bfb518fd5f38c8c6029285ecf",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "observation": {
+        "counter": "8 / 10",
+        "title": "8. Evidencia Medida de Carga y Optimización en el Hito 12 (Commit 5533d42)",
+        "innerWidth": 1600,
+        "scrollWidth": 1600,
+        "scrollHeight": 1000
+      }
+    },
+    {
+      "file": "presentation-before-mobile.png",
+      "source": "5a7cc55cf7131ebce43cb73b93ae71878844045e",
+      "sourceSha256": "ff413c54e90116e97df39118f002bd0a4407191bfb518fd5f38c8c6029285ecf",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "observation": {
+        "counter": "8 / 10",
+        "title": "8. Evidencia Medida de Carga y Optimización en el Hito 12 (Commit 5533d42)",
+        "innerWidth": 541,
+        "scrollWidth": 541,
+        "scrollHeight": 2006
+      }
+    },
+    {
+      "file": "presentation-after-desktop.png",
+      "source": "working tree; bound by source SHA256",
+      "sourceSha256": "5fd502d6e944df58b73ad5b3d42561a82e3385eb17f1f8d2d482eb457e3c9104",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "observation": {
+        "counter": "8 / 10",
+        "title": "8. Evidencia Hito 12 — Código cd653d6 · 6/11/2026",
+        "innerWidth": 1600,
+        "scrollWidth": 1600,
+        "scrollHeight": 1000
+      }
+    },
+    {
+      "file": "presentation-after-mobile.png",
+      "source": "working tree; bound by source SHA256",
+      "sourceSha256": "5fd502d6e944df58b73ad5b3d42561a82e3385eb17f1f8d2d482eb457e3c9104",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "observation": {
+        "counter": "8 / 10",
+        "title": "8. Evidencia Hito 12 — Código cd653d6 · 6/11/2026",
+        "innerWidth": 501,
+        "scrollWidth": 501,
+        "scrollHeight": 2093
+      }
+    }
+  ]
+}

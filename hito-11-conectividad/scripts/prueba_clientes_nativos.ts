@@ -28,14 +28,24 @@ export interface NativeCheckResult {
 const TIMEOUT_MS = Number(process.env.DEPENDENCY_TIMEOUT_MS) || 2000
 
 // Helper para envolver promesas con timeout estricto
-function withTimeout<T>(promise: Promise<T>, ms: number, opName: string): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  opName: string,
+): Promise<T> {
   let timer: NodeJS.Timeout
   const timeoutPromise = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
-      reject(new Error(`Timeout de ${ms}ms superado durante la operación "${opName}"`))
+      reject(
+        new Error(
+          `Timeout de ${ms}ms superado durante la operación "${opName}"`,
+        ),
+      )
     }, ms)
   })
-  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer))
+  return Promise.race([promise, timeoutPromise]).finally(() =>
+    clearTimeout(timer),
+  )
 }
 
 /**
@@ -47,12 +57,17 @@ export function classifyNativeError(
   err: unknown,
   currentStage: NativeCheckResult['layer'],
   handshakeCompleted: boolean,
-): { layer: NativeCheckResult['layer']; reasonLabel: string; isAmbiguousPreHandshake: boolean } {
+): {
+  layer: NativeCheckResult['layer']
+  reasonLabel: string
+  isAmbiguousPreHandshake: boolean
+} {
   const anyErr = (err ?? {}) as Record<string, unknown>
   const code = anyErr.code
   const codeName = typeof anyErr.codeName === 'string' ? anyErr.codeName : ''
   const name = typeof anyErr.name === 'string' ? anyErr.name : 'Error'
-  const message = typeof anyErr.message === 'string' ? anyErr.message : String(err)
+  const message =
+    typeof anyErr.message === 'string' ? anyErr.message : String(err)
   const combined = `${name} ${codeName} ${String(code ?? '')} ${message}`
 
   // 1. Errores explícitos de Autorización / Permisos (ej. Mongo code 13 Unauthorized, Redis NOPERM, Neo4j Forbidden, Cassandra 0x2100)
@@ -98,7 +113,8 @@ export function classifyNativeError(
   ) {
     return {
       layer: 'Contexto',
-      reasonLabel: 'Fallo de contexto (base de datos, keyspace o namespace inexistente)',
+      reasonLabel:
+        'Fallo de contexto (base de datos, keyspace o namespace inexistente)',
       isAmbiguousPreHandshake: false,
     }
   }
@@ -153,9 +169,13 @@ export async function testMongoNative(): Promise<NativeCheckResult[]> {
   }
 
   const port = portConfig.port
-  const authPart = username && password ? `${encodeURIComponent(username)}:******@` : ''
+  const authPart =
+    username && password ? `${encodeURIComponent(username)}:******@` : ''
   const sanitizedUri = `mongodb://${authPart}${host}:${port}/${database}?authSource=${authSource}`
-  const realAuthPart = username && password ? `${encodeURIComponent(username)}:${encodeURIComponent(password)}@` : ''
+  const realAuthPart =
+    username && password
+      ? `${encodeURIComponent(username)}:${encodeURIComponent(password)}@`
+      : ''
   const realUri = `mongodb://${realAuthPart}${host}:${port}/${database}?authSource=${authSource}`
 
   const start = Date.now()
@@ -218,7 +238,8 @@ export async function testMongoNative(): Promise<NativeCheckResult[]> {
       TIMEOUT_MS,
       'MongoDB listCollections',
     )
-    const collectionExists = Array.isArray(collections) && collections.length > 0
+    const collectionExists =
+      Array.isArray(collections) && collections.length > 0
     const contextLatency = Date.now() - stageStart
 
     if (collectionExists) {
@@ -228,7 +249,8 @@ export async function testMongoNative(): Promise<NativeCheckResult[]> {
         status: 'UP',
         latencyMs: contextLatency,
         detail: `Base "${database}" y colección "equipos" verificadas mediante listCollections`,
-        diagnostic: 'Contexto de base y colección verificado en el catálogo de MongoDB.',
+        diagnostic:
+          'Contexto de base y colección verificado en el catálogo de MongoDB.',
       })
 
       // Layer: Operación mínima (F12 — diferenciar ausencia de ARG respecto a colección vacía o inexistente)
@@ -249,7 +271,8 @@ export async function testMongoNative(): Promise<NativeCheckResult[]> {
         detail: team
           ? `Equipo ARG encontrado en colección "equipos"`
           : 'Equipo ARG ausente en colección existente (ausencia controlada)',
-        diagnostic: 'Operación mínima de lectura ejecutada de forma no destructiva.',
+        diagnostic:
+          'Operación mínima de lectura ejecutada de forma no destructiva.',
       })
     } else {
       results.push({
@@ -258,7 +281,8 @@ export async function testMongoNative(): Promise<NativeCheckResult[]> {
         status: 'DEGRADED',
         latencyMs: contextLatency,
         detail: `Base "${database}" accesible, pero la colección "equipos" no existe aún en el nodo`,
-        diagnostic: 'La base de datos responde pero la colección requerida no ha sido creada o sembrada.',
+        diagnostic:
+          'La base de datos responde pero la colección requerida no ha sido creada o sembrada.',
       })
 
       results.push({
@@ -266,14 +290,20 @@ export async function testMongoNative(): Promise<NativeCheckResult[]> {
         layer: 'Operación mínima',
         status: 'SKIP',
         latencyMs: 0,
-        detail: 'Lectura de equipo omitida por ausencia de la colección "equipos"',
-        diagnostic: 'No se puede ejecutar findOne sobre una colección inexistente.',
+        detail:
+          'Lectura de equipo omitida por ausencia de la colección "equipos"',
+        diagnostic:
+          'No se puede ejecutar findOne sobre una colección inexistente.',
       })
     }
   } catch (err: unknown) {
     const error = err instanceof Error ? err : new Error(String(err))
     const latency = Date.now() - stageStart
-    const classified = classifyNativeError(err, currentStage, handshakeCompleted)
+    const classified = classifyNativeError(
+      err,
+      currentStage,
+      handshakeCompleted,
+    )
     const hypothesisNote = classified.isAmbiguousPreHandshake
       ? ' Hipótesis técnica: listener inaccesible, firewall o rechazo temprano durante negociación inicial.'
       : ''
@@ -283,7 +313,9 @@ export async function testMongoNative(): Promise<NativeCheckResult[]> {
       layer: classified.layer,
       status: 'DOWN',
       latencyMs: latency,
-      detail: sanitizeSecrets(`${classified.reasonLabel}: ${error.name} - ${error.message}`),
+      detail: sanitizeSecrets(
+        `${classified.reasonLabel}: ${error.name} - ${error.message}`,
+      ),
       diagnostic: sanitizeSecrets(
         `${classified.reasonLabel} en MongoDB (${host}:${port}, base "${database}"). URI objetivo: ${sanitizedUri}.${hypothesisNote}`,
       ),
@@ -389,8 +421,11 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
       layer: 'Configuración',
       status: 'DOWN',
       latencyMs: 0,
-      detail: sanitizeSecrets(`Error al instanciar cliente Redis: ${error.message}`),
-      diagnostic: 'Error de configuración o parámetros inválidos para el driver de Redis.',
+      detail: sanitizeSecrets(
+        `Error al instanciar cliente Redis: ${error.message}`,
+      ),
+      diagnostic:
+        'Error de configuración o parámetros inválidos para el driver de Redis.',
     })
     return results
   }
@@ -427,8 +462,16 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
     currentStage = 'Operación mínima'
     stageStart = Date.now()
     const probeKey = 'fixture2030:test:nonexistent_probe_key'
-    const missingValue = await withTimeout(client.get(probeKey), TIMEOUT_MS, 'Redis GET')
-    const probeTtl = await withTimeout(client.ttl(probeKey), TIMEOUT_MS, 'Redis TTL')
+    const missingValue = await withTimeout(
+      client.get(probeKey),
+      TIMEOUT_MS,
+      'Redis GET',
+    )
+    const probeTtl = await withTimeout(
+      client.ttl(probeKey),
+      TIMEOUT_MS,
+      'Redis TTL',
+    )
     const opLatency = Date.now() - stageStart
 
     results.push({
@@ -442,7 +485,11 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
     })
   } catch (err: unknown) {
     const error = err instanceof Error ? err : new Error(String(err))
-    const classified = classifyNativeError(err, currentStage, handshakeCompleted)
+    const classified = classifyNativeError(
+      err,
+      currentStage,
+      handshakeCompleted,
+    )
     results.push({
       product: 'Redis',
       layer: classified.layer,
@@ -474,7 +521,11 @@ export async function testRedisNative(): Promise<NativeCheckResult[]> {
 // ============================================================================
 export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
   const host = process.env.NEO4J_HOST || '127.0.0.1'
-  const portConfig = parsePort(process.env.NEO4J_BOLT_PORT, 7687, 'NEO4J_BOLT_PORT')
+  const portConfig = parsePort(
+    process.env.NEO4J_BOLT_PORT,
+    7687,
+    'NEO4J_BOLT_PORT',
+  )
   const username = process.env.NEO4J_USERNAME || 'neo4j'
   const password = process.env.NEO4J_PASSWORD || ''
 
@@ -499,7 +550,8 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
       status: 'NOT_CONFIGURED',
       latencyMs: 0,
       detail: 'NEO4J_PASSWORD no configurada en el entorno',
-      diagnostic: 'SKIP: No se configuró credencial para Neo4j; omitiendo autenticación Bolt.',
+      diagnostic:
+        'SKIP: No se configuró credencial para Neo4j; omitiendo autenticación Bolt.',
     })
     return results
   }
@@ -526,14 +578,17 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
   let handshakeCompleted = false
   const boltPort = portConfig.port
   const uri = `bolt://${host}:${boltPort}`
-  const driver = neo4jLib.driver(
-    uri,
-    neo4jLib.auth.basic(username, password),
-    { connectionTimeout: TIMEOUT_MS, maxConnectionLifetime: 3000 },
-  )
+  const driver = neo4jLib.driver(uri, neo4jLib.auth.basic(username, password), {
+    connectionTimeout: TIMEOUT_MS,
+    maxConnectionLifetime: 3000,
+  })
 
   try {
-    await withTimeout(driver.verifyConnectivity(), TIMEOUT_MS, 'Neo4j verifyConnectivity')
+    await withTimeout(
+      driver.verifyConnectivity(),
+      TIMEOUT_MS,
+      'Neo4j verifyConnectivity',
+    )
     const connectLatency = Date.now() - start
     handshakeCompleted = true
 
@@ -564,7 +619,8 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
         status: 'UP',
         latencyMs: contextLatency,
         detail: 'Base de datos "neo4j" seleccionada correctamente',
-        diagnostic: 'Contexto de grafo accesible y permisos de consulta comprobados.',
+        diagnostic:
+          'Contexto de grafo accesible y permisos de consulta comprobados.',
       })
 
       // R2-06 — Consulta parametrizada sobre el modelo real: MATCH (p:Partido {id: $id}) RETURN p.id AS id, p.fase AS fase
@@ -599,14 +655,20 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
     }
   } catch (err: unknown) {
     const error = err instanceof Error ? err : new Error(String(err))
-    const classified = classifyNativeError(err, currentStage, handshakeCompleted)
+    const classified = classifyNativeError(
+      err,
+      currentStage,
+      handshakeCompleted,
+    )
     results.push({
       product: 'Neo4j (Bolt)',
       layer: classified.layer,
       status: 'DOWN',
       latencyMs: Date.now() - stageStart,
       detail: sanitizeSecrets(`${classified.reasonLabel}: ${error.message}`),
-      diagnostic: sanitizeSecrets(`${classified.reasonLabel} en sesión Bolt (${uri}).`),
+      diagnostic: sanitizeSecrets(
+        `${classified.reasonLabel} en sesión Bolt (${uri}).`,
+      ),
     })
   } finally {
     await driver.close().catch(() => {})
@@ -620,7 +682,11 @@ export async function testNeo4jNative(): Promise<NativeCheckResult[]> {
 // ============================================================================
 export async function testCassandraNative(): Promise<NativeCheckResult[]> {
   const host = process.env.CASSANDRA_HOST || '127.0.0.1'
-  const portConfig = parsePort(process.env.CASSANDRA_PORT, 9042, 'CASSANDRA_PORT')
+  const portConfig = parsePort(
+    process.env.CASSANDRA_PORT,
+    9042,
+    'CASSANDRA_PORT',
+  )
   const datacenter = process.env.CASSANDRA_DATACENTER || 'datacenter1'
   const keyspace = process.env.CASSANDRA_KEYSPACE || 'fixture2030_comentarios'
 
@@ -716,7 +782,8 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
         status: 'UP',
         latencyMs: contextLatency,
         detail: `Keyspace "${keyspace}" y tabla "comentarios_por_partido" verificados`,
-        diagnostic: 'Contexto de keyspace y tabla de comentarios validado en metadatos.',
+        diagnostic:
+          'Contexto de keyspace y tabla de comentarios validado en metadatos.',
       })
 
       // F05 — Lectura preparada con partición real: partido_id, bucket_minuto, grupo
@@ -741,7 +808,8 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
         status: 'UP',
         latencyMs: opLatency,
         detail: `Lectura CQL particionada ejecutada (${rowsCount} comentarios encontrados)`,
-        diagnostic: 'Consulta CQL con partición real (partido_id, bucket_minuto, grupo) ejecutada con éxito.',
+        diagnostic:
+          'Consulta CQL con partición real (partido_id, bucket_minuto, grupo) ejecutada con éxito.',
       })
     } else if (keyspaceOk && !tableOk) {
       results.push({
@@ -750,7 +818,8 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
         status: 'DEGRADED',
         latencyMs: contextLatency,
         detail: `Keyspace "${keyspace}" presente pero tabla "comentarios_por_partido" no creada`,
-        diagnostic: 'El cluster responde pero la tabla de comentarios no ha sido inicializada.',
+        diagnostic:
+          'El cluster responde pero la tabla de comentarios no ha sido inicializada.',
       })
 
       results.push({
@@ -759,7 +828,8 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
         status: 'SKIP',
         latencyMs: 0,
         detail: 'Lectura de comentarios omitida por ausencia de tabla',
-        diagnostic: 'No se puede ejecutar consulta de comentarios sin la tabla creada.',
+        diagnostic:
+          'No se puede ejecutar consulta de comentarios sin la tabla creada.',
       })
     } else {
       results.push({
@@ -768,7 +838,8 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
         status: 'DEGRADED',
         latencyMs: contextLatency,
         detail: `Keyspace "${keyspace}" no encontrado en el nodo (versión ${version})`,
-        diagnostic: 'El cluster responde pero el keyspace configurado no existe aún.',
+        diagnostic:
+          'El cluster responde pero el keyspace configurado no existe aún.',
       })
 
       results.push({
@@ -777,13 +848,18 @@ export async function testCassandraNative(): Promise<NativeCheckResult[]> {
         status: 'SKIP',
         latencyMs: 0,
         detail: 'Lectura omitida por falta de keyspace',
-        diagnostic: 'No se ejecutó operación de comentarios por contexto no inicializado.',
+        diagnostic:
+          'No se ejecutó operación de comentarios por contexto no inicializado.',
       })
     }
   } catch (err: unknown) {
     const error = err instanceof Error ? err : new Error(String(err))
     const cleanMsg = error.message.split('\n')[0]
-    const classified = classifyNativeError(err, currentStage, handshakeCompleted)
+    const classified = classifyNativeError(
+      err,
+      currentStage,
+      handshakeCompleted,
+    )
     results.push({
       product: 'Cassandra (CQL)',
       layer: classified.layer,
@@ -853,7 +929,9 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
           status: 'DEGRADED',
           latencyMs: latency,
           detail: `Endpoint /health respondió HTTP ${response.status}`,
-          diagnostic: sanitizeSecrets(`Servicio responde pero con estado no exitoso: ${text.slice(0, 100)}`),
+          diagnostic: sanitizeSecrets(
+            `Servicio responde pero con estado no exitoso: ${text.slice(0, 100)}`,
+          ),
         })
       }
     } finally {
@@ -867,7 +945,9 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
       status: 'DOWN',
       latencyMs: Date.now() - start,
       detail: sanitizeSecrets(`Fallo HTTP InfluxDB: ${error.message}`),
-      diagnostic: sanitizeSecrets(`No se pudo alcanzar el endpoint /health en ${sanitizeUrl(healthUrl)}.`),
+      diagnostic: sanitizeSecrets(
+        `No se pudo alcanzar el endpoint /health en ${sanitizeUrl(healthUrl)}.`,
+      ),
     })
     return results
   }
@@ -880,7 +960,8 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
       status: 'NOT_CONFIGURED',
       latencyMs: 0,
       detail: 'INFLUXDB_TOKEN no configurado en variables de entorno',
-      diagnostic: 'SKIP: No se configuró token de autenticación para InfluxDB 3; omitiendo consultas de datos.',
+      diagnostic:
+        'SKIP: No se configuró token de autenticación para InfluxDB 3; omitiendo consultas de datos.',
     })
     return results
   }
@@ -920,7 +1001,8 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
           status: 'UP',
           latencyMs: qLatency,
           detail: `Base de datos "${database}" accesible y token validado`,
-          diagnostic: 'Autenticación y contexto de base de series temporales comprobados.',
+          diagnostic:
+            'Autenticación y contexto de base de series temporales comprobados.',
         })
 
         results.push({
@@ -928,8 +1010,10 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
           layer: 'Operación mínima',
           status: 'UP',
           latencyMs: qLatency,
-          detail: 'Consulta temporal SQL parametrizada ejecutada en estadisticas_equipo',
-          diagnostic: 'Operación temporal mínima completada con éxito sin alterar datos.',
+          detail:
+            'Consulta temporal SQL parametrizada ejecutada en estadisticas_equipo',
+          diagnostic:
+            'Operación temporal mínima completada con éxito sin alterar datos.',
         })
       } else if (qResponse.status === 401) {
         results.push({
@@ -938,7 +1022,8 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
           status: 'DOWN',
           latencyMs: qLatency,
           detail: `Token rechazado por InfluxDB (HTTP 401 Unauthorized)`,
-          diagnostic: 'El endpoint de consulta rechazó el token por ser inválido o haber expirado.',
+          diagnostic:
+            'El endpoint de consulta rechazó el token por ser inválido o haber expirado.',
         })
       } else if (qResponse.status === 403) {
         results.push({
@@ -949,14 +1034,18 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
           detail: `Permisos insuficientes en InfluxDB (HTTP 403 Forbidden)`,
           diagnostic: `El token fue autenticado pero carece de permisos para consultar la base "${database}".`,
         })
-      } else if (qResponse.status === 404 || responseText.includes('database not found')) {
+      } else if (
+        qResponse.status === 404 ||
+        responseText.includes('database not found')
+      ) {
         results.push({
           product: 'InfluxDB 3 Core',
           layer: 'Contexto',
           status: 'DOWN',
           latencyMs: qLatency,
           detail: `Base de datos "${database}" no encontrada en InfluxDB`,
-          diagnostic: 'El servidor está activo y autenticado, pero la base de datos temporal no existe.',
+          diagnostic:
+            'El servidor está activo y autenticado, pero la base de datos temporal no existe.',
         })
       } else {
         results.push({
@@ -965,7 +1054,9 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
           status: 'DEGRADED',
           latencyMs: qLatency,
           detail: `Consulta SQL devolvió HTTP ${qResponse.status}`,
-          diagnostic: sanitizeSecrets(`Respuesta no esperada del motor de queries: ${responseText.slice(0, 100)}`),
+          diagnostic: sanitizeSecrets(
+            `Respuesta no esperada del motor de queries: ${responseText.slice(0, 100)}`,
+          ),
         })
       }
     } finally {
@@ -978,8 +1069,11 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
       layer: 'Contexto',
       status: 'DOWN',
       latencyMs: Date.now() - qStart,
-      detail: sanitizeSecrets(`Error al ejecutar consulta en InfluxDB: ${error.message}`),
-      diagnostic: 'No se pudo completar la consulta SQL en el endpoint temporal.',
+      detail: sanitizeSecrets(
+        `Error al ejecutar consulta en InfluxDB: ${error.message}`,
+      ),
+      diagnostic:
+        'No se pudo completar la consulta SQL en el endpoint temporal.',
     })
   }
 
@@ -995,7 +1089,14 @@ export async function testInfluxDbNative(): Promise<NativeCheckResult[]> {
  * `@intersystems/intersystems-iris-native` usando la API real `getNumber` / `getString`.
  * Nunca asume `0` por defecto si la lectura falla o no devuelve un número válido.
  */
-function readIrisSqlStatus(rows: any, phase: string): { sqlCode: number; message: string } {
+export function isSuccessfulIrisStatus(value: unknown): boolean {
+  return value === 1 || value === 1n || value === '1' || value === true
+}
+
+function readIrisSqlStatus(
+  rows: any,
+  phase: string,
+): { sqlCode: number; message: string } {
   if (!rows || typeof rows.getNumber !== 'function') {
     throw new Error(
       `El objeto resultset de IRIS no expone getNumber('%SQLCODE') tras ${phase}`,
@@ -1003,7 +1104,11 @@ function readIrisSqlStatus(rows: any, phase: string): { sqlCode: number; message
   }
 
   const rawCode = rows.getNumber('%SQLCODE')
-  if (rawCode === null || rawCode === undefined || Number.isNaN(Number(rawCode))) {
+  if (
+    rawCode === null ||
+    rawCode === undefined ||
+    Number.isNaN(Number(rawCode))
+  ) {
     throw new Error(
       `Lectura de %SQLCODE inválida (${String(rawCode)}) en IRISObject tras ${phase}`,
     )
@@ -1037,7 +1142,11 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
     1972,
     'IRIS_PORT',
   )
-  const webPortConfig = parsePort(process.env.IRIS_WEB_PORT, 52773, 'IRIS_WEB_PORT')
+  const webPortConfig = parsePort(
+    process.env.IRIS_WEB_PORT,
+    52773,
+    'IRIS_WEB_PORT',
+  )
   const namespace = process.env.IRIS_NAMESPACE || 'USER'
   const username = process.env.IRIS_USERNAME || ''
   const password = process.env.IRIS_PASSWORD || ''
@@ -1062,7 +1171,8 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
           status: 'UP',
           latencyMs: webLatency,
           detail: `Portal HTTP respondió con código ${portalRes.status}`,
-          diagnostic: 'Portal de administración web accesible y respondiendo correctamente.',
+          diagnostic:
+            'Portal de administración web accesible y respondiendo correctamente.',
         })
       } else {
         results.push({
@@ -1071,7 +1181,8 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
           status: 'DEGRADED',
           latencyMs: webLatency,
           detail: `Portal HTTP respondió con error HTTP ${portalRes.status}`,
-          diagnostic: 'El portal web está activo pero respondió con un código de error HTTP.',
+          diagnostic:
+            'El portal web está activo pero respondió con un código de error HTTP.',
         })
       }
     } finally {
@@ -1096,7 +1207,8 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
       status: 'NOT_CONFIGURED',
       latencyMs: 0,
       detail: 'IRIS_USERNAME o IRIS_PASSWORD no configurados en el entorno',
-      diagnostic: 'SKIP: Credenciales de IRIS no provistas; omitiendo conexión al SuperServer.',
+      diagnostic:
+        'SKIP: Credenciales de IRIS no provistas; omitiendo conexión al SuperServer.',
     })
     return results
   }
@@ -1111,14 +1223,16 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
       layer: 'Handshake',
       status: 'SKIP',
       latencyMs: 0,
-      detail: 'Addon nativo de IRIS no disponible en esta plataforma/arquitectura',
+      detail:
+        'Addon nativo de IRIS no disponible en esta plataforma/arquitectura',
       diagnostic: `SKIP: ${sanitizeSecrets(msg)}`,
     })
     return results
   }
 
   // F06 — Usar import nombrado createConnection (sin default)
-  const createConn = irisLib.createConnection || irisLib.default?.createConnection
+  const createConn =
+    irisLib.createConnection || irisLib.default?.createConnection
   if (typeof createConn !== 'function') {
     results.push({
       product: 'InterSystems IRIS (SuperServer)',
@@ -1172,14 +1286,19 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
       )
       const isStatusErr =
         typeof iris.classMethodBoolean === 'function'
-          ? Boolean(iris.classMethodBoolean('%SYSTEM.Status', 'IsError', prepStatus))
+          ? Boolean(
+              iris.classMethodBoolean('%SYSTEM.Status', 'IsError', prepStatus),
+            )
           : false
       // En InterSystems IRIS, un %Status exitoso es 1
-      if (isStatusErr || (prepStatus !== 1 && prepStatus !== '1' && prepStatus !== true)) {
-        throw new Error(`Fallo en %Prepare de Fixture.Partido (%Status: ${String(prepStatus)})`)
+      if (isStatusErr || !isSuccessfulIrisStatus(prepStatus)) {
+        throw new Error(
+          `Fallo en %Prepare de Fixture.Partido (%Status: ${String(prepStatus)})`,
+        )
       }
 
-      const rows = statement.invokeObject('%Execute', 'F2030-IRIS-0011')
+      const matchCode = process.env.H11_IRIS_MATCH_CODE || 'F2030-IRIS-0011'
+      const rows = statement.invokeObject('%Execute', matchCode)
       if (!rows) {
         throw new Error('Fallo al ejecutar consulta en IRIS: resultset nulo')
       }
@@ -1188,7 +1307,9 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
       readIrisSqlStatus(rows, '%Execute')
 
       if (typeof rows.invokeBoolean !== 'function') {
-        throw new Error('El objeto resultset de IRIS no expone invokeBoolean("%Next")')
+        throw new Error(
+          'El objeto resultset de IRIS no expone invokeBoolean("%Next")',
+        )
       }
 
       const partidoFound = Boolean(rows.invokeBoolean('%Next'))
@@ -1204,7 +1325,8 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
         status: 'UP',
         latencyMs: opLatency,
         detail: `Namespace "${namespace}" activo y clase Fixture.Partido consultada`,
-        diagnostic: 'Contexto de objetos IRIS validado con consulta de clase persistente.',
+        diagnostic:
+          'Contexto de objetos IRIS validado con consulta de clase persistente.',
       })
 
       results.push({
@@ -1213,20 +1335,25 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
         status: 'UP',
         latencyMs: opLatency,
         detail: partidoFound
-          ? 'Partido F2030-IRIS-0011 recuperado mediante modelo de objetos'
-          : 'Consulta ejecutada con éxito; entidad F2030-IRIS-0011 ausente (ausencia controlada)',
-        diagnostic: 'Operación no destructiva completada con el driver nativo IRIS.',
+          ? `Partido ${matchCode} recuperado mediante modelo de objetos`
+          : `Consulta ejecutada con éxito; entidad ${matchCode} ausente (ausencia controlada)`,
+        diagnostic:
+          'Operación no destructiva completada con el driver nativo IRIS.',
       })
     } catch (queryErr: unknown) {
-      const qErr = queryErr instanceof Error ? queryErr : new Error(String(queryErr))
+      const qErr =
+        queryErr instanceof Error ? queryErr : new Error(String(queryErr))
       const opLatency = Date.now() - opStart
       results.push({
         product: 'InterSystems IRIS (SuperServer)',
         layer: 'Contexto',
         status: 'DEGRADED',
         latencyMs: opLatency,
-        detail: sanitizeSecrets(`Fallo al consultar clase Fixture.Partido: ${qErr.message}`),
-        diagnostic: 'El SuperServer está activo pero la clase o la consulta SQL falló.',
+        detail: sanitizeSecrets(
+          `Fallo al consultar clase Fixture.Partido: ${qErr.message}`,
+        ),
+        diagnostic:
+          'El SuperServer está activo pero la clase o la consulta SQL falló.',
       })
 
       results.push({
@@ -1235,7 +1362,8 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
         status: 'SKIP',
         latencyMs: 0,
         detail: 'Operación omitida por fallo en consulta a Fixture.Partido',
-        diagnostic: 'No se puede verificar la entidad si la consulta o clase falló.',
+        diagnostic:
+          'No se puede verificar la entidad si la consulta o clase falló.',
       })
     }
   } catch (err: unknown) {
@@ -1265,7 +1393,9 @@ export async function testIrisNative(): Promise<NativeCheckResult[]> {
 // ============================================================================
 // ORQUESTADOR DE CLIENTES NATIVOS
 // ============================================================================
-export async function runAllNativeChecks(productFilter?: string): Promise<NativeCheckResult[]> {
+export async function runAllNativeChecks(
+  productFilter?: string,
+): Promise<NativeCheckResult[]> {
   const allResults: NativeCheckResult[] = []
   const filter = productFilter?.toLowerCase().trim()
 
@@ -1325,14 +1455,17 @@ export function formatNativeResultsTable(results: NativeCheckResult[]): string {
 // CLI Execution
 const isMain =
   Boolean(process.argv[1]) &&
-  resolve(process.argv[1] ?? '').toLowerCase() === fileURLToPath(import.meta.url).toLowerCase()
+  resolve(process.argv[1] ?? '').toLowerCase() ===
+    fileURLToPath(import.meta.url).toLowerCase()
 
 if (isMain) {
   const productArg = process.argv.find((a) => a.startsWith('--product='))
   const productFilter = productArg ? productArg.split('=')[1] : undefined
 
   console.log('='.repeat(80))
-  console.log('Hito 11 — Evaluación de Clientes Nativos, Protocolos y Contextos')
+  console.log(
+    'Hito 11 — Evaluación de Clientes Nativos, Protocolos y Contextos',
+  )
   console.log(`Fecha/Hora: ${new Date().toISOString()}`)
   if (productFilter) {
     console.log(`Filtro de producto activo: "${productFilter}"`)
@@ -1345,10 +1478,14 @@ if (isMain) {
     console.log('\nResumen:')
     const up = results.filter((r) => r.status === 'UP').length
     const down = results.filter((r) => r.status === 'DOWN').length
-    const skip = results.filter((r) => r.status === 'SKIP' || r.status === 'NOT_CONFIGURED').length
+    const skip = results.filter(
+      (r) => r.status === 'SKIP' || r.status === 'NOT_CONFIGURED',
+    ).length
     console.log(`- Pruebas exitosas (UP): ${up}`)
     console.log(`- Pruebas fallidas (DOWN): ${down}`)
-    console.log(`- Pruebas omitidas/no configuradas (SKIP/NOT_CONFIGURED): ${skip}`)
+    console.log(
+      `- Pruebas omitidas/no configuradas (SKIP/NOT_CONFIGURED): ${skip}`,
+    )
     console.log('='.repeat(80))
   })
 }

@@ -57,8 +57,8 @@ hito-11-conectividad/
 
 ## 3. Requisitos y Preparación del Entorno
 
-1. **Node.js:** Versión 24 LTS o compatible (probado en Node.js v25.9.0 / v24).
-2. **Dependencias:** Instaladas en `hito-10-api` vía `pnpm install` (`mongodb`, `redis`, `neo4j-driver`, `cassandra-driver`, `@intersystems/intersystems-iris-native`, `fastify`).
+1. **Node.js:** Versión 24. El addon oficial IRIS requiere un sistema operativo soportado; la integración se verificó con Node 24.13 y Ubuntu 24.04 x64, sin modificar el SDK.
+2. **Dependencias:** Desde la raíz, `corepack pnpm@10.34.7 --dir hito-10-api install --frozen-lockfile`.
 3. **Variables de Entorno:**
    - La suite carga de forma transparente las variables configuradas en `../hito-10-api/.env` o en el entorno del sistema.
    - Si ya existe un archivo `.env` configurado en `hito-10-api`, **no lo sobreescriba**.
@@ -70,6 +70,8 @@ hito-11-conectividad/
 
 ---
 
+Los seis motores deben estar activos con sus esquemas y muestras cargados según los README de cada módulo. Configurar también token/base de InfluxDB y usuario/namespace IRIS; el portal web no sustituye consultar el SuperServer. `H11_IRIS_MATCH_CODE` selecciona el `Codigo` de un `Fixture.Partido` persistido: una instancia nueva puede contener `F2030-IRIS-0001`. Sin override se consulta `F2030-IRIS-0011`; la ruta HTTP positiva requiere que esa entidad exista. Sembrar usuarios con `pnpm seed:users` e iniciar la API con `pnpm dev` desde `hito-10-api`.
+
 ## 4. Modos de Ejecución Rápida
 
 La suite de diagnóstico puede ejecutarse mediante los scripts dedicados en PowerShell / Bash o mediante `pnpm` desde el directorio de la API:
@@ -77,7 +79,7 @@ La suite de diagnóstico puede ejecutarse mediante los scripts dedicados en Powe
 ### Opción A. Desde `hito-10-api/` con pnpm
 ```bash
 # 1. Evaluación completa (TCP + Clientes Nativos + API):
-pnpm eval:conectividad
+pnpm eval:conectividad --all --require-up --output=../hito-11-conectividad/docs/evidencia/reporte_conectividad_inicial.md
 
 # 2. Solo prueba de conectividad y sockets TCP:
 pnpm eval:tcp
@@ -90,7 +92,14 @@ pnpm eval:api
 
 # 5. Simulación híbrida in-process de falla 503 y retorno en API:
 pnpm exec tsx ../hito-11-conectividad/scripts/prueba_falla_controlada.ts --output=../hito-11-conectividad/docs/evidencia/ciclo_falla_recuperacion.md
+
+# 6. Caída/recuperación real de Redis en un laboratorio propio autorizado:
+pnpm eval:recuperacion --allow-stop=redis
 ```
+
+Con `--output`, el diagnóstico genera también JSON saneado junto al Markdown. `--require-up` termina con error si la matriz o los contratos HTTP no están conformes; no convierte `SKIP`/`NOT_CONFIGURED` en éxito. Sin ese flag el comando puede escribir un informe degradado con exit 0.
+
+`eval:recuperacion` requiere la API viva y permiso para interrumpir Redis. Identifica el contenedor Compose y comprueba 200 → 503 → 200 con el mismo token, sesión y entidad persistida; compara contenedor y mounts/volúmenes, restaura Redis mediante `finally` y no reinicia la API. Con overrides, exportar `COMPOSE_FILE` con rutas absolutas. No ejecutarlo sobre infraestructura compartida.
 
 ### Opción B. En Windows con PowerShell (desde `hito-11-conectividad/`)
 ```powershell
@@ -137,6 +146,7 @@ El sistema clasifica el resultado de cada prueba según los lineamientos de la c
 - [Diagnóstico de Fallas y Simulación Híbrida](docs/diagnostico_de_fallas.md): Diferenciación semántica de errores y simulación híbrida in-process de falla controlada.
 - [Estrategia de Health & Readiness](docs/health_readiness.md): Análisis de liveness vs readiness, costos computacionales y por qué no encadenar chequeos profundos en cada request.
 - [Evidencia de Simulación Híbrida In-Process](docs/evidencia/ciclo_falla_recuperacion.md): Reporte autogenerado con respuestas HTTP y logs Pino del ciclo 200 (doble en memoria) -> 503 (adaptador Mongo real contra puerto sin listener) -> 200 (doble en memoria).
+- [Evidencia de recuperación real Redis](docs/evidencia/ciclo_falla_recuperacion_real.md) y su [JSON](docs/evidencia/ciclo_falla_recuperacion_real.json): ciclo contra contenedor real, preservación de sesión/datos/mounts y restauración.
 - [Evidencia de Pruebas TCP](docs/evidencia/resultados_tcp.md): Salidas de conectividad de puertos y sockets.
 - [Evidencia de Clientes Nativos](docs/evidencia/resultados_clientes.md): Salidas de handshake, ping y lecturas acotadas con drivers.
 - [Evidencia de Rutas API](docs/evidencia/resultados_api.md): Salidas HTTP, correlación con `x-request-id` y tiempos de respuesta.
@@ -147,4 +157,4 @@ El sistema clasifica el resultado de cada prueba según los lineamientos de la c
 
 - **Cero Secretos:** Ninguna contraseña, token Bearer ni clave privada se encuentra versionada en el código fuente ni en los reportes de evidencia.
 - **Redacción Automática:** Las URIs de bases de datos que contienen credenciales son redactadas automáticamente (`mongodb://admin:******@127.0.0.1:27017/...`).
-- **Pruebas No Destructivas:** Todas las verificaciones se limitan a lecturas acotadas (`findOne`, `MATCH`, `SELECT`, `PING`), health checks y comprobaciones de claves ausentes sin mutar el estado ni realizar escrituras persistentes en las bases de datos.
+- **Impacto acotado:** Las lecturas de negocio son limitadas; el login crea sesiones y la prueba de recuperación interrumpe temporalmente Redis. No se borran datos canónicos ni volúmenes.

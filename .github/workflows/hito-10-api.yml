@@ -6,6 +6,7 @@ on:
       - "hito-10-api/**"
       - "hito-11-conectividad/**"
       - "hito-12-carga-optimizacion/**"
+      - "hito-13-monitoreo/**"
       - ".github/workflows/hito-10-api.yml"
       - ".gitignore"
       - ".gitattributes"
@@ -15,6 +16,7 @@ on:
       - "hito-10-api/**"
       - "hito-11-conectividad/**"
       - "hito-12-carga-optimizacion/**"
+      - "hito-13-monitoreo/**"
       - ".github/workflows/hito-10-api.yml"
       - ".gitignore"
       - ".gitattributes"
@@ -83,3 +85,7 @@ jobs:
         run: pnpm run typecheck:hito-12
       - name: Smoke Test Carga y Optimización Hito 12 (In-Process)
         run: pnpm run h12:smoke
+      - name: Typecheck Hito 13
+        run: pnpm run typecheck:hito-13
+      - name: Smoke Test Monitoreo Hito 13 (In-Process)
+        run: pnpm run h13:smoke

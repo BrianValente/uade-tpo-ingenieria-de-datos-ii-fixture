@@ -1,0 +1,10 @@
+{
+  "test": "interrupt Prometheus only after controlled runner stops exporter",
+  "runtimeCommit": "46af5f5ddc111a2561da43442560b3f6e42a0182",
+  "expectedRunnerExit": "nonzero, natural termination, exporter restored by runner",
+  "exitCode": 1,
+  "durationSeconds": 41.183,
+  "exporterRestoredByRunner": true,
+  "processExitedNaturally": true,
+  "prometheusRestoredByHarness": true
+}

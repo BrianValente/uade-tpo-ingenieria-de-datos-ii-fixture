@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url'
 import { resolve, dirname } from 'node:path'
 import { writeFile, mkdir } from 'node:fs/promises'
 import { execSync } from 'node:child_process'
+import { sanitizeSecrets } from './sanitizer.js'
 
 import {
   runTcpChecks,
@@ -37,7 +38,8 @@ export interface MatrixEntry {
   tcpState: string
   nativeState: string
   apiState: string
-  overallState: 'UP' | 'DOWN' | 'DEGRADED' | 'NOT_CONFIGURED' | 'SKIP' | 'UNKNOWN'
+  overallState:
+    'UP' | 'DOWN' | 'DEGRADED' | 'NOT_CONFIGURED' | 'SKIP' | 'UNKNOWN'
   nextStep: string
 }
 
@@ -61,15 +63,31 @@ export function buildSummaryMatrix(
   const allProducts = [
     { id: 'mongodb', name: 'MongoDB 7.0', role: 'Módulo Documental / Cuentas' },
     { id: 'redis', name: 'Redis', role: 'Sesiones / Caché' },
-    { id: 'neo4j', name: 'Neo4j (Bolt/HTTP)', role: 'Módulo Grafos / Partidos' },
+    {
+      id: 'neo4j',
+      name: 'Neo4j (Bolt/HTTP)',
+      role: 'Módulo Grafos / Partidos',
+    },
     { id: 'cassandra', name: 'Cassandra', role: 'Módulo Comentarios' },
-    { id: 'influxdb', name: 'InfluxDB 3 Core', role: 'Módulo Series Temporales' },
-    { id: 'iris', name: 'InterSystems IRIS', role: 'Módulo Multimodelo / Objetos' },
+    {
+      id: 'influxdb',
+      name: 'InfluxDB 3 Core',
+      role: 'Módulo Series Temporales',
+    },
+    {
+      id: 'iris',
+      name: 'InterSystems IRIS',
+      role: 'Módulo Multimodelo / Objetos',
+    },
     { id: 'api', name: 'API Fastify Integrada', role: 'Capa de Servicio HTTP' },
   ]
 
   const products = productFilter
-    ? allProducts.filter((p) => p.id.includes(productFilter.toLowerCase()) || p.name.toLowerCase().includes(productFilter.toLowerCase()))
+    ? allProducts.filter(
+        (p) =>
+          p.id.includes(productFilter.toLowerCase()) ||
+          p.name.toLowerCase().includes(productFilter.toLowerCase()),
+      )
     : allProducts
 
   return products.map((prod) => {
@@ -92,7 +110,9 @@ export function buildSummaryMatrix(
     // 2. Native State
     let nativeState = 'NO PROBADO'
     if (native) {
-      const matches = native.filter((n) => n.product.toLowerCase().includes(prod.id))
+      const matches = native.filter((n) =>
+        n.product.toLowerCase().includes(prod.id),
+      )
       if (matches.length > 0) {
         if (matches.every((m) => m.status === 'UP')) {
           nativeState = 'UP'
@@ -119,13 +139,22 @@ export function buildSummaryMatrix(
           (prod.id === 'api' && a.route.path === '/health'),
       )
       if (matches.length > 0) {
-        if (matches.every((m) => m.statusMatches && (m.resultSummary === 'SUCCESS' || m.resultSummary === 'NOT_FOUND_VALID'))) {
+        if (
+          matches.every(
+            (m) =>
+              m.statusMatches &&
+              (m.resultSummary === 'SUCCESS' ||
+                m.resultSummary === 'NOT_FOUND_VALID'),
+          )
+        ) {
           apiState = 'UP'
         } else if (matches.some((m) => m.resultSummary === 'API_UNREACHABLE')) {
           apiState = 'API INALCANZABLE'
         } else if (matches.some((m) => m.resultSummary === 'UNAUTHENTICATED')) {
           apiState = 'REQUIERE SESIÓN'
-        } else if (matches.some((m) => m.resultSummary === 'DEPENDENCY_FAILED')) {
+        } else if (
+          matches.some((m) => m.resultSummary === 'DEPENDENCY_FAILED')
+        ) {
           apiState = 'DOWN (503)'
         } else if (matches.some((m) => m.resultSummary === 'TIMEOUT')) {
           apiState = 'TIMEOUT'
@@ -137,14 +166,26 @@ export function buildSummaryMatrix(
 
     // Overall State Calculation (F06, F13, F03, R2-07)
     let overallState: MatrixEntry['overallState'] = 'UNKNOWN'
-    let nextStep = 'Verificar configuración de entorno y levantar el servicio correspondiente.'
+    let nextStep =
+      'Verificar configuración de entorno y levantar el servicio correspondiente.'
 
-    const matchesTcp = tcp ? tcp.filter((t) => t.endpoint.id.startsWith(prod.id)) : []
-    const tcpAllUp = matchesTcp.length > 0 && matchesTcp.every((m) => m.status === 'UP')
-    const tcpAllDown = matchesTcp.length > 0 && matchesTcp.every((m) => m.status === 'DOWN')
-    const tcpIsDegraded = matchesTcp.length > 1 && matchesTcp.some((m) => m.status === 'UP') && !tcpAllUp
+    const matchesTcp = tcp
+      ? tcp.filter((t) => t.endpoint.id.startsWith(prod.id))
+      : []
+    const tcpAllUp =
+      matchesTcp.length > 0 && matchesTcp.every((m) => m.status === 'UP')
+    const tcpAllDown =
+      matchesTcp.length > 0 && matchesTcp.every((m) => m.status === 'DOWN')
+    const tcpIsDegraded =
+      matchesTcp.length > 1 &&
+      matchesTcp.some((m) => m.status === 'UP') &&
+      !tcpAllUp
 
-    if (tcpState === 'NO PROBADO' && nativeState === 'NO PROBADO' && apiState === 'NO PROBADO') {
+    if (
+      tcpState === 'NO PROBADO' &&
+      nativeState === 'NO PROBADO' &&
+      apiState === 'NO PROBADO'
+    ) {
       overallState = 'UNKNOWN'
       nextStep = 'Capa no evaluada en este modo de ejecución.'
     } else if (prod.id === 'api') {
@@ -163,11 +204,13 @@ export function buildSummaryMatrix(
       if (tcp && !native && !api) {
         if (tcpAllUp) {
           overallState = 'UP'
-          nextStep = 'Listener(s) TCP alcanzable(s); capas lógicas de driver y API no evaluadas.'
+          nextStep =
+            'Listener(s) TCP alcanzable(s); capas lógicas de driver y API no evaluadas.'
         } else if (tcpIsDegraded) {
           // R2-07 / S05 — Si Bolt es DOWN y HTTP es UP, marcar DEGRADED, no UP
           overallState = 'DEGRADED'
-          nextStep = 'Conectividad TCP parcial: uno o más listeners no responden (revisar puertos de servicio).'
+          nextStep =
+            'Conectividad TCP parcial: uno o más listeners no responden (revisar puertos de servicio).'
         } else {
           overallState = 'DOWN'
           nextStep = `Verificar puerto del contenedor y ejecutar docker compose up -d ${prod.id}.`
@@ -177,30 +220,36 @@ export function buildSummaryMatrix(
         nextStep = 'Configurar credenciales requeridas en el archivo .env.'
       } else if (nativeState === 'SKIP') {
         overallState = 'SKIP'
-        nextStep = 'Prueba omitida intencionalmente o herramienta no disponible en el host.'
+        nextStep =
+          'Prueba omitida intencionalmente o herramienta no disponible en el host.'
       } else if (tcpAllDown || nativeState === 'DOWN') {
         overallState = 'DOWN'
         nextStep = `Revisar logs del contenedor y ejecutar docker compose up -d ${prod.id}.`
       } else if (tcpIsDegraded || nativeState === 'DEGRADED') {
         overallState = 'DEGRADED'
-        nextStep = 'Listener TCP parcial o falta inicializar el contexto, keyspace o colección.'
+        nextStep =
+          'Listener TCP parcial o falta inicializar el contexto, keyspace o colección.'
       } else if (nativeState === 'UP') {
         if (tcpIsDegraded) {
           overallState = 'DEGRADED'
-          nextStep = 'Driver nativo operativo pero uno de los listeners TCP (portal/secundario) no responde.'
+          nextStep =
+            'Driver nativo operativo pero uno de los listeners TCP (portal/secundario) no responde.'
         } else if (apiState === 'UP') {
           overallState = 'UP'
           nextStep = 'Dependencia totalmente validada desde TCP hasta la API.'
         } else if (apiState === 'REQUIERE SESIÓN') {
           // F03 — REQUIERE SESIÓN no puede certificar integración plena UP
           overallState = 'DEGRADED'
-          nextStep = 'Driver nativo operativo, pero la API requiere autenticación para validar la consulta de negocio.'
+          nextStep =
+            'Driver nativo operativo, pero la API requiere autenticación para validar la consulta de negocio.'
         } else if (apiState === 'NO PROBADO') {
           overallState = 'UP'
-          nextStep = 'Driver y protocolo nativo validados exitosamente; API no evaluada.'
+          nextStep =
+            'Driver y protocolo nativo validados exitosamente; API no evaluada.'
         } else {
           overallState = 'DEGRADED'
-          nextStep = 'Driver nativo exitoso pero la ruta correspondiente de la API devolvió error.'
+          nextStep =
+            'Driver nativo exitoso pero la ruta correspondiente de la API devolvió error.'
         }
       } else {
         overallState = 'UNKNOWN'
@@ -248,7 +297,10 @@ export async function main() {
   const args = process.argv.slice(2)
 
   // F13 — Si no se pasan selectores específicos de capa, ejecutar todo por defecto
-  const hasLayerSelector = args.includes('--tcp') || args.includes('--nativos') || args.includes('--api')
+  const hasLayerSelector =
+    args.includes('--tcp') ||
+    args.includes('--nativos') ||
+    args.includes('--api')
   const runAll = args.includes('--all') || !hasLayerSelector
   const runTcp = runAll || args.includes('--tcp')
   const runNative = runAll || args.includes('--nativos')
@@ -259,7 +311,9 @@ export async function main() {
   const productFilter = productArg ? productArg.split('=')[1] : undefined
 
   const tokenArg = args.find((a) => a.startsWith('--token='))
-  const token = tokenArg ? tokenArg.split('=')[1] : process.env.API_AUTH_TOKEN || undefined
+  const token = tokenArg
+    ? tokenArg.split('=')[1]
+    : process.env.API_AUTH_TOKEN || undefined
 
   const outputArg = args.find((a) => a.startsWith('--output='))
   const outputPath = outputArg ? outputArg.split('=')[1] : null
@@ -268,11 +322,17 @@ export async function main() {
   const gitCommit = getGitCommitSha()
 
   console.log('='.repeat(80))
-  console.log('Hito 11 — Diagnóstico de Conectividad a los Productos del Fixture 2030')
+  console.log(
+    'Hito 11 — Diagnóstico de Conectividad a los Productos del Fixture 2030',
+  )
   console.log(`Fecha de evaluación: ${timestamp}`)
   console.log(`Commit base: ${gitCommit}`)
-  console.log(`Plataforma / SO: ${process.platform} (${process.arch}) — Node.js ${process.version}`)
-  console.log(`Modos seleccionados: TCP=${runTcp}, NATIVOS=${runNative}, API=${runApi} (${inProcess ? 'in-process' : 'live-http'})`)
+  console.log(
+    `Plataforma / SO: ${process.platform} (${process.arch}) — Node.js ${process.version}`,
+  )
+  console.log(
+    `Modos seleccionados: TCP=${runTcp}, NATIVOS=${runNative}, API=${runApi} (${inProcess ? 'in-process' : 'live-http'})`,
+  )
   if (productFilter) {
     console.log(`Filtro de producto activo: "${productFilter}"`)
   }
@@ -298,17 +358,32 @@ export async function main() {
   }
 
   if (runApi) {
-    console.log(`\n[3/3] Ejecutando Pruebas de Endpoints de la API (${inProcess ? 'Modo In-Process' : 'Modo Live HTTP'})...`)
+    console.log(
+      `\n[3/3] Ejecutando Pruebas de Endpoints de la API (${inProcess ? 'Modo In-Process' : 'Modo Live HTTP'})...`,
+    )
     const routes = getDefaultApiRoutes()
     const filteredRoutes = productFilter
-      ? routes.filter((r) => r.expectedDependency.toLowerCase().includes(productFilter.toLowerCase()) || r.path.toLowerCase().includes(productFilter.toLowerCase()))
+      ? routes.filter(
+          (r) =>
+            r.expectedDependency
+              .toLowerCase()
+              .includes(productFilter.toLowerCase()) ||
+            r.path.toLowerCase().includes(productFilter.toLowerCase()),
+        )
       : routes
 
-    apiResults = inProcess ? await runInProcessApiChecks(filteredRoutes, token) : await runLiveApiChecks(undefined, filteredRoutes, token)
+    apiResults = inProcess
+      ? await runInProcessApiChecks(filteredRoutes, token)
+      : await runLiveApiChecks(undefined, filteredRoutes, token)
     console.log(formatApiResultsTable(apiResults))
   }
 
-  const matrix = buildSummaryMatrix(tcpResults, nativeResults, apiResults, productFilter)
+  const matrix = buildSummaryMatrix(
+    tcpResults,
+    nativeResults,
+    apiResults,
+    productFilter,
+  )
 
   console.log('\n' + '='.repeat(80))
   console.log('MATRIZ CONSOLIDADA DE CONECTIVIDAD')
@@ -317,17 +392,29 @@ export async function main() {
   console.log('='.repeat(80))
 
   console.log('\nConvenciones de Estados:')
-  console.log(' - UP: La prueba configurada terminó exitosamente en la capa probada.')
-  console.log(' - DOWN: Se intentó la conexión y falló por rechazo, timeout o error.')
-  console.log(' - DEGRADED: El puerto responde pero el driver o contexto no opera normalmente.')
-  console.log(' - NOT_CONFIGURED / SKIP: Prueba no ejecutada por falta de credencial o variable opcional.')
-  console.log(' - UNKNOWN: No se dispone de información suficiente para dictaminar estado.')
+  console.log(
+    ' - UP: La prueba configurada terminó exitosamente en la capa probada.',
+  )
+  console.log(
+    ' - DOWN: Se intentó la conexión y falló por rechazo, timeout o error.',
+  )
+  console.log(
+    ' - DEGRADED: El puerto responde pero el driver o contexto no opera normalmente.',
+  )
+  console.log(
+    ' - NOT_CONFIGURED / SKIP: Prueba no ejecutada por falta de credencial o variable opcional.',
+  )
+  console.log(
+    ' - UNKNOWN: No se dispone de información suficiente para dictaminar estado.',
+  )
 
   if (outputPath) {
     const fullOutPath = resolve(process.cwd(), outputPath)
     await mkdir(dirname(fullOutPath), { recursive: true })
 
-    const cliFlags = args.map((a) => (a.startsWith('--token=') ? '--token=******' : a)).join(' ')
+    const cliFlags = args
+      .map((a) => (a.startsWith('--token=') ? '--token=******' : a))
+      .join(' ')
     const markdownDoc = [
       '# Reporte de Evaluación de Conectividad — Hito 11',
       '',
@@ -341,22 +428,71 @@ export async function main() {
       '',
       formatMatrixMarkdown(matrix),
       '',
-      tcpResults ? '## Detalle de Conectividad TCP\n\n' + formatTcpResultsTable(tcpResults) + '\n' : '',
-      nativeResults ? '## Detalle de Protocolos y Clientes Nativos\n\n' + formatNativeResultsTable(nativeResults) + '\n' : '',
-      apiResults ? '## Detalle de Verificación desde la API\n\n' + formatApiResultsTable(apiResults) + '\n' : '',
+      tcpResults
+        ? '## Detalle de Conectividad TCP\n\n' +
+          formatTcpResultsTable(tcpResults) +
+          '\n'
+        : '',
+      nativeResults
+        ? '## Detalle de Protocolos y Clientes Nativos\n\n' +
+          formatNativeResultsTable(nativeResults) +
+          '\n'
+        : '',
+      apiResults
+        ? '## Detalle de Verificación desde la API\n\n' +
+          formatApiResultsTable(apiResults) +
+          '\n'
+        : '',
       '---',
       '*Reporte generado automáticamente por la suite de evaluación del Hito 11 (`evaluar_conectividad.ts`) sin edición manual posterior. Todas las credenciales y secretos fueron redactados.*',
-    ].filter(Boolean).join('\n')
+    ]
+      .filter(Boolean)
+      .join('\n')
 
     await writeFile(fullOutPath, markdownDoc, 'utf8')
+    const jsonPath = fullOutPath.endsWith('.md')
+      ? fullOutPath.slice(0, -3) + '.json'
+      : fullOutPath + '.json'
+    await writeFile(
+      jsonPath,
+      sanitizeSecrets(
+        JSON.stringify(
+          {
+            reportType: 'HITO_11_CONNECTIVITY',
+            timestamp,
+            gitCommit,
+            environment: `${process.platform} (${process.arch}) — Node.js ${process.version}`,
+            executionNotes: process.env.H12_EXECUTION_NOTES,
+            apiMode: inProcess ? 'in-process' : 'live-http',
+            tcpResults,
+            nativeResults,
+            apiResults,
+            summaryMatrix: matrix,
+          },
+          null,
+          2,
+        ),
+      ) + '\n',
+      'utf8',
+    )
     console.log(`\nReporte guardado exitosamente en: ${fullOutPath}`)
+  }
+  if (
+    args.includes('--require-up') &&
+    (matrix.some((entry) => entry.overallState !== 'UP') ||
+      apiResults?.some((entry) => !entry.statusMatches))
+  ) {
+    throw new Error(
+      'El diagnóstico no está completamente UP; revisar el detalle por capa.',
+    )
   }
 }
 
 // CLI Execution
 const isMain =
   Boolean(process.argv[1]) &&
-  resolve(process.argv[1] ?? '').toLowerCase() === fileURLToPath(import.meta.url).toLowerCase()
+  resolve(process.argv[1] ?? '').toLowerCase() ===
+    fileURLToPath(import.meta.url).toLowerCase()
 
 if (isMain) {
   main().catch((err) => {

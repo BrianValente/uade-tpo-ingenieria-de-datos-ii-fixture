@@ -37,7 +37,8 @@ export interface ApiTestResult {
 
 export function getDefaultApiRoutes(): ApiTestRoute[] {
   const adminUsername = process.env.API_SEED_ADMIN_USERNAME || 'fixture-admin'
-  const adminPassword = process.env.API_SEED_ADMIN_PASSWORD || 'PasswordDemo12345!'
+  const adminPassword =
+    process.env.API_SEED_ADMIN_PASSWORD || 'PasswordDemo12345!'
 
   return [
     {
@@ -46,7 +47,8 @@ export function getDefaultApiRoutes(): ApiTestRoute[] {
       path: '/health',
       expectedDependency: 'Ninguna (Solo proceso HTTP)',
       expectedStatus: 200,
-      description: 'Comprueba que el proceso de la API está iniciado y acepta peticiones.',
+      description:
+        'Comprueba que el proceso de la API está iniciado y acepta peticiones.',
     },
     {
       name: 'Contrato OpenAPI de la API',
@@ -54,16 +56,19 @@ export function getDefaultApiRoutes(): ApiTestRoute[] {
       path: '/docs/json',
       expectedDependency: 'Ninguna (Esquemas estáticos Zod)',
       expectedStatus: 200,
-      description: 'Comprueba que el catálogo y esquemas de la API son servidos.',
+      description:
+        'Comprueba que el catálogo y esquemas de la API son servidos.',
     },
     {
       name: 'Autenticación y Generación de Sesión (MongoDB + Redis)',
       method: 'POST',
       path: '/auth/login',
       body: { username: adminUsername, password: adminPassword },
-      expectedDependency: 'MongoDB (Colección accounts) + Redis (Tokens de sesión)',
+      expectedDependency:
+        'MongoDB (Colección accounts) + Redis (Tokens de sesión)',
       expectedStatus: 200,
-      description: 'Verifica el flujo de login, hash Argon2id y creación de token opaco en Redis.',
+      description:
+        'Verifica el flujo de login, hash Argon2id y creación de token opaco en Redis.',
     },
     {
       name: 'Consulta de Equipo Existente (MongoDB)',
@@ -71,7 +76,8 @@ export function getDefaultApiRoutes(): ApiTestRoute[] {
       path: '/equipos/ARG',
       expectedDependency: 'MongoDB (Colección equipos)',
       expectedStatus: 200,
-      description: 'Cadena completa de lectura documental para un equipo participante válido.',
+      description:
+        'Cadena completa de lectura documental para un equipo participante válido.',
     },
     {
       name: 'Consulta de Equipo Inexistente (404 - Ausencia Válida)',
@@ -79,7 +85,8 @@ export function getDefaultApiRoutes(): ApiTestRoute[] {
       path: '/equipos/ZZZ',
       expectedDependency: 'MongoDB',
       expectedStatus: 404,
-      description: 'Diferencia un código 404 de ausencia legítima respecto a una falla de infraestructura.',
+      description:
+        'Diferencia un código 404 de ausencia legítima respecto a una falla de infraestructura.',
     },
     {
       name: 'Error de Validación de Entrada (400 - Parámetro Inválido)',
@@ -87,7 +94,8 @@ export function getDefaultApiRoutes(): ApiTestRoute[] {
       path: '/equipos/CODIGO_INVALIDO_MUY_LARGO',
       expectedDependency: 'Zod Validator (Sin llamada a base)',
       expectedStatus: 400,
-      description: 'Diferencia el rechazo sintáctico en la API de una consulta rechazada por la base.',
+      description:
+        'Diferencia el rechazo sintáctico en la API de una consulta rechazada por la base.',
     },
     {
       name: 'Plantel de Jugadores Paginado (MongoDB)',
@@ -103,7 +111,8 @@ export function getDefaultApiRoutes(): ApiTestRoute[] {
       path: '/partidos/F2030-001',
       expectedDependency: 'Neo4j (Nodo Partido) + MongoDB (Equipos)',
       expectedStatus: 200,
-      description: 'Consulta coordinada multimodelo sin permitir estados inconsistentes.',
+      description:
+        'Consulta coordinada multimodelo sin permitir estados inconsistentes.',
     },
     {
       name: 'Eventos de Partido (Neo4j)',
@@ -111,7 +120,8 @@ export function getDefaultApiRoutes(): ApiTestRoute[] {
       path: '/partidos/F2030-001/eventos?limit=10',
       expectedDependency: 'Neo4j (Relaciones en Grafo)',
       expectedStatus: 200,
-      description: 'Consulta Cypher acotada sobre eventos asociados al partido.',
+      description:
+        'Consulta Cypher acotada sobre eventos asociados al partido.',
     },
     {
       name: 'Comentarios de Partido (Cassandra)',
@@ -132,10 +142,11 @@ export function getDefaultApiRoutes(): ApiTestRoute[] {
     {
       name: 'Detalle de Partido de Modelo Objeto (IRIS)',
       method: 'GET',
-      path: '/partidos/F2030-IRIS-0011/detalle',
+      path: `/partidos/${encodeURIComponent(process.env.H11_IRIS_MATCH_CODE || 'F2030-IRIS-0011')}/detalle`,
       expectedDependency: 'InterSystems IRIS (Namespace USER)',
       expectedStatus: 200,
-      description: 'Lectura de entidad persistente mediante modelo de objetos IRIS.',
+      description:
+        'Lectura de entidad persistente mediante modelo de objetos IRIS.',
     },
   ]
 }
@@ -157,7 +168,8 @@ function classifyResult(
   const statusMatches = statusHttp === route.expectedStatus
 
   if (statusHttp === 401) {
-    const baseMsg = 'Petición rechazada: requiere sesión válida o credenciales no configuradas.'
+    const baseMsg =
+      'Petición rechazada: requiere sesión válida o credenciales no configuradas.'
     return {
       resultSummary: 'UNAUTHENTICATED',
       interpretation: preflightNote ? `${baseMsg} (${preflightNote})` : baseMsg,
@@ -169,12 +181,14 @@ function classifyResult(
     if (bodyText.includes('REQUEST_TIMEOUT')) {
       return {
         resultSummary: 'TIMEOUT',
-        interpretation: 'La operación superó el tiempo de espera (503 REQUEST_TIMEOUT).',
+        interpretation:
+          'La operación superó el tiempo de espera (503 REQUEST_TIMEOUT).',
       }
     }
     return {
       resultSummary: 'DEPENDENCY_FAILED',
-      interpretation: 'Dependencia subyacente no disponible (503 DEPENDENCY_UNAVAILABLE).',
+      interpretation:
+        'Dependencia subyacente no disponible (503 DEPENDENCY_UNAVAILABLE).',
     }
   }
 
@@ -189,19 +203,22 @@ function classifyResult(
     if (statusHttp === 200 || statusHttp === 201) {
       return {
         resultSummary: 'SUCCESS',
-        interpretation: 'Operación completada exitosamente a través de la cadena completa.',
+        interpretation:
+          'Operación completada exitosamente a través de la cadena completa.',
       }
     }
     if (statusHttp === 404) {
       return {
         resultSummary: 'NOT_FOUND_VALID',
-        interpretation: 'Ausencia válida esperada: recurso inexistente retornó 404 correctamente.',
+        interpretation:
+          'Ausencia válida esperada: recurso inexistente retornó 404 correctamente.',
       }
     }
     if (statusHttp === 400) {
       return {
         resultSummary: 'VALIDATION_ERROR',
-        interpretation: 'Error de validación sintáctica esperado: esquema Zod interceptó el parámetro inválido (400).',
+        interpretation:
+          'Error de validación sintáctica esperado: esquema Zod interceptó el parámetro inválido (400).',
       }
     }
     return {
@@ -214,7 +231,8 @@ function classifyResult(
   if (route.expectedStatus === 200 && statusHttp === 404) {
     return {
       resultSummary: 'RESOURCE_MISSING',
-      interpretation: 'Recurso esperado no encontrado (404 Not Found); verificar datos o seed de la base.',
+      interpretation:
+        'Recurso esperado no encontrado (404 Not Found); verificar datos o seed de la base.',
     }
   }
 
@@ -255,7 +273,9 @@ async function fetchWithDeadline(
       if (responseRef?.body) {
         responseRef.body.cancel().catch(() => {})
       }
-      const abortErr = new Error(`Timeout de solicitud superado (${timeoutMs}ms)`)
+      const abortErr = new Error(
+        `Timeout de solicitud superado (${timeoutMs}ms)`,
+      )
       abortErr.name = 'AbortError'
       reject(abortErr)
     }, timeoutMs)
@@ -281,7 +301,8 @@ async function fetchWithDeadline(
     }
   } catch (err: unknown) {
     const error = err instanceof Error ? err : new Error(String(err))
-    const isAbort = timedOut || controller.signal.aborted || error.name === 'AbortError'
+    const isAbort =
+      timedOut || controller.signal.aborted || error.name === 'AbortError'
     return {
       status: responseStatus,
       requestId: responseRequestId,
@@ -318,14 +339,18 @@ export async function runLiveApiChecks(
       1500,
     )
     const adminUsername = process.env.API_SEED_ADMIN_USERNAME || 'fixture-admin'
-    const adminPassword = process.env.API_SEED_ADMIN_PASSWORD || 'PasswordDemo12345!'
+    const adminPassword =
+      process.env.API_SEED_ADMIN_PASSWORD || 'PasswordDemo12345!'
 
     const preflight = await fetchWithDeadline(
       `${baseUrl}/auth/login`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: adminUsername, password: adminPassword }),
+        body: JSON.stringify({
+          username: adminUsername,
+          password: adminPassword,
+        }),
       },
       preflightTimeoutMs,
     )
@@ -346,7 +371,8 @@ export async function runLiveApiChecks(
         if (parsed && typeof parsed.accessToken === 'string') {
           activeToken = parsed.accessToken
         } else {
-          preflightNote = 'Pre-flight POST /auth/login no devolvió accessToken válido'
+          preflightNote =
+            'Pre-flight POST /auth/login no devolvió accessToken válido'
         }
       } catch {
         preflightNote = 'Pre-flight POST /auth/login devolvió JSON inválido'
@@ -378,7 +404,11 @@ export async function runLiveApiChecks(
       ...(route.body !== undefined ? { body: JSON.stringify(route.body) } : {}),
     }
 
-    const outcome = await fetchWithDeadline(targetUrl, fetchOptions, routeTimeoutMs)
+    const outcome = await fetchWithDeadline(
+      targetUrl,
+      fetchOptions,
+      routeTimeoutMs,
+    )
     const responseTimeMs = Date.now() - start
     const noteForRoute = isProtectedRoute(route) ? preflightNote : ''
 
@@ -412,7 +442,9 @@ export async function runLiveApiChecks(
       // F09 — Sanitizar snippets para no exponer contraseñas ni tokens
       const sanitizedText = sanitizeSecrets(text)
       const responseSnippet =
-        sanitizedText.length > 120 ? `${sanitizedText.slice(0, 117)}...` : sanitizedText
+        sanitizedText.length > 120
+          ? `${sanitizedText.slice(0, 117)}...`
+          : sanitizedText
 
       results.push({
         route,
@@ -492,12 +524,24 @@ export async function runInProcessApiChecks(
   routes: ApiTestRoute[] = getDefaultApiRoutes(),
   token?: string,
 ): Promise<ApiTestResult[]> {
-  const serverMod = (await import('../../hito-10-api/src/app/server.js' as string)) as any
-  const envMod = (await import('../../hito-10-api/src/config/environment.js' as string)) as any
-  const authMod = (await import('../../hito-10-api/src/modules/auth/auth.module.js' as string)) as any
-  const dataMod = (await import('../../hito-10-api/src/modules/data/data.module.js' as string)) as any
-  const authEnvMod = (await import('../../hito-10-api/src/config/auth-environment.js' as string)) as any
-  const dataEnvMod = (await import('../../hito-10-api/src/config/data-environment.js' as string)) as any
+  const serverMod = (await import(
+    '../../hito-10-api/src/app/server.js' as string
+  )) as any
+  const envMod = (await import(
+    '../../hito-10-api/src/config/environment.js' as string
+  )) as any
+  const authMod = (await import(
+    '../../hito-10-api/src/modules/auth/auth.module.js' as string
+  )) as any
+  const dataMod = (await import(
+    '../../hito-10-api/src/modules/data/data.module.js' as string
+  )) as any
+  const authEnvMod = (await import(
+    '../../hito-10-api/src/config/auth-environment.js' as string
+  )) as any
+  const dataEnvMod = (await import(
+    '../../hito-10-api/src/config/data-environment.js' as string
+  )) as any
 
   const { buildServer } = serverMod
   const { readEnvironment } = envMod
@@ -542,11 +586,18 @@ export async function runInProcessApiChecks(
       )
       let preflightTimer: NodeJS.Timeout | undefined
       try {
-        const adminUsername = process.env.API_SEED_ADMIN_USERNAME || 'fixture-admin'
-        const adminPassword = process.env.API_SEED_ADMIN_PASSWORD || 'PasswordDemo12345!'
+        const adminUsername =
+          process.env.API_SEED_ADMIN_USERNAME || 'fixture-admin'
+        const adminPassword =
+          process.env.API_SEED_ADMIN_PASSWORD || 'PasswordDemo12345!'
         const timeoutPromise = new Promise<never>((_, reject) => {
           preflightTimer = setTimeout(
-            () => reject(new Error(`Timeout de ${preflightTimeoutMs}ms en pre-flight inject`)),
+            () =>
+              reject(
+                new Error(
+                  `Timeout de ${preflightTimeoutMs}ms en pre-flight inject`,
+                ),
+              ),
             preflightTimeoutMs,
           )
         })
@@ -554,22 +605,31 @@ export async function runInProcessApiChecks(
           method: 'POST',
           url: '/auth/login',
           headers: { 'content-type': 'application/json' },
-          payload: JSON.stringify({ username: adminUsername, password: adminPassword }),
+          payload: JSON.stringify({
+            username: adminUsername,
+            password: adminPassword,
+          }),
         })
-        const loginRes: any = await Promise.race([injectPromise, timeoutPromise])
+        const loginRes: any = await Promise.race([
+          injectPromise,
+          timeoutPromise,
+        ])
         if (loginRes.statusCode === 200 || loginRes.statusCode === 201) {
           const parsed = JSON.parse(loginRes.body)
           if (parsed && typeof parsed.accessToken === 'string') {
             activeToken = parsed.accessToken
           } else {
-            preflightNote = 'Pre-flight POST /auth/login no devolvió accessToken válido'
+            preflightNote =
+              'Pre-flight POST /auth/login no devolvió accessToken válido'
           }
         } else {
           preflightNote = `Pre-flight POST /auth/login retornó HTTP ${loginRes.statusCode}`
         }
       } catch (err: unknown) {
         const error = err instanceof Error ? err : new Error(String(err))
-        preflightNote = sanitizeSecrets(`Pre-flight POST /auth/login falló: ${error.message}`)
+        preflightNote = sanitizeSecrets(
+          `Pre-flight POST /auth/login falló: ${error.message}`,
+        )
       } finally {
         if (preflightTimer) clearTimeout(preflightTimer)
       }
@@ -586,12 +646,16 @@ export async function runInProcessApiChecks(
       }
 
       // F16 — Payload tipado como string para evitar errores de compilación TS
-      const payloadStr = route.body !== undefined ? JSON.stringify(route.body) : undefined
+      const payloadStr =
+        route.body !== undefined ? JSON.stringify(route.body) : undefined
 
       // F08 / R3-01 — Timeout en inject con manejo seguro de rechazo
       let timer: NodeJS.Timeout | undefined
       const timeoutPromise = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error('Timeout de 4000ms superado en inject')), 4000)
+        timer = setTimeout(
+          () => reject(new Error('Timeout de 4000ms superado en inject')),
+          4000,
+        )
       })
 
       const injectPromise = app.inject({
@@ -604,9 +668,14 @@ export async function runInProcessApiChecks(
       const noteForRoute = isProtectedRoute(route) ? preflightNote : ''
 
       try {
-        const response: any = await Promise.race([injectPromise, timeoutPromise])
+        const response: any = await Promise.race([
+          injectPromise,
+          timeoutPromise,
+        ])
         const responseTimeMs = Date.now() - start
-        const requestId = String(response.headers['x-request-id'] || 'no-provisto')
+        const requestId = String(
+          response.headers['x-request-id'] || 'no-provisto',
+        )
         const statusHttp = response.statusCode
         const bodyText = typeof response.body === 'string' ? response.body : ''
 
@@ -633,7 +702,9 @@ export async function runInProcessApiChecks(
         )
         const sanitizedSnippet = sanitizeSecrets(bodyText)
         const responseSnippet =
-          sanitizedSnippet.length > 100 ? `${sanitizedSnippet.slice(0, 97)}...` : sanitizedSnippet
+          sanitizedSnippet.length > 100
+            ? `${sanitizedSnippet.slice(0, 97)}...`
+            : sanitizedSnippet
 
         results.push({
           route,
@@ -658,7 +729,9 @@ export async function runInProcessApiChecks(
           responseTimeMs,
           requestId: 'none',
           resultSummary: 'TIMEOUT',
-          interpretation: sanitizeSecrets(`Fallo o timeout en inyección in-process: ${error.message}${suffix}`),
+          interpretation: sanitizeSecrets(
+            `Fallo o timeout en inyección in-process: ${error.message}${suffix}`,
+          ),
           responseSnippet: 'Timeout en Fastify inject',
         })
       } finally {
@@ -689,7 +762,10 @@ export function formatApiResultsTable(results: ApiTestResult[]): string {
           : `**${r.statusHttp}**`
     const conformLabel = r.statusMatches ? 'SÍ' : 'NO'
     const lat = typeof r.statusHttp === 'number' ? `${r.responseTimeMs}ms` : '-'
-    const reqId = r.requestId !== 'none' && r.requestId.length > 10 ? `${r.requestId.slice(0, 8)}...` : r.requestId
+    const reqId =
+      r.requestId !== 'none' && r.requestId.length > 10
+        ? `${r.requestId.slice(0, 8)}...`
+        : r.requestId
     return `| \`${r.route.method} ${r.route.path}\` | ${r.route.expectedDependency} | ${statusLabel} | ${r.expectedStatus} | ${conformLabel} | ${lat} | \`${reqId}\` | ${r.interpretation} |`
   })
   return [...header, ...rows].join('\n')
@@ -698,7 +774,8 @@ export function formatApiResultsTable(results: ApiTestResult[]): string {
 // CLI Execution
 const isMain =
   Boolean(process.argv[1]) &&
-  resolve(process.argv[1] ?? '').toLowerCase() === fileURLToPath(import.meta.url).toLowerCase()
+  resolve(process.argv[1] ?? '').toLowerCase() ===
+    fileURLToPath(import.meta.url).toLowerCase()
 
 if (isMain) {
   const inProcess = process.argv.includes('--in-process')
@@ -706,7 +783,9 @@ if (isMain) {
   const baseUrl = baseUrlArg ? baseUrlArg.split('=')[1] : undefined
 
   const tokenArg = process.argv.find((a) => a.startsWith('--token='))
-  const token = tokenArg ? tokenArg.split('=')[1] : process.env.API_AUTH_TOKEN || undefined
+  const token = tokenArg
+    ? tokenArg.split('=')[1]
+    : process.env.API_AUTH_TOKEN || undefined
 
   const productArg = process.argv.find((a) => a.startsWith('--product='))
   const productFilter = productArg ? productArg.split('=')[1] : undefined
@@ -714,7 +793,9 @@ if (isMain) {
   console.log('='.repeat(80))
   console.log('Hito 11 — Evaluación de Rutas de la API Integrada Fixture 2030')
   console.log(`Fecha/Hora: ${new Date().toISOString()}`)
-  console.log(`Modo de ejecución: ${inProcess ? 'In-Process (Fastify inject)' : 'Live HTTP'}`)
+  console.log(
+    `Modo de ejecución: ${inProcess ? 'In-Process (Fastify inject)' : 'Live HTTP'}`,
+  )
   if (productFilter) {
     console.log(`Filtro de producto activo: "${productFilter}"`)
   }
@@ -728,7 +809,9 @@ if (isMain) {
   const targetRoutes = productFilter
     ? defaultRoutes.filter(
         (r) =>
-          r.expectedDependency.toLowerCase().includes(productFilter.toLowerCase()) ||
+          r.expectedDependency
+            .toLowerCase()
+            .includes(productFilter.toLowerCase()) ||
           r.path.toLowerCase().includes(productFilter.toLowerCase()),
       )
     : defaultRoutes
@@ -742,9 +825,15 @@ if (isMain) {
     console.log('\nResumen:')
     const matched = results.filter((r) => r.statusMatches).length
     const notMatched = results.filter((r) => !r.statusMatches).length
-    const authRequired = results.filter((r) => r.resultSummary === 'UNAUTHENTICATED').length
-    const depFailed = results.filter((r) => r.resultSummary === 'DEPENDENCY_FAILED').length
-    const timeoutCount = results.filter((r) => r.resultSummary === 'TIMEOUT').length
+    const authRequired = results.filter(
+      (r) => r.resultSummary === 'UNAUTHENTICATED',
+    ).length
+    const depFailed = results.filter(
+      (r) => r.resultSummary === 'DEPENDENCY_FAILED',
+    ).length
+    const timeoutCount = results.filter(
+      (r) => r.resultSummary === 'TIMEOUT',
+    ).length
     console.log(`- Rutas conformes con estado esperado: ${matched}`)
     console.log(`- Rutas no conformes / errores: ${notMatched}`)
     if (authRequired > 0) {
