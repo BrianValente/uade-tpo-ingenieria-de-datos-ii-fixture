@@ -10,6 +10,16 @@ if (process.argv.includes('degraded')) {
   const components = await server.probeComponents()
   if (components.find((component) => component.component === 'redis')?.up !== 0)
     throw new Error('Se esperaba Redis no disponible')
+  const unavailable = await fetch(`${server.baseUrl}/equipos/ARG`, {
+    headers: { authorization: `Bearer ${'A'.repeat(43)}` },
+  })
+  if (unavailable.status !== 503)
+    throw new Error(`Redis no disponible devolvió HTTP ${unavailable.status}`)
+  const body = (await unavailable.json()) as { code: string }
+  if (body.code !== 'DEPENDENCY_UNAVAILABLE')
+    throw new Error(
+      'La caída debe conservar el contrato público de dependencia',
+    )
 }
 const probes = Array.from({ length: 12 }, () => server.probeComponents())
 server.setSimulatedOutage('neo4j', false)

@@ -612,7 +612,7 @@ export async function startMonitoredServer(options?: {
     /* Manejado por operación */
   })
   async function ensureRedisConnected(): Promise<void> {
-    if (isShuttingDown) throw new Error('Server shutting down')
+    if (isShuttingDown) throw new ApiError('DEPENDENCY_UNAVAILABLE')
     if (redisClient.isReady) return
     if (!redisConnection) {
       redisConnection = (async () => {
@@ -628,7 +628,11 @@ export async function startMonitoredServer(options?: {
         redisConnection = undefined
       })
     }
-    await redisConnection
+    try {
+      await redisConnection
+    } catch {
+      throw new ApiError('DEPENDENCY_UNAVAILABLE')
+    }
   }
 
   async function trackMongo<T>(
@@ -769,9 +773,9 @@ export async function startMonitoredServer(options?: {
     key: string,
   ): Promise<T | null> {
     if (simulatedOutages.has('redis')) return null
-    await ensureRedisConnected()
     const start = performance.now()
     try {
+      await ensureRedisConnected()
       const raw = await redisClient.get(`fixture2030:h13:cache:${key}`)
       const elapsed = performance.now() - start
       registry.incCounter('fixture2030_db_operations_total', {
@@ -813,9 +817,9 @@ export async function startMonitoredServer(options?: {
     ttlSec: number,
   ): Promise<void> {
     if (simulatedOutages.has('redis')) return
-    await ensureRedisConnected()
     const start = performance.now()
     try {
+      await ensureRedisConnected()
       await redisClient.set(
         `fixture2030:h13:cache:${key}`,
         JSON.stringify(value),
@@ -852,16 +856,21 @@ export async function startMonitoredServer(options?: {
     ) {
       const key = `fixture2030:h10:${redisScope}:sesion:${digest}`
       const nowEpoch = `${Math.floor(Date.now() / 1000)}.000000`
-      await redisClient.hSet(key, {
-        sesion_id: digest,
-        usuario_id: user.id,
-        username: user.username,
-        rol: user.role,
-        estado_acceso: 'autorizado',
-        creada_en: nowEpoch,
-        ultima_actividad: nowEpoch,
-      })
-      await redisClient.expire(key, SESSION_TTL_SECONDS)
+      try {
+        await ensureRedisConnected()
+        await redisClient.hSet(key, {
+          sesion_id: digest,
+          usuario_id: user.id,
+          username: user.username,
+          rol: user.role,
+          estado_acceso: 'autorizado',
+          creada_en: nowEpoch,
+          ultima_actividad: nowEpoch,
+        })
+        await redisClient.expire(key, SESSION_TTL_SECONDS)
+      } catch {
+        throw new ApiError('DEPENDENCY_UNAVAILABLE')
+      }
     },
     async read(digest: string) {
       return this.readAndRenew(digest)
@@ -875,10 +884,10 @@ export async function startMonitoredServer(options?: {
         })
         throw new ApiError('DEPENDENCY_UNAVAILABLE')
       }
-      await ensureRedisConnected()
       const start = performance.now()
       const key = `fixture2030:h10:${redisScope}:sesion:${digest}`
       try {
+        await ensureRedisConnected()
         const raw = await redisClient.eval(READ_AND_RENEW_SESSION_THROTTLED, {
           keys: [key],
           arguments: [
@@ -938,7 +947,9 @@ export async function startMonitoredServer(options?: {
       await ensureRedisConnected()
       await redisClient
         .del(`fixture2030:h10:${redisScope}:sesion:${digest}`)
-        .catch(() => {})
+        .catch(() => {
+          throw new ApiError('DEPENDENCY_UNAVAILABLE')
+        })
     },
   }
 
