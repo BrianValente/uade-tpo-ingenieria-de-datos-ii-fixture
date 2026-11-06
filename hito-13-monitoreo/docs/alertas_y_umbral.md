@@ -21,15 +21,15 @@ Las reglas de alerta se encuentran codificadas en [`hito-13-monitoreo/prometheus
 
 ## 3. Justificación Empírica de los Umbrales Elegidos (RF9, RF11)
 
-Los umbrales no fueron elegidos arbitrariamente; se derivan directamente de las mediciones experimentales obtenidas en el **Hito 12** ([`hito-12-carga-optimizacion/docs/evidencia/tablas_o_graficos.md`](../../hito-12-carga-optimizacion/docs/evidencia/tablas_o_graficos.md)) y en el **Hito 13** ([`evidencia/resultados_sin_secretos/consultas_promql_observadas.md`](../evidencia/resultados_sin_secretos/consultas_promql_observadas.md)):
+Los umbrales son decisiones operativas que deben contrastarse con un SLO. Las mediciones de [H12](../../hito-12-carga-optimizacion/docs/evidencia/tablas_o_graficos.md) y las [capturas H13](../evidencia/resultados_sin_secretos/consultas_promql_observadas.md) permiten contextualizarlos, pero no prueban que sean límites óptimos ni excluyen falsos positivos:
 
 1. **Umbral de Latencia HTTP `p95 > 250 ms` (`for: 30s`)**:
-   - En el **Hito 12**, la **línea base sin optimizar** registró una latencia global `p95 = 308,75 ms` (`417,604 ms` en el endpoint compuesto `GET /partidos/:id`), mientras que la **arquitectura optimizada** redujo el `p95` global a **`65,572 ms`** (`59,855 ms` en `GET /partidos/:id`) y en el arranque en frío del **Hito 13** (`Q3`) se ubicó en **`166,67 ms`**.
-   - Por lo tanto, fijar el umbral de advertencia (`warning`) en **`250 ms`** durante `30s` detecta con precisión cuándo el sistema pierde el beneficio de la optimización y se acerca al régimen degradado pre-Hito 12 (`308,75 ms`), sin disparar falsos positivos durante el calentamiento inicial de la caché (`166,67 ms`).
+   - La corrida H12 del código `cd653d6` registró p95 E2E de 31.381 ms en base, 9.539 ms con O2 aislada y 9.254 ms con el conjunto. Son muestras del generador, distintas de los cuantiles estimados de buckets Prometheus.
+   - El umbral de **250 ms durante30s** es una advertencia operativa de degradación sostenida, no una frontera empírica entre esos regímenes ni un SLO validado. Debe recalibrarse con un objetivo y tráfico representativos. Arranque en frío, GC o competencia de CPU pueden dispararlo; `for` filtra picos breves pero no garantiza eliminar falsos positivos.
 2. **Umbral de Tasa de Errores `5xx > 1%` (`for: 10s`)**:
-   - En condiciones normales (tanto en las `8.249 ops` del Hito 12 como en la Fase 1 y Fase 3 del Hito 13), la tasa de errores `5xx` es exactamente **`0%`**. Superar el `1%` durante `10s` confirma una falla real de dependencia (`503 DEPENDENCY_UNAVAILABLE` o `503 REQUEST_TIMEOUT`) que requiere intervención inmediata del equipo de guardia.
+   - Las ventanas H12 verificadas no registraron fallos HTTP. Superar el 1 % durante 10 s exige investigar aplicación y dependencias, no prueba por sí solo una caída de motor. Tras la recuperación H13, la alerta puede seguir FIRING porque su ventana incluye errores anteriores: no confundir tasa histórica, contador acumulado y estado instantáneo.
 3. **Umbral de Cache Hit Ratio `< 70%` con tráfico activo (`> 1 ops/s`, `for: 30s`)**:
-   - Con distribución Pareto 80/20 sobre el fixture, el Hit Ratio medido en régimen estacionario en el Hito 12 fue de **`98,57%`** (`8.131 hits` / `118 misses`) y en la corrida corta de calentamiento del Hito 13 (`Q7`) fue de **`85,27%`**. Caer por debajo del `70%` bajo tráfico activo indica pérdida de efectividad de la capa Read-Aside.
+   - El conjunto H12 registró hit ratio99.94 %. Una captura corta H13 depende de la ventana y el calentamiento. El umbral70 % bajo tráfico activo advierte menor eficacia, pero exige revisar TTL, mezcla de claves y misses antes de atribuir una causa.
 
 ---
 

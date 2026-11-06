@@ -60,7 +60,7 @@ Se documentan y ejecutan **8 consultas PromQL** (superando el mínimo de 5 exigi
 - **Qué mide:** el percentil 95 de duración de las solicitudes HTTP procesadas por Fastify.
 - **Unidad:** milisegundos (`ms`).
 - **Ventana temporal:** tasa móvil de `1m`.
-- **Interpretación operativa:** resume la experiencia del 95% de las peticiones sin distorsión por valores atípicos aislados. Durante la rafaga inicial de calentamiento (`cold start` + poblamiento de caché) se observó `166,67 ms` (por debajo del umbral de alerta de `250 ms`), convergiendo a `< 70 ms` una vez caliente la caché Read-Aside (consistente con los `65,572 ms` medidos bajo carga sostenida en el Hito 12).
+- **Interpretación operativa:** estima el percentil95 a partir de buckets y ventana Prometheus; no equivale exactamente al percentil de muestras H12. Correlacionar con caudal, errores y caché sin deducir causalidad de una captura. Las observaciones actuales se conservan en el JSON de consultas, y los valores E2E H12 en sus reportes, no se mezclan como una misma medición.
 
 ### `Q4` — Comparación de latencia `p95` por motor de base de datos
 - **Expresión PromQL:**
@@ -100,7 +100,7 @@ Se documentan y ejecutan **8 consultas PromQL** (superando el mínimo de 5 exigi
 - **Qué mide:** la proporción de lecturas de negocio resueltas directamente desde Redis (`hit / (hit + miss)`). El uso de `clamp_min(..., 0.001)` evita divisiones por cero (`NaN`) cuando no hay tráfico.
 - **Unidad:** proporción (`0.0` a `1.0`, equivalente a `0%–100%`).
 - **Ventana temporal:** tasa móvil de `1m`.
-- **Interpretación operativa:** en la captura de calentamiento inicial de 120 peticiones alcanzó `0.8527` (`85,27%`, superando holgadamente el umbral mínimo de alerta de `0.70`), y bajo régimen estacionario en el benchmark del Hito 12 alcanzó `98,57%`.
+- **Interpretación operativa:** proporción de hits sobre lookups en la ventana de consulta; revisar calentamiento, TTL y mezcla de claves. El conjunto H12 registró99.94 %, pero ese cociente de contadores no es idéntico al ratio por rate de una captura corta H13. Ausencia de series no debe leerse como cero observado.
 
 ### `Q8` — Memoria utilizada por Redis y RSS del proceso Node.js
 - **Expresión PromQL:**

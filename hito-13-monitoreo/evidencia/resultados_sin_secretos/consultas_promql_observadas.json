@@ -1,25 +1,26 @@
 {
   "reportType": "HITO_13_PROMQL_CATALOG",
   "environment": {
-    "timestamp": "2026-10-31T00:29:52.163Z",
-    "gitCommit": "73665cc",
-    "gitBranch": "feature/hito-13-monitoreo-defensa",
+    "timestamp": "2026-11-06T18:45:37.672Z",
+    "gitCommit": "cd653d6",
+    "gitBranch": "fix/hito13-complete",
     "gitTreeState": "clean",
+    "executionNotes": "Laboratorio funcional con motores oficiales reales. MongoDB 7 e InfluxDB 3 bajo QEMU user-mode; IRIS 2026.2 en VM Linux QEMU TCG sin ISCAgent; plugins de paquetes Influx deshabilitados. H11 nativo y API H10 sobre Node 24.13/Ubuntu 24.04 para SDK IRIS oficial; H12/H13 sobre Node 24.13/Linux host. CPU fisica sin AVX. Tiempos de laboratorio emulado, no capacidad de produccion.",
     "host": {
-      "platform": "win32",
-      "release": "10.0.22631",
+      "platform": "linux",
+      "release": "7.2.11-arch1-1",
       "arch": "x64",
-      "cpuModel": "AMD Ryzen 5 5600U with Radeon Graphics",
-      "logicalCpus": 12,
-      "totalMemoryGiB": 7.31,
-      "freeMemoryGiB": 0.49,
-      "nodeVersion": "v22.18.0"
+      "cpuModel": "QEMU Virtual CPU version 2.5+",
+      "logicalCpus": 24,
+      "totalMemoryGiB": 31.26,
+      "freeMemoryGiB": 20.71,
+      "nodeVersion": "v24.13.0"
     },
     "products": {
-      "mongodbVersion": "db version v7.0.40",
+      "mongodbVersion": "db version v7.0.45",
       "neo4jVersion": "neo4j 2026.10.1",
       "neo4jClientVersion": "Cypher-Shell 2026.10.1",
-      "redisVersion": "Redis server v=8.10.2 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=9afb359f90603816",
+      "redisVersion": "Redis server v=8.10.3 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=fa199f3d245589d0",
       "fastifyVersion": "5.12.7"
     }
   },
@@ -47,20 +48,20 @@
         {
           "labels": {
             "__name__": "up",
-            "instance": "redis-exporter:9121",
-            "job": "redis_exporter",
-            "layer": "database-exporter",
-            "service_target": "redis"
+            "instance": "localhost:9090",
+            "job": "prometheus",
+            "layer": "observability",
+            "service_target": "prometheus"
           },
           "value": "1"
         },
         {
           "labels": {
             "__name__": "up",
-            "instance": "localhost:9090",
-            "job": "prometheus",
-            "layer": "observability",
-            "service_target": "prometheus"
+            "instance": "redis-exporter:9121",
+            "job": "redis_exporter",
+            "layer": "database-exporter",
+            "service_target": "redis"
           },
           "value": "1"
         }
@@ -146,7 +147,7 @@
       "observedSamples": [
         {
           "labels": {},
-          "value": "166.6666666666664"
+          "value": "10.603476021886062"
         }
       ]
     },
@@ -164,25 +165,25 @@
           "labels": {
             "engine": "redis_session"
           },
-          "value": "49.99999999999997"
+          "value": "2.344827586206897"
         },
         {
           "labels": {
             "engine": "redis_cache"
           },
-          "value": "23.513157894736842"
+          "value": "2.436131762028012"
         },
         {
           "labels": {
             "engine": "mongodb"
           },
-          "value": "231.24999999999997"
+          "value": "20.124999999999996"
         },
         {
           "labels": {
             "engine": "neo4j"
           },
-          "value": "233.125"
+          "value": "4.8392857142857135"
         }
       ]
     },
@@ -201,28 +202,28 @@
             "route": "/partidos/:id",
             "status_class": "2xx"
           },
-          "value": "1.9688687420838613"
+          "value": "2.0736666666666665"
         },
         {
           "labels": {
             "route": "/equipos/:codigo",
             "status_class": "2xx"
           },
-          "value": "0.2536757351470294"
-        },
-        {
-          "labels": {
-            "route": "/partidos/:id/eventos",
-            "status_class": "2xx"
-          },
-          "value": "0.5073514702940588"
+          "value": "0.3314"
         },
         {
           "labels": {
             "route": "/equipos/:codigo/jugadores",
             "status_class": "2xx"
           },
-          "value": "1.0147029405881176"
+          "value": "1.3256"
+        },
+        {
+          "labels": {
+            "route": "/partidos/:id/eventos",
+            "status_class": "2xx"
+          },
+          "value": "0.6628"
         }
       ]
     },
@@ -241,56 +242,56 @@
             "engine": "mongodb",
             "operation": "team"
           },
-          "value": "0.19699797791258358"
+          "value": "0.24886000000000003"
         },
         {
           "labels": {
             "engine": "neo4j",
             "operation": "match"
           },
-          "value": "0.3742961580339088"
+          "value": "0.4147666666666667"
         },
         {
           "labels": {
             "engine": "redis_session",
             "operation": "readAndRenew"
           },
-          "value": "4.727951469902006"
+          "value": "4.9772"
         },
         {
           "labels": {
             "engine": "redis_cache",
             "operation": "get"
           },
-          "value": "4.727951469902006"
+          "value": "4.9772"
         },
         {
           "labels": {
             "engine": "redis_cache",
             "operation": "setex"
           },
-          "value": "0.32999516569980664"
-        },
-        {
-          "labels": {
-            "engine": "mongodb",
-            "operation": "matchTeamsBatch"
-          },
-          "value": "0.15230546109221843"
-        },
-        {
-          "labels": {
-            "engine": "neo4j",
-            "operation": "events"
-          },
-          "value": "0.07615273054610922"
+          "value": "0.5302933333333333"
         },
         {
           "labels": {
             "engine": "mongodb",
             "operation": "players"
           },
-          "value": "0.05076848703073948"
+          "value": "0.09942999999999999"
+        },
+        {
+          "labels": {
+            "engine": "mongodb",
+            "operation": "matchTeamsBatch"
+          },
+          "value": "0.19885999999999998"
+        },
+        {
+          "labels": {
+            "engine": "neo4j",
+            "operation": "events"
+          },
+          "value": "0.09942999999999999"
         }
       ]
     },
@@ -306,7 +307,7 @@
       "observedSamples": [
         {
           "labels": {},
-          "value": "0.8526833631567904"
+          "value": "0.8298499749198194"
         }
       ]
     },
@@ -328,7 +329,7 @@
             "layer": "database-exporter",
             "service_target": "redis"
           },
-          "value": "2225264"
+          "value": "2271288"
         },
         {
           "labels": {
@@ -338,7 +339,7 @@
             "layer": "application-and-probes",
             "service_target": "api-fastify"
           },
-          "value": "80404480"
+          "value": "301584384"
         }
       ]
     }

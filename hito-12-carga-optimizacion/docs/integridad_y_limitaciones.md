@@ -41,7 +41,7 @@ Los contadores deben leerse junto con las solicitudes completadas: una corrida m
 
 1. Generador, API y servicios comparten recursos de un laboratorio Linux. `environment` y `executionNotes` de los JSON identifican las versiones y la emulación de CPU aplicada; no se mezclan estos resultados con mediciones de Windows.
 2. La ventana de carga es breve, el dataset cabe en memoria y no se han medido WAN intercontinental, quórum, discos fríos a escala de terabytes ni failover de clústeres. No se deduce escalado lineal ni capacidad mundial.
-3. El benchmark recorre Redis, MongoDB y Neo4j. El diagnóstico de los **seis** motores y la recuperación real son verificaciones separadas en [Hito 11](../../hito-11-conectividad/docs/evidencia/reporte_conectividad_activa.md), no resultados de esta carga.
+3. El benchmark recorre Redis, MongoDB y Neo4j. El diagnóstico de los **seis** motores y la recuperación real son verificaciones separadas en [Hito 11](../../hito-11-conectividad/docs/evidencia/reporte_conectividad_inicial.md), no resultados de esta carga. La RAM visible de la VM varió entre instantáneas; una sola política de código cambia en O2, pero no se asegura aislamiento físico absoluto. Solo hay una repetición por perfil.
 4. O1 añade conexiones; O2 compite por RAM Redis y admite desactualización hasta el TTL; O3 reduce la resolución de última actividad. La integridad funcional y los costos importan junto con la latencia.
 5. El [Data Mart](integracion_data_mart.md) sigue siendo un diseño analítico, no un ETL físico ejecutado en IRIS. La caché operacional y el modelo analítico resuelven necesidades distintas.
 

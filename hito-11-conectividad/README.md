@@ -79,7 +79,7 @@ La suite de diagnóstico puede ejecutarse mediante los scripts dedicados en Powe
 ### Opción A. Desde `hito-10-api/` con pnpm
 ```bash
 # 1. Evaluación completa (TCP + Clientes Nativos + API):
-pnpm eval:conectividad --all --require-up
+pnpm eval:conectividad --all --require-up --output=../hito-11-conectividad/docs/evidencia/reporte_conectividad_inicial.md
 
 # 2. Solo prueba de conectividad y sockets TCP:
 pnpm eval:tcp
@@ -97,7 +97,7 @@ pnpm exec tsx ../hito-11-conectividad/scripts/prueba_falla_controlada.ts --outpu
 pnpm eval:recuperacion --allow-stop=redis
 ```
 
-El diagnóstico genera también JSON saneado junto al Markdown. `--require-up` termina con error si la matriz o los contratos HTTP no están conformes; no convierte `SKIP`/`NOT_CONFIGURED` en éxito. Sin ese flag el comando puede escribir un informe degradado con exit 0.
+Con `--output`, el diagnóstico genera también JSON saneado junto al Markdown. `--require-up` termina con error si la matriz o los contratos HTTP no están conformes; no convierte `SKIP`/`NOT_CONFIGURED` en éxito. Sin ese flag el comando puede escribir un informe degradado con exit 0.
 
 `eval:recuperacion` requiere la API viva y permiso para interrumpir Redis. Identifica el contenedor Compose y comprueba 200 → 503 → 200 con el mismo token, sesión y entidad persistida; compara contenedor y mounts/volúmenes, restaura Redis mediante `finally` y no reinicia la API. Con overrides, exportar `COMPOSE_FILE` con rutas absolutas. No ejecutarlo sobre infraestructura compartida.
 

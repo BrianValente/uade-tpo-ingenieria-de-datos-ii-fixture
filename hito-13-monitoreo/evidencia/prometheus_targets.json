@@ -1,25 +1,26 @@
 {
   "reportType": "HITO_13_PROMETHEUS_TARGETS",
   "environment": {
-    "timestamp": "2026-10-31T00:29:52.163Z",
-    "gitCommit": "73665cc",
-    "gitBranch": "feature/hito-13-monitoreo-defensa",
+    "timestamp": "2026-11-06T18:45:37.672Z",
+    "gitCommit": "cd653d6",
+    "gitBranch": "fix/hito13-complete",
     "gitTreeState": "clean",
+    "executionNotes": "Laboratorio funcional con motores oficiales reales. MongoDB 7 e InfluxDB 3 bajo QEMU user-mode; IRIS 2026.2 en VM Linux QEMU TCG sin ISCAgent; plugins de paquetes Influx deshabilitados. H11 nativo y API H10 sobre Node 24.13/Ubuntu 24.04 para SDK IRIS oficial; H12/H13 sobre Node 24.13/Linux host. CPU fisica sin AVX. Tiempos de laboratorio emulado, no capacidad de produccion.",
     "host": {
-      "platform": "win32",
-      "release": "10.0.22631",
+      "platform": "linux",
+      "release": "7.2.11-arch1-1",
       "arch": "x64",
-      "cpuModel": "AMD Ryzen 5 5600U with Radeon Graphics",
-      "logicalCpus": 12,
-      "totalMemoryGiB": 7.31,
-      "freeMemoryGiB": 0.49,
-      "nodeVersion": "v22.18.0"
+      "cpuModel": "QEMU Virtual CPU version 2.5+",
+      "logicalCpus": 24,
+      "totalMemoryGiB": 31.26,
+      "freeMemoryGiB": 20.71,
+      "nodeVersion": "v24.13.0"
     },
     "products": {
-      "mongodbVersion": "db version v7.0.40",
+      "mongodbVersion": "db version v7.0.45",
       "neo4jVersion": "neo4j 2026.10.1",
       "neo4jClientVersion": "Cypher-Shell 2026.10.1",
-      "redisVersion": "Redis server v=8.10.2 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=9afb359f90603816",
+      "redisVersion": "Redis server v=8.10.3 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=fa199f3d245589d0",
       "fastifyVersion": "5.12.7"
     }
   },
@@ -36,8 +37,8 @@
       "scrapePool": "fixture2030_api",
       "scrapeUrl": "http://host.docker.internal:8013/metrics",
       "health": "up",
-      "lastScrape": "2026-10-31T00:30:36.61095381Z",
-      "lastScrapeDurationMs": 173.976,
+      "lastScrape": "2026-11-06T18:45:55.349365051Z",
+      "lastScrapeDurationMs": 1.403,
       "lastError": "",
       "labels": {
         "instance": "host.docker.internal:8013",
@@ -52,8 +53,8 @@
       "scrapePool": "prometheus",
       "scrapeUrl": "http://localhost:9090/metrics",
       "health": "up",
-      "lastScrape": "2026-10-31T00:30:38.362036598Z",
-      "lastScrapeDurationMs": 196.054,
+      "lastScrape": "2026-11-06T18:45:57.765889996Z",
+      "lastScrapeDurationMs": 3.974,
       "lastError": "",
       "labels": {
         "instance": "localhost:9090",
@@ -68,8 +69,8 @@
       "scrapePool": "redis_exporter",
       "scrapeUrl": "http://redis-exporter:9121/metrics",
       "health": "up",
-      "lastScrape": "2026-10-31T00:30:32.981780567Z",
-      "lastScrapeDurationMs": 274.546,
+      "lastScrape": "2026-11-06T18:45:54.042709218Z",
+      "lastScrapeDurationMs": 13.918,
       "lastError": "",
       "labels": {
         "instance": "redis-exporter:9121",
@@ -148,8 +149,8 @@
       "role": "integracion-poliglota",
       "monitoredMode": "active_probe",
       "up": 1,
-      "latencyMs": 0.15,
-      "detail": "Fastify event loop active"
+      "latencyMs": 0.019,
+      "detail": "Fastify event loop active (lag: 0.019 ms)"
     },
     {
       "component": "mongodb",
@@ -157,7 +158,7 @@
       "role": "equipos-jugadores-auditoria",
       "monitoredMode": "active_probe",
       "up": 1,
-      "latencyMs": 16.43,
+      "latencyMs": 0.844,
       "detail": "MongoDB ping:1 ok"
     },
     {
@@ -166,7 +167,7 @@
       "role": "fixture-sedes-eventos",
       "monitoredMode": "active_probe",
       "up": 1,
-      "latencyMs": 61.682,
+      "latencyMs": 2.056,
       "detail": "Neo4j Bolt RETURN 1 ok"
     },
     {
@@ -175,7 +176,7 @@
       "role": "sesiones-y-cache",
       "monitoredMode": "active_probe",
       "up": 1,
-      "latencyMs": 10.959,
+      "latencyMs": 0.266,
       "detail": "Redis PING PONG ok"
     },
     {
@@ -183,27 +184,27 @@
       "model": "columnar",
       "role": "eventos-y-consultas-por-particion",
       "monitoredMode": "tcp_socket_probe",
-      "up": 0,
-      "latencyMs": 1.906,
-      "detail": "TCP 127.0.0.1:9042 connect ECONNREFUSED 127.0.0.1:9042"
+      "up": 1,
+      "latencyMs": 0.233,
+      "detail": "TCP 127.0.0.1:9042 reachable"
     },
     {
       "component": "influxdb",
       "model": "series-temporales",
-      "role": "telemetria-iot-sensores",
+      "role": "estadisticas-partido",
       "monitoredMode": "tcp_socket_probe",
-      "up": 0,
-      "latencyMs": 1.98,
-      "detail": "TCP 127.0.0.1:8181 connect ECONNREFUSED 127.0.0.1:8181"
+      "up": 1,
+      "latencyMs": 0.198,
+      "detail": "TCP 127.0.0.1:8181 reachable"
     },
     {
       "component": "iris",
       "model": "multimodelo",
-      "role": "datamart-analitico-bi",
+      "role": "objetos-partido-estado",
       "monitoredMode": "tcp_socket_probe",
-      "up": 0,
-      "latencyMs": 2.232,
-      "detail": "TCP 127.0.0.1:1972 connect ECONNREFUSED 127.0.0.1:1972"
+      "up": 1,
+      "latencyMs": 0.196,
+      "detail": "TCP 127.0.0.1:1972 reachable"
     }
   ]
 }

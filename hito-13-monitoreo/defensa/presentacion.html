@@ -260,14 +260,14 @@
             <tr>
               <td><strong>MongoDB 7.0</strong><br />(Hito 4)</td>
               <td><code>equipos</code>, <code>jugadores</code> y <code>usuarios_api</code> con <code>$jsonSchema</code>, UUID v5 e índice compuesto <code>{equipoId:1, posicion:1, dorsal:1}</code>.</td>
-              <td>Replica Set (<code>w:"majority"</code> en altas; lectura proyectada + caché <code>300s</code>).</td>
-              <td>Plan indexado examina <code>24</code> claves vs <code>1.536</code>. En Hito 12: <code>3.592 ➔ 83</code> consultas (<code>-97,7%</code>).</td>
+              <td>Propuesta: Replica Set con mayoría. En laboratorio: instancia única y caché <code>300s</code>.</td>
+              <td>Índices según el filtro: no transferir el explain H4 por equipoId a H12 por equipoCodigo. Conjunto H12: <code>31914 ➔ 2</code> operaciones.</td>
             </tr>
             <tr>
               <td><strong>Neo4j 5.x</strong><br />(Hito 5)</td>
               <td>Nodos <code>Partido, Equipo, Sede, Evento, Jugador</code> y relaciones <code>DISPUTA, SE_JUEGA_EN, OCURRE_EN, INVOLUCRA</code>.</td>
-              <td>Grafo en <em>page cache</em> + Read Replicas (<code>routing:'READ'</code>) y caché de <code>15s / 120s</code>.</td>
-              <td>En Hito 12: consultas Cypher bajan de <code>1.227 ➔ 43</code> (<code>-96,5%</code>) y <code>p95</code> de <code>355,53 ➔ 48,45 ms</code>.</td>
+              <td>Nodo local. Propuesta: réplicas de lectura. Caché de <code>15s / 120s</code> en la versión optimizada.</td>
+              <td>Conjunto H12: <code>10639 ➔ 35</code> operaciones. O1 no mejoró el p95 del driver en esta repetición; no se atribuye al pool una cola eliminada.</td>
             </tr>
             <tr>
               <td><strong>Cassandra 5.0</strong><br />(Hito 6)</td>
@@ -295,8 +295,8 @@
             <tr>
               <td><strong>Redis 7.x / 8.x</strong><br />(Hito 7 y 12)</td>
               <td><code>HASH sesion:&lt;sha256&gt;</code> (TTL <code>1800s</code> + Lua throttling <code>60s</code>), <code>STRING cache:*</code> y rankings <code>ZSET</code>.</td>
-              <td>Redis Cluster (16.384 slots). <em>Fail-open</em> en caché Read-Aside y <em>fail-closed</em> en sesiones.</td>
-              <td><strong>98,57% Hit Ratio</strong> (<code>8.131 hits / 118 misses</code>) y <strong>100% de escrituras de sesión omitidas</strong> (<code>8.249</code>) en Hito 12.</td>
+              <td>Propuesta: Redis Cluster. <em>Fail-open</em> en caché y <em>fail-closed</em> en sesiones: la autenticación sigue siendo requisito.</td>
+              <td><strong>99.94% hit ratio</strong> y <code>63452</code> renovaciones omitidas durante la ventana medida, no indefinidamente.</td>
             </tr>
             <tr>
               <td><strong>InfluxDB 3 Core</strong><br />(Hito 8)</td>
@@ -331,9 +331,9 @@
             <ul>
               <li><code>Q1 (up)</code>: <code>3/3</code> targets en <code>1.0000</code>.</li>
               <li><code>Q2 (fixture2030_component_up)</code>: <code>4/4</code> sondas activas en <code>1.0000</code>.</li>
-              <li><code>Q3 (p95 HTTP 1m)</code>: <code>166,67 ms</code> en calentamiento inicial (&lt; umbral <code>250 ms</code>).</li>
-              <li><code>Q4 (p95 por motor)</code>: <code>redis_cache 23,51 ms</code> vs <code>mongodb 231,25 ms</code> y <code>neo4j 233,13 ms</code> en misses de arranque.</li>
-              <li><code>Q7 (Cache Hit Ratio)</code>: <code>85,27%</code> en arranque en frío y <code>98,57%</code> en régimen estacionario.</li>
+              <li><code>Q3 (p95 HTTP 1m)</code>: estimación por buckets. <code>250 ms</code> es un umbral operativo, no un SLO demostrado.</li>
+              <li><code>Q4 (p95 por motor)</code>: correlacionar con volumen de consultas y misses; un cuantil de buckets no prueba por sí solo la causa del retraso.</li>
+              <li><code>Q7 (Cache Hit Ratio)</code>: depende de ventana y calentamiento. El conjunto H12 registró <code>99.94%</code> por contadores.</li>
             </ul>
           </div>
         </div>
@@ -377,23 +377,23 @@
 
       <section class="slide">
         <span class="badge">Bloque 5 · Minutos 16:00 – 17:15 · Evidencia Hito 12 (Julián Curi)</span>
-        <h2>8. Evidencia Medida de Carga y Optimización en el Hito 12 (Commit <code>5533d42</code>)</h2>
+        <h2>8. Evidencia Hito 12 — Código <code>cd653d6</code> · 6/11/2026</h2>
         <div class="kpi-row">
           <div class="kpi">
-            <div class="val">+313,3%</div>
-            <div class="lbl">Throughput (124,59 ➔ 514,98 ops/s · 4,11x)</div>
+            <div class="val">+259.34%</div>
+            <div class="lbl">Throughput conjunto: 1103.48 ➔ 3965.25 ops/s</div>
           </div>
           <div class="kpi">
-            <div class="val">-78,8%</div>
-            <div class="lbl">Latencia HTTP p95 (308,75 ms ➔ 65,572 ms)</div>
+            <div class="val">−70.51%</div>
+            <div class="lbl">p95 conjunto: 31.381 ➔ 9.254 ms</div>
           </div>
           <div class="kpi">
-            <div class="val">98,57%</div>
-            <div class="lbl">Cache Hit Ratio en Redis Read-Aside (8.131 hits)</div>
+            <div class="val">99.94%</div>
+            <div class="lbl">Hit ratio conjunto: 63415 hits / 37 misses</div>
           </div>
           <div class="kpi">
             <div class="val">-100%</div>
-            <div class="lbl">Escrituras de sesión ahorradas por Lua O3 (8.249 omitidas)</div>
+            <div class="lbl">63452 renovaciones omitidas en la ventana &lt;60s</div>
           </div>
         </div>
         <table>
@@ -408,26 +408,26 @@
           <tbody>
             <tr>
               <td>Operaciones completadas exitosas (<code>HTTP 200</code>, <code>0%</code> error)</td>
-              <td><code>2.009 ops</code></td>
-              <td><code>8.249 ops</code></td>
-              <td><strong>+310,6% (4,11x)</strong> con <code>8/8</code> checks de integridad</td>
+              <td><code>17669 ops</code></td>
+              <td><code>63452 ops</code></td>
+              <td>Payloads verificados sin fallos HTTP ni de integridad</td>
             </tr>
             <tr>
               <td>Latencia media / <code>p50</code> / <code>p95</code> / <code>p99</code> global</td>
-              <td><code>172,95 / 167,84 / 308,75 / 532,10 ms</code></td>
-              <td><code>41,89 / 39,30 / 65,57 / 83,59 ms</code></td>
-              <td>Reducción de <strong>-75,8%</strong> en media y <strong>-84,3%</strong> en <code>p99</code></td>
+              <td><code>19.570 / 19.573 / 31.381 / 36.682 ms</code></td>
+              <td><code>5.438 / 5.325 / 9.254 / 11.368 ms</code></td>
+              <td>Muestras E2E, no cuantiles de buckets Prometheus</td>
             </tr>
             <tr>
               <td>Operaciones ejecutadas en MongoDB / Neo4j</td>
-              <td><code>3.592</code> / <code>1.227</code></td>
-              <td><code>83 (-97,7%)</code> / <code>43 (-96,5%)</code></td>
-              <td>Drástica reducción de presión sobre disco y grafo</td>
+              <td><code>31914</code> / <code>10639</code></td>
+              <td><code>2</code> / <code>35</code></td>
+              <td>Menos llamadas en régimen cacheado; no demuestra I/O físico ni una causa individual</td>
             </tr>
             <tr>
-              <td><strong>Aislamiento Experimental (1 sola variable vs base)</strong></td>
-              <td colspan="2"><code>Solo O1: 204,18 ops/s (+63,9%, p50 90,99 ms)</code> · <code>Flujo Conjunto O1+O2+O3: 514,98 ops/s (+313,3%)</code></td>
-              <td>Atribución causal demostrada: O1 elimina cuellos de botella en drivers; O2 y O3 operan sinérgicamente en el conjunto.</td>
+              <td><strong>Una política: solo O2</strong></td>
+              <td colspan="2"><code>4028.12 ops/s · p95 9.539 ms</code>; pools5, sin throttle. O1 es un paquete: <code>1274 ops/s</code>.</td>
+              <td>O2 supera el caudal conjunto en esta repetición. Emulación y RAM variable limitan inferencias.</td>
             </tr>
           </tbody>
         </table>
@@ -437,8 +437,8 @@
         <span class="badge">Bloque 5 · Minutos 17:15 – 18:30 · Evidencia Hito 13 (Julián Curi)</span>
         <h2>9. Prueba Controlada de Disponibilidad, Falla y Recuperación (RF9, RF10)</h2>
         <p>
-          Evidencia real capturada en <code>evidencia/prueba_de_falla.md</code> (commit <code>73665cc</code>) sin
-          eliminar volúmenes ni datos funcionales (RNF5, RNF11):
+          Código <code>cd653d6</code>: caída real del exporter e inyección <strong>simulada</strong> Neo4j.
+          El ciclo Redis real H11 acredita por separado sesión, entidad y mounts conservados.
         </p>
         <table>
           <thead>
@@ -466,13 +466,13 @@
               <td>Respuesta <code>GET /partidos/F2030-001</code></td>
               <td><code>HTTP 200 OK</code></td>
               <td><code>HTTP 503 DEPENDENCY_UNAVAILABLE</code> (<code>+30</code>)</td>
-              <td><code>HTTP 200 OK</code> (<code>0</code> nuevos errores en Fase 3)</td>
+              <td><code>HTTP 200 OK</code>; los contadores acumulados no vuelven a cero</td>
             </tr>
             <tr>
               <td>Estado de Reglas de Alerta en Prometheus</td>
               <td>Las 6 reglas en <code>INACTIVE</code></td>
               <td><code>TargetPrometheusCaido = FIRING</code><br /><code>MotorPoliglotaInaccesible = FIRING</code><br /><code>TasaErroresHttp5xxAlta = PENDING</code></td>
-              <td><code>TargetPrometheusCaido = INACTIVE</code><br /><code>MotorPoliglotaInaccesible = INACTIVE</code><br />(<code>TasaErroresHttp5xxAlta</code> cierra tras ventana <code>[1m]</code>)</td>
+              <td>Disponibilidad <code>INACTIVE</code>.<br />Tasa5xx aún <code>FIRING</code> por la ventana histórica, aunque la consulta ya responde200.</td>
             </tr>
           </tbody>
         </table>
@@ -486,14 +486,15 @@
             <h3>Transparencia sobre el Laboratorio Local</h3>
             <ul>
               <li><strong>Monitoreo Profundo Activo:</strong> API Fastify, MongoDB, Neo4j y Redis bajo carga real.</li>
-              <li><strong>Sondas TCP (<code>tcp_socket_probe</code>):</strong> Cassandra (<code>:9042</code>), InfluxDB (<code>:8181</code>) e IRIS (<code>:1972</code>) verificados en sus hitos y monitoreados por puerto para respetar los <code>~7,31 GiB</code> de RAM del host local.</li>
+              <li><strong>Sondas TCP:</strong> Cassandra, InfluxDB e IRIS no tienen exporter propio en H13; H11 verifica además protocolo, contexto y datos reales.</li>
+              <li><strong>Límite experimental:</strong> Mongo/Influx e IRIS emulados por falta de AVX físico, SDK oficial en Ubuntu compatible y RAM visible variable. No es capacidad de producción.</li>
               <li><strong>Sin Secretos (RNF6):</strong> toda la evidencia JSON/Markdown está sanitizada y versionada.</li>
             </ul>
           </div>
           <div class="card">
             <h3>Próximos Pasos Prioritarios hacia FIFA 2030</h3>
             <ul>
-              <li><strong>1. Singleflight (Request Coalescing) + Stale-If-Error:</strong> eliminar picos de <em>cold start</em> (<code>166,67 ms ➔ &lt; 70 ms</code>) y servir caché de respaldo si cae Neo4j.</li>
+              <li><strong>1. Singleflight:</strong> comparar cargas a la fuente por clave, p95/p99 y payload. Stale requiere frescura acotada; nunca sustituye autorización vigente.</li>
               <li><strong>2. Pipeline ETL/ELT al Data Mart Kimball:</strong> automatizar la carga cada 15 min (<code>B1..B6</code>) en IRIS.</li>
               <li><strong>3. Topología Multi-Región:</strong> Replica Sets, Read Replicas y anillo Cassandra <code>RF=3</code> en las 3 regiones sede.</li>
             </ul>
