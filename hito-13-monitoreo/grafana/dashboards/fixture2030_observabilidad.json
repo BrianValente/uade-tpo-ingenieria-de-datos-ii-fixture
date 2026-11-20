@@ -654,7 +654,7 @@
   "links": [{"type": "link", "title": "Trazas", "url": "/d/fixture2030-trazas/trazas", "keepTime": true}, {"type": "link", "title": "Logs", "url": "/d/fixture2030-logs/logs", "keepTime": true}],
   "refresh": "5s",
   "schemaVersion": 39,
-  "tags": ["fixture2030", "hito-13", "poliglota", "prometheus", "loki", "tempo"],
+  "tags": [],
   "templating": {
     "list": []
   },

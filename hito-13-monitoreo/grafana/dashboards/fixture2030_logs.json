@@ -75,7 +75,7 @@
       },
       {
         "name": "requestId",
-        "label": "Request ID (separar con |)",
+        "label": "Request ID",
         "type": "textbox",
         "query": "",
         "current": {
@@ -86,7 +86,7 @@
       },
       {
         "name": "traceId",
-        "label": "Trace ID (separar con |)",
+        "label": "Trace ID",
         "type": "textbox",
         "query": "",
         "current": {
