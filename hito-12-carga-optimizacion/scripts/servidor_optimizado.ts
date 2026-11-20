@@ -12,7 +12,18 @@ import {
   type LatencyDistribution,
 } from './entorno_y_recursos.js'
 
-export type BenchmarkMode = 'baseline' | 'optimized'
+export type BenchmarkMode =
+  | 'baseline'
+  | 'optimized'
+  | 'isolated_o1'
+  | 'isolated_o2'
+  | 'isolated_o3'
+
+export interface BenchmarkFeatureToggles {
+  o1PoolsAndProjections: boolean
+  o2ReadAsideCache: boolean
+  o3SessionThrottle: boolean
+}
 
 export interface ServerTelemetrySummary {
   mode: BenchmarkMode
@@ -52,6 +63,7 @@ export interface ServerTelemetrySummary {
 
 export interface BenchmarkServerEffectiveConfig {
   mode: BenchmarkMode
+  features: BenchmarkFeatureToggles
   dependencyTimeoutMs: number
   mongoMaxPoolSize: number
   neo4jMaxConnectionPoolSize: number
@@ -67,29 +79,42 @@ export function resolveBenchmarkServerConfig(
   mode: BenchmarkMode,
   env: Record<string, string | undefined>,
 ): BenchmarkServerEffectiveConfig {
+  const isOptimized = mode === 'optimized'
+  const isO1 =
+    mode === 'isolated_o1' ||
+    (isOptimized && env.H12_ENABLE_O1 !== 'false') ||
+    env.H12_ENABLE_O1 === 'true'
+  const isO2 =
+    mode === 'isolated_o2' ||
+    (isOptimized && env.H12_ENABLE_O2 !== 'false') ||
+    env.H12_ENABLE_O2 === 'true'
+  const isO3 =
+    mode === 'isolated_o3' ||
+    (isOptimized && env.H12_ENABLE_O3 !== 'false') ||
+    env.H12_ENABLE_O3 === 'true'
+
   return {
     mode,
-    dependencyTimeoutMs: Number(env.DEPENDENCY_TIMEOUT_MS ?? 3000),
-    mongoMaxPoolSize:
-      mode === 'optimized'
-        ? Number(env.H12_MONGO_POOL_SIZE_OPTIMIZED ?? 25)
-        : Number(env.H12_MONGO_POOL_SIZE_BASELINE ?? 5),
-    neo4jMaxConnectionPoolSize:
-      mode === 'optimized'
-        ? Number(env.H12_NEO4J_POOL_SIZE_OPTIMIZED ?? 25)
-        : Number(env.H12_NEO4J_POOL_SIZE_BASELINE ?? 5),
-    cacheTtlSeconds: {
-      match:
-        mode === 'optimized' ? Number(env.H12_CACHE_TTL_MATCH_SECONDS ?? 120) : 0,
-      team:
-        mode === 'optimized' ? Number(env.H12_CACHE_TTL_TEAM_SECONDS ?? 300) : 0,
-      events:
-        mode === 'optimized' ? Number(env.H12_CACHE_TTL_EVENTS_SECONDS ?? 15) : 0,
+    features: {
+      o1PoolsAndProjections: isO1,
+      o2ReadAsideCache: isO2,
+      o3SessionThrottle: isO3,
     },
-    sessionRenewThrottleSeconds:
-      mode === 'optimized'
-        ? Number(env.H12_SESSION_RENEW_THROTTLE_SECONDS ?? 60)
-        : 0,
+    dependencyTimeoutMs: Number(env.DEPENDENCY_TIMEOUT_MS ?? 3000),
+    mongoMaxPoolSize: isO1
+      ? Number(env.H12_MONGO_POOL_SIZE_OPTIMIZED ?? 25)
+      : Number(env.H12_MONGO_POOL_SIZE_BASELINE ?? 5),
+    neo4jMaxConnectionPoolSize: isO1
+      ? Number(env.H12_NEO4J_POOL_SIZE_OPTIMIZED ?? 25)
+      : Number(env.H12_NEO4J_POOL_SIZE_BASELINE ?? 5),
+    cacheTtlSeconds: {
+      match: isO2 ? Number(env.H12_CACHE_TTL_MATCH_SECONDS ?? 120) : 0,
+      team: isO2 ? Number(env.H12_CACHE_TTL_TEAM_SECONDS ?? 300) : 0,
+      events: isO2 ? Number(env.H12_CACHE_TTL_EVENTS_SECONDS ?? 15) : 0,
+    },
+    sessionRenewThrottleSeconds: isO3
+      ? Number(env.H12_SESSION_RENEW_THROTTLE_SECONDS ?? 60)
+      : 0,
   }
 }
 
@@ -338,7 +363,7 @@ export async function startBenchmarkServer(
   }
 
   async function cacheGet<T>(key: string): Promise<T | null> {
-    if (mode !== 'optimized') return null
+    if (!effectiveConfig.features.o2ReadAsideCache) return null
     const start = performance.now()
     try {
       const raw = await redisClient.get(`fixture2030:h12:cache:${key}`)
@@ -354,7 +379,7 @@ export async function startBenchmarkServer(
   }
 
   async function cacheSet(key: string, value: unknown, ttlSec: number): Promise<void> {
-    if (mode !== 'optimized') return
+    if (!effectiveConfig.features.o2ReadAsideCache || ttlSec <= 0) return
     const start = performance.now()
     try {
       await redisClient.set(`fixture2030:h12:cache:${key}`, JSON.stringify(value), {
@@ -393,7 +418,7 @@ export async function startBenchmarkServer(
       const key = `fixture2030:h10:${redisScope}:sesion:${digest}`
       try {
         const raw =
-          mode === 'optimized'
+          effectiveConfig.features.o3SessionThrottle
             ? await redisClient.eval(READ_AND_RENEW_SESSION_THROTTLED, {
                 keys: [key],
                 arguments: [
@@ -464,21 +489,23 @@ export async function startBenchmarkServer(
   // Servicio de datos con comportamiento diferenciado: Línea Base vs Optimizado (O1 + O2)
   const dataService = {
     async team(code: string) {
-      if (mode === 'optimized') {
+      if (effectiveConfig.features.o2ReadAsideCache) {
         const cached = await cacheGet<ReturnType<typeof mapTeamRow>>(`equipo:${code}`)
         if (cached) return cached
       }
-      const row = await trackMongo(() =>
+      const row = await trackMongo<Record<string, unknown> | null>(() =>
         mongoDb
           .collection('equipos')
           .findOne(
             { codigo: code },
-            mode === 'optimized' ? { projection: TEAM_PROJECTION } : undefined,
+            effectiveConfig.features.o1PoolsAndProjections
+              ? { projection: TEAM_PROJECTION }
+              : undefined,
           ),
       )
       if (!row) throw new ApiError('RESOURCE_NOT_FOUND')
       const mapped = mapTeamRow(row as Record<string, unknown>)
-      if (mode === 'optimized') {
+      if (effectiveConfig.features.o2ReadAsideCache) {
         await cacheSet(`equipo:${code}`, mapped, cacheTtlTeamSec)
       }
       return mapped
@@ -486,7 +513,7 @@ export async function startBenchmarkServer(
 
     async players(code: string, page: number, limit: number) {
       const cacheKey = `plantel:${code}:${page}:${limit}`
-      if (mode === 'optimized') {
+      if (effectiveConfig.features.o2ReadAsideCache) {
         const cached = await cacheGet<{
           items: ReturnType<typeof mapPlayerRow>[]
           total: number
@@ -496,7 +523,14 @@ export async function startBenchmarkServer(
         if (cached) return cached
       }
 
-      if (mode === 'baseline') {
+      let response: {
+        items: ReturnType<typeof mapPlayerRow>[]
+        total: number
+        page: number
+        limit: number
+      }
+
+      if (!effectiveConfig.features.o1PoolsAndProjections) {
         // Línea base Hito 10: 1 consulta a equipos + 2 consultas en paralelo a jugadores (find + countDocuments) sin proyección
         const teamRow = await trackMongo<Record<string, unknown> | null>(() =>
           mongoDb.collection('equipos').findOne({ codigo: code }),
@@ -517,7 +551,40 @@ export async function startBenchmarkServer(
             mongoDb.collection('jugadores').countDocuments({ equipoId: teamId }),
           ),
         ])
-        return {
+        response = {
+          items: rows.map((r) => mapPlayerRow(r)),
+          total,
+          page,
+          limit,
+        }
+      } else {
+        // Modo Optimizado (O1): consulta por equipoCodigo con proyección explícita
+        const rows = await trackMongo<Record<string, unknown>[]>(() =>
+          mongoDb
+            .collection('jugadores')
+            .find({ equipoCodigo: code }, { projection: PLAYER_PROJECTION })
+            .sort({ posicion: 1, dorsal: 1 })
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .toArray(),
+        )
+        if (rows.length === 0) {
+          const teamExists = await trackMongo<Record<string, unknown> | null>(() =>
+            mongoDb
+              .collection('equipos')
+              .findOne({ codigo: code }, { projection: { _id: 1 } }),
+          )
+          if (!teamExists) throw new ApiError('RESOURCE_NOT_FOUND')
+        }
+        const total =
+          page === 1 && rows.length === 24
+            ? 24
+            : await trackMongo<number>(() =>
+                mongoDb
+                  .collection('jugadores')
+                  .countDocuments({ equipoCodigo: code }),
+              )
+        response = {
           items: rows.map((r) => mapPlayerRow(r)),
           total,
           page,
@@ -525,45 +592,15 @@ export async function startBenchmarkServer(
         }
       }
 
-      // Modo Optimizado (O1 + O2): consulta por equipoCodigo con proyección explícita + caché Read-Aside
-      const rows = await trackMongo<Record<string, unknown>[]>(() =>
-        mongoDb
-          .collection('jugadores')
-          .find({ equipoCodigo: code }, { projection: PLAYER_PROJECTION })
-          .sort({ posicion: 1, dorsal: 1 })
-          .skip((page - 1) * limit)
-          .limit(limit)
-          .toArray(),
-      )
-      if (rows.length === 0) {
-        const teamExists = await trackMongo<Record<string, unknown> | null>(() =>
-          mongoDb
-            .collection('equipos')
-            .findOne({ codigo: code }, { projection: { _id: 1 } }),
-        )
-        if (!teamExists) throw new ApiError('RESOURCE_NOT_FOUND')
+      if (effectiveConfig.features.o2ReadAsideCache) {
+        await cacheSet(cacheKey, response, cacheTtlTeamSec)
       }
-      const total =
-        page === 1 && rows.length === 24
-          ? 24
-          : await trackMongo<number>(() =>
-              mongoDb
-                .collection('jugadores')
-                .countDocuments({ equipoCodigo: code }),
-            )
-      const response = {
-        items: rows.map((r) => mapPlayerRow(r)),
-        total,
-        page,
-        limit,
-      }
-      await cacheSet(cacheKey, response, cacheTtlTeamSec)
       return response
     },
 
     async match(id: string) {
       const cacheKey = `partido:${id}`
-      if (mode === 'optimized') {
+      if (effectiveConfig.features.o2ReadAsideCache) {
         const cached = await cacheGet<Record<string, unknown>>(cacheKey)
         if (cached) return cached
       }
@@ -598,7 +635,9 @@ export async function startBenchmarkServer(
 
       if (!graph) throw new ApiError('RESOURCE_NOT_FOUND')
 
-      if (mode === 'baseline') {
+      let composed: Record<string, unknown>
+
+      if (!effectiveConfig.features.o1PoolsAndProjections) {
         // Línea base Hito 10: 2 consultas findOne en paralelo a MongoDB sin proyección
         const [homeRow, awayRow] = await Promise.all([
           trackMongo(() =>
@@ -609,39 +648,42 @@ export async function startBenchmarkServer(
           ),
         ])
         if (!homeRow || !awayRow) throw new ApiError('DEPENDENCY_UNAVAILABLE')
-        return {
+        composed = {
           ...graph,
           home: mapTeamRow(homeRow as Record<string, unknown>),
           away: mapTeamRow(awayRow as Record<string, unknown>),
         }
+      } else {
+        // Modo Optimizado (O1): 1 sola consulta por lote ($in) con proyección BSON
+        const teamRows = await trackMongo<Record<string, unknown>[]>(() =>
+          mongoDb
+            .collection('equipos')
+            .find(
+              { codigo: { $in: [graph.homeCode, graph.awayCode] } },
+              { projection: TEAM_PROJECTION },
+            )
+            .toArray(),
+        )
+        const byCode = new Map<string, ReturnType<typeof mapTeamRow>>()
+        for (const r of teamRows) {
+          const mapped = mapTeamRow(r)
+          byCode.set(mapped.code, mapped)
+        }
+        const home = byCode.get(graph.homeCode)
+        const away = byCode.get(graph.awayCode)
+        if (!home || !away) throw new ApiError('DEPENDENCY_UNAVAILABLE')
+        composed = { ...graph, home, away }
       }
 
-      // Modo Optimizado (O1 + O2): 1 sola consulta por lote ($in) con proyección BSON + caché Read-Aside
-      const teamRows = await trackMongo<Record<string, unknown>[]>(() =>
-        mongoDb
-          .collection('equipos')
-          .find(
-            { codigo: { $in: [graph.homeCode, graph.awayCode] } },
-            { projection: TEAM_PROJECTION },
-          )
-          .toArray(),
-      )
-      const byCode = new Map<string, ReturnType<typeof mapTeamRow>>()
-      for (const r of teamRows) {
-        const mapped = mapTeamRow(r)
-        byCode.set(mapped.code, mapped)
+      if (effectiveConfig.features.o2ReadAsideCache) {
+        await cacheSet(cacheKey, composed, cacheTtlMatchSec)
       }
-      const home = byCode.get(graph.homeCode)
-      const away = byCode.get(graph.awayCode)
-      if (!home || !away) throw new ApiError('DEPENDENCY_UNAVAILABLE')
-      const composed = { ...graph, home, away }
-      await cacheSet(cacheKey, composed, cacheTtlMatchSec)
       return composed
     },
 
     async events(id: string, limit: number) {
       const cacheKey = `eventos:${id}:${limit}`
-      if (mode === 'optimized') {
+      if (effectiveConfig.features.o2ReadAsideCache) {
         const cached = await cacheGet<{ items: unknown[]; limit: number }>(
           cacheKey,
         )
@@ -675,7 +717,7 @@ export async function startBenchmarkServer(
 
       if (!items) throw new ApiError('RESOURCE_NOT_FOUND')
       const response = { items, limit }
-      if (mode === 'optimized') {
+      if (effectiveConfig.features.o2ReadAsideCache) {
         await cacheSet(cacheKey, response, cacheTtlEventsSec)
       }
       return response
@@ -810,7 +852,7 @@ export async function startBenchmarkServer(
             latency: calculateLatencyDistribution(redisSessionSamples),
           },
           redisCache: {
-            enabled: mode === 'optimized',
+            enabled: effectiveConfig.features.o2ReadAsideCache,
             lookupsCount: totalLookups,
             cacheHits,
             cacheMisses,

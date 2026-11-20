@@ -41,7 +41,7 @@ services:
     volumes:
       - neo4j_data:/data
       - neo4j_logs:/logs
-      - ./neo4j/import:/var/lib/neo4j/import
+      - ./neo4j/import:/import:ro
       - neo4j_plugins:/plugins
     healthcheck:
       test:
@@ -128,3 +128,7 @@ volumes:
   neo4j_data:
   neo4j_logs:
   neo4j_plugins:
+
+networks:
+  default:
+    name: fixture2030-network

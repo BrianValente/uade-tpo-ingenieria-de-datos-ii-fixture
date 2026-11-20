@@ -150,16 +150,22 @@ export function generateComparisonMarkdown(
 
 export async function runOptimizedBenchmark() {
   console.log('='.repeat(80))
-  console.log('Hito 12 — Ejecución de Prueba Optimizada y Comparación (RF8, RF9, RF10)')
+  console.log(
+    'Hito 12 — Ejecución de Prueba Optimizada y Comparación (RF8, RF9, RF10)',
+  )
   console.log('='.repeat(80))
 
-  console.log('\n[1/3] Reinicializando condiciones comparables en MongoDB, Neo4j y Redis...')
+  console.log(
+    '\n[1/3] Reinicializando condiciones comparables en MongoDB, Neo4j y Redis...',
+  )
   const prep = await prepareTestData()
   console.log(
     `Entorno preparado: ${prep.redis.cacheKeysCleared} claves de caché previas limpiadas; ${prep.redis.virtualSessionsSeeded} sesiones listas.`,
   )
 
-  console.log('\n[2/3] Ejecutando escenario de carga en modo OPTIMIZADO (optimized)...')
+  console.log(
+    '\n[2/3] Ejecutando escenario de carga en modo OPTIMIZADO (optimized)...',
+  )
   const optReport = await runLoadScenario('optimized')
   const optMarkdown = formatLoadReportMarkdown(optReport)
 
@@ -187,14 +193,13 @@ export async function runOptimizedBenchmark() {
     const baseReport = JSON.parse(baseRaw) as LoadExecutionReport
     console.log('\n[3/3] Generando reporte comparativo Antes vs. Después...')
     const compMarkdown = generateComparisonMarkdown(baseReport, optReport)
-    const compPath = resolve(
-      HITO12_ROOT,
-      'docs/evidencia/tablas_o_graficos.md',
-    )
+    const compPath = resolve(HITO12_ROOT, 'docs/evidencia/tablas_o_graficos.md')
     await writeFile(compPath, compMarkdown, 'utf8')
     console.log(`Reporte comparativo guardado en: ${compPath}\n`)
     console.log(compMarkdown)
-  } catch {
+  } catch (error) {
+    if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT'))
+      throw error
     console.log(
       '\nNota: No se encontró resultados_linea_base.json previo para generar tablas_o_graficos.md. Ejecute primero ejecutar_linea_base.ts.',
     )

@@ -80,6 +80,19 @@ La prueba compila las clases, guarda un arbol de objetos con una sola invocacion
 
 ## Consultas y operaciones
 
+### Inicio del Hito 13
+
+El [módulo de monitoreo y defensa final del Hito 13](hito-13-monitoreo/README.md) integra observabilidad con Prometheus, Redis Exporter y Grafana sobre la API REST políglota y los motores NoSQL del proyecto, incluyendo reglas de alerta operativas, prueba controlada de disponibilidad/falla/recuperación y el paquete completo de defensa técnica de 20 minutos.
+
+`ash
+cd hito-10-api
+pnpm h13:iniciar
+pnpm h13:servidor
+pnpm h13:verificar-targets
+pnpm h13:prueba-controlada
+pnpm h13:limpiar
+`
+
 ### Inicio del Hito 12
 
 El [módulo de pruebas de carga y optimización del Hito 12](hito-12-carga-optimizacion/README.md) evalúa y optimiza el flujo multi-motor de consulta en vivo del torneo (`Fastify + Redis + Neo4j + MongoDB`) bajo un escenario determinístico de 24 usuarios concurrentes y distribución 80/20. Incluye preparación idempotente de datos, medición de línea base, optimizaciones de pool/proyección/batching/caché Read-Aside, validación de integridad post-carga y limpieza no destructiva.
@@ -311,3 +324,4 @@ No agregar `volumes` salvo que se quiera borrar la informacion local de la base 
 - [Modulo de entidades complejas del Hito 9](iris/README.md)
 - [Evaluación de conectividad del Hito 11](hito-11-conectividad/README.md)
 - [Pruebas de carga y optimización del Hito 12](hito-12-carga-optimizacion/README.md)
+- [Monitoreo y defensa técnica final del Hito 13](hito-13-monitoreo/README.md)

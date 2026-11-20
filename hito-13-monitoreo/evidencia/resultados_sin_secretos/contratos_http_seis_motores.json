@@ -1,0 +1,228 @@
+{
+  "codeCommit": "46af5f5ddc111a2561da43442560b3f6e42a0182",
+  "timestamp": "2026-11-06T19:58:48.047Z",
+  "client": "Node24.13/Ubuntu24.04, official SDK unchanged",
+  "baseUrl": "http://127.0.0.1:8013",
+  "results": [
+    {
+      "route": {
+        "name": "Salud HTTP del Proceso (Liveness)",
+        "method": "GET",
+        "path": "/health",
+        "expectedDependency": "Ninguna (Solo proceso HTTP)",
+        "expectedStatus": 200,
+        "description": "Comprueba que el proceso de la API está iniciado y acepta peticiones."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 26,
+      "requestId": "39d32698-2e53-4ad2-b244-7b8da52e2579",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"status\":\"ok\",\"service\":\"fixture2030-api\"}"
+    },
+    {
+      "route": {
+        "name": "Contrato OpenAPI de la API",
+        "method": "GET",
+        "path": "/docs/json",
+        "expectedDependency": "Ninguna (Esquemas estáticos Zod)",
+        "expectedStatus": 200,
+        "description": "Comprueba que el catálogo y esquemas de la API son servidos."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 25,
+      "requestId": "f8599ac2-ad3f-408d-8361-d208c1923b56",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"openapi\":\"3.0.3\",\"info\":{\"title\":\"Fixture 2030 API\",\"version\":\"0.1.0\",\"description\":\"API integrada del Fixture 2030..."
+    },
+    {
+      "route": {
+        "name": "Autenticación y Generación de Sesión (MongoDB + Redis)",
+        "method": "POST",
+        "path": "/auth/login",
+        "body": {
+          "username": "fixture-admin",
+          "password": "******"
+        },
+        "expectedDependency": "MongoDB (Colección accounts) + Redis (Tokens de sesión)",
+        "expectedStatus": 200,
+        "description": "Verifica el flujo de login, hash Argon2id y creación de token opaco en Redis."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 91,
+      "requestId": "22149606-0dcf-4c8e-b39a-3a6b70bfb06a",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"accessToken\":\"******\",\"tokenType\":\"Bearer\",\"expiresIn\":1800,\"user\":{\"id\":\"40d0130c-1db9-4617-ad16-01194274fdf4\",\"us..."
+    },
+    {
+      "route": {
+        "name": "Consulta de Equipo Existente (MongoDB)",
+        "method": "GET",
+        "path": "/equipos/ARG",
+        "expectedDependency": "MongoDB (Colección equipos)",
+        "expectedStatus": 200,
+        "description": "Cadena completa de lectura documental para un equipo participante válido."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 11,
+      "requestId": "8194139b-8ff9-46d7-bd68-4520c15065ea",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"id\":\"4fe7c544-b1ce-5020-afae-7429c4c02d50\",\"code\":\"ARG\",\"name\":\"Argentina\",\"confederation\":\"CONMEBOL\",\"selectionOri..."
+    },
+    {
+      "route": {
+        "name": "Consulta de Equipo Inexistente (404 - Ausencia Válida)",
+        "method": "GET",
+        "path": "/equipos/ZZZ",
+        "expectedDependency": "MongoDB",
+        "expectedStatus": 404,
+        "description": "Diferencia un código 404 de ausencia legítima respecto a una falla de infraestructura."
+      },
+      "statusHttp": 404,
+      "expectedStatus": 404,
+      "statusMatches": true,
+      "responseTimeMs": 12,
+      "requestId": "994eea65-910b-4ed8-a3ee-3ff054b56ead",
+      "resultSummary": "NOT_FOUND_VALID",
+      "interpretation": "Ausencia válida esperada: recurso inexistente retornó 404 correctamente.",
+      "responseSnippet": "{\"code\":\"RESOURCE_NOT_FOUND\",\"message\":\"El recurso no existe.\",\"requestId\":\"994eea65-910b-4ed8-a3ee-3ff054b56ead\"}"
+    },
+    {
+      "route": {
+        "name": "Error de Validación de Entrada (400 - Parámetro Inválido)",
+        "method": "GET",
+        "path": "/equipos/CODIGO_INVALIDO_MUY_LARGO",
+        "expectedDependency": "Zod Validator (Sin llamada a base)",
+        "expectedStatus": 400,
+        "description": "Diferencia el rechazo sintáctico en la API de una consulta rechazada por la base."
+      },
+      "statusHttp": 400,
+      "expectedStatus": 400,
+      "statusMatches": true,
+      "responseTimeMs": 4,
+      "requestId": "4590fb76-488d-445b-84b2-0a89167bc5de",
+      "resultSummary": "VALIDATION_ERROR",
+      "interpretation": "Error de validación sintáctica esperado: esquema Zod interceptó el parámetro inválido (400).",
+      "responseSnippet": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"La entrada no es válida.\",\"requestId\":\"4590fb76-488d-445b-84b2-0a89167bc5de\"}"
+    },
+    {
+      "route": {
+        "name": "Plantel de Jugadores Paginado (MongoDB)",
+        "method": "GET",
+        "path": "/equipos/ARG/jugadores?page=1&limit=5",
+        "expectedDependency": "MongoDB (Colección jugadores)",
+        "expectedStatus": 200,
+        "description": "Lectura paginada con límite y proyección en MongoDB."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 42,
+      "requestId": "7abaece7-3534-41fc-b075-0c7fb06263dd",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"items\":[{\"id\":\"893fc2d2-0f0d-5793-8781-53bcf1a72a8e\",\"teamId\":\"4fe7c544-b1ce-5020-afae-7429c4c02d50\",\"teamCode\":\"AR..."
+    },
+    {
+      "route": {
+        "name": "Ficha de Partido Compuesta (Neo4j + MongoDB)",
+        "method": "GET",
+        "path": "/partidos/F2030-001",
+        "expectedDependency": "Neo4j (Nodo Partido) + MongoDB (Equipos)",
+        "expectedStatus": 200,
+        "description": "Consulta coordinada multimodelo sin permitir estados inconsistentes."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 7,
+      "requestId": "22d48774-b078-49cf-9fb4-8d2149560cd7",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"id\":\"F2030-001\",\"date\":\"2030-06-13\",\"time\":\"16:00:00Z\",\"phase\":\"Fase de grupos\",\"homeCode\":\"ARG\",\"awayCode\":\"BRA\",\"..."
+    },
+    {
+      "route": {
+        "name": "Eventos de Partido (Neo4j)",
+        "method": "GET",
+        "path": "/partidos/F2030-001/eventos?limit=10",
+        "expectedDependency": "Neo4j (Relaciones en Grafo)",
+        "expectedStatus": 200,
+        "description": "Consulta Cypher acotada sobre eventos asociados al partido."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 16,
+      "requestId": "04f110ad-1256-451d-ae25-09656dea15fd",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"items\":[{\"id\":\"F2030-H12-EVT-0001\",\"type\":\"Gol\",\"minute\":5,\"detail\":\"Evento sintético Hito 12 (Gol) de ARG #1 en F2..."
+    },
+    {
+      "route": {
+        "name": "Comentarios de Partido (Cassandra)",
+        "method": "GET",
+        "path": "/partidos/F2030-001/comentarios?minute=2030-06-13T20:01:00.000Z&limit=10",
+        "expectedDependency": "Cassandra (Keyspace fixture2030_comentarios)",
+        "expectedStatus": 200,
+        "description": "Consulta CQL particionada por partido y minuto."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 55,
+      "requestId": "01eac68c-78b0-49f8-bd69-58360740509c",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"items\":[],\"nextCursor\":null}"
+    },
+    {
+      "route": {
+        "name": "Resumen de Estadísticas (InfluxDB 3)",
+        "method": "GET",
+        "path": "/partidos/F2030-001/estadisticas?start=2030-06-13T20:00:00.000Z&end=2030-06-13T22:00:00.000Z",
+        "expectedDependency": "InfluxDB 3 (Base fixture2030_h8_lab_detalle)",
+        "expectedStatus": 200,
+        "description": "Consulta temporal agregada acotada por rango de tiempo."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 49,
+      "requestId": "042e79fe-cc49-49a8-840b-5a57812dd937",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"matchId\":\"F2030-001\",\"start\":\"2030-06-13T20:00:00.000Z\",\"end\":\"2030-06-13T22:00:00.000Z\",\"teams\":[]}"
+    },
+    {
+      "route": {
+        "name": "Detalle de Partido de Modelo Objeto (IRIS)",
+        "method": "GET",
+        "path": "/partidos/F2030-IRIS-0001/detalle",
+        "expectedDependency": "InterSystems IRIS (Namespace USER)",
+        "expectedStatus": 200,
+        "description": "Lectura de entidad persistente mediante modelo de objetos IRIS."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 266,
+      "requestId": "37f5390b-9cc0-48a4-b4ce-128569fab1b6",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"code\":\"F2030-IRIS-0001\",\"dateTime\":\"2030-06-13 16:00:00\",\"homeCode\":\"ARG\",\"awayCode\":\"BRA\",\"state\":\"Finalizado\",\"re..."
+    }
+  ]
+}

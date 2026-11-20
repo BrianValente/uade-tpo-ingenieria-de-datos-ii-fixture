@@ -8,6 +8,7 @@ import {
   verifyPayloadIntegrity,
   type LoadExecutionReport,
 } from '../../../hito-12-carga-optimizacion/scripts/ejecutar_carga.js'
+import { generateIsolatedComparisonMarkdown } from '../../../hito-12-carga-optimizacion/scripts/ejecutar_prueba_aislada.js'
 import { generateComparisonMarkdown } from '../../../hito-12-carga-optimizacion/scripts/ejecutar_prueba_optimizada.js'
 import {
   HITO12_ROOT,
@@ -194,6 +195,73 @@ describe('Hito 12 - Verificación de Integridad de Payloads (H12-01, RF15, RNF4)
     expect(customScenarioCfg.maxOperations).toBe(60000)
   })
 
+  it('soporta aislamiento experimental de variables individuales para atribución causal (isolated_o1, isolated_o2, isolated_o3)', () => {
+    const emptyEnv: Record<string, string | undefined> = {}
+
+    // 1. Aislamiento O1: Solo pools y proyecciones
+    const o1ServerCfg = resolveBenchmarkServerConfig('isolated_o1', emptyEnv)
+    const o1ScenarioCfg = resolveLoadScenarioConfig(
+      'isolated_o1',
+      emptyEnv,
+      o1ServerCfg,
+    )
+    expect(o1ServerCfg.features).toEqual({
+      o1PoolsAndProjections: true,
+      o2ReadAsideCache: false,
+      o3SessionThrottle: false,
+    })
+    expect(o1ScenarioCfg.mongoMaxPoolSize).toBe(25)
+    expect(o1ScenarioCfg.neo4jMaxConnectionPoolSize).toBe(25)
+    expect(o1ScenarioCfg.cacheTtlSeconds).toEqual({
+      match: 0,
+      team: 0,
+      events: 0,
+    })
+    expect(o1ScenarioCfg.sessionRenewThrottleSeconds).toBe(0)
+
+    // 2. Aislamiento O2: Solo caché Read-Aside
+    const o2ServerCfg = resolveBenchmarkServerConfig('isolated_o2', emptyEnv)
+    const o2ScenarioCfg = resolveLoadScenarioConfig(
+      'isolated_o2',
+      emptyEnv,
+      o2ServerCfg,
+    )
+    expect(o2ServerCfg.features).toEqual({
+      o1PoolsAndProjections: false,
+      o2ReadAsideCache: true,
+      o3SessionThrottle: false,
+    })
+    expect(o2ScenarioCfg.mongoMaxPoolSize).toBe(5)
+    expect(o2ScenarioCfg.neo4jMaxConnectionPoolSize).toBe(5)
+    expect(o2ScenarioCfg.cacheTtlSeconds).toEqual({
+      match: 120,
+      team: 300,
+      events: 15,
+    })
+    expect(o2ScenarioCfg.sessionRenewThrottleSeconds).toBe(0)
+
+    // 3. Aislamiento O3: Solo throttling de sesión en Lua
+    const o3ServerCfg = resolveBenchmarkServerConfig('isolated_o3', emptyEnv)
+    const o3ScenarioCfg = resolveLoadScenarioConfig(
+      'isolated_o3',
+      emptyEnv,
+      o3ServerCfg,
+    )
+    expect(o3ServerCfg.features).toEqual({
+      o1PoolsAndProjections: false,
+      o2ReadAsideCache: false,
+      o3SessionThrottle: true,
+    })
+    expect(o3ScenarioCfg.mongoMaxPoolSize).toBe(5)
+    expect(o3ScenarioCfg.neo4jMaxConnectionPoolSize).toBe(5)
+    expect(o3ScenarioCfg.cacheTtlSeconds).toEqual({
+      match: 0,
+      team: 0,
+      events: 0,
+    })
+    expect(o3ScenarioCfg.sessionRenewThrottleSeconds).toBe(60)
+  })
+
   it('distingue la versión del servidor Neo4j de la versión del cliente Cypher-Shell (R2-04)', () => {
     expect(parseNeo4jServerVersion('2026.10.1\n', null)).toBe('neo4j 2026.10.1')
     expect(parseNeo4jServerVersion('neo4j 5.26.32\n', null)).toBe(
@@ -245,5 +313,83 @@ describe('Hito 12 - Verificación de Integridad de Payloads (H12-01, RF15, RNF4)
     expect(faultMd).toContain(
       'Fallos HTTP: 0 base vs. 0 opt; errores de integridad de payload: 0 base vs. 1 opt',
     )
+  })
+
+  it('distingue el paquete O1 de una política aislada sin atribuir sus cambios individuales', () => {
+    const baseReport = JSON.parse(
+      readFileSync(
+        resolve(HITO12_ROOT, 'docs/evidencia/resultados_linea_base.json'),
+        'utf8',
+      ),
+    ) as LoadExecutionReport
+
+    const isolatedO1Report: LoadExecutionReport = {
+      ...baseReport,
+      mode: 'isolated_o1',
+      scenario: {
+        ...baseReport.scenario,
+        mode: 'isolated_o1',
+        mongoMaxPoolSize: 25,
+        neo4jMaxConnectionPoolSize: 25,
+      },
+      measuredWindow: {
+        ...baseReport.measuredWindow,
+        totalRequestsGenerated: 3290,
+        successfulRequests: 3290,
+        throughputOpsPerSec: 204.18,
+        overallLatencyE2E: {
+          ...baseReport.measuredWindow.overallLatencyE2E,
+          p50Ms: 102.45,
+          p95Ms: 184.32,
+        },
+      },
+      layerTelemetry: {
+        ...baseReport.layerTelemetry,
+        mode: 'isolated_o1',
+        dependencies: {
+          ...baseReport.layerTelemetry.dependencies,
+          mongodb: {
+            ...baseReport.layerTelemetry.dependencies.mongodb,
+            operationsCount: 2062,
+            poolSizeConfigured: 25,
+            latency: {
+              ...baseReport.layerTelemetry.dependencies.mongodb.latency,
+              p95Ms: 41.2,
+            },
+          },
+          neo4j: {
+            ...baseReport.layerTelemetry.dependencies.neo4j,
+            operationsCount: 1227,
+            poolSizeConfigured: 25,
+            latency: {
+              ...baseReport.layerTelemetry.dependencies.neo4j.latency,
+              p95Ms: 81.4,
+            },
+          },
+        },
+      },
+    }
+
+    const isoMd = generateIsolatedComparisonMarkdown(
+      baseReport,
+      isolatedO1Report,
+    )
+    expect(isoMd).toContain(
+      'Comparación Experimental Aislada: Línea Base vs. ISOLATED_O1',
+    )
+    expect(isoMd).toContain('Solo O1 (Pools & Proyecciones)')
+    expect(isoMd).toContain('paquete O1')
+    expect(isoMd).toContain('No separa la contribución individual')
+    expect(isoMd).not.toContain('Variable Única')
+    expect(isoMd).toContain('204.18 ops/s')
+
+    const cacheMd = generateIsolatedComparisonMarkdown(baseReport, {
+      ...isolatedO1Report,
+      mode: 'isolated_o2',
+      measuredWindow: { ...isolatedO1Report.measuredWindow, errorRatePct: 2.5 },
+    })
+    expect(cacheMd).toContain('cambia solo una política')
+    expect(cacheMd).toContain('Solo O2 (Caché Read-Aside)')
+    expect(cacheMd).toContain('2.50 pp')
   })
 })

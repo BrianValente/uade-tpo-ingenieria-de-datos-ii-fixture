@@ -1,0 +1,604 @@
+{
+  "reportType": "HITO_11_CONNECTIVITY",
+  "timestamp": "2026-11-06T18:47:50.383Z",
+  "gitCommit": "cd653d6",
+  "environment": "linux (x64) — Node.js v24.13.0",
+  "executionNotes": "Node24.13 y Ubuntu24.04 x64, SDK IRIS oficial sin modificar. Motores reales: Mongo7 e Influx3 bajo QEMU user-mode; IRIS2026.2 en VM Linux QEMU TCG. Emulacion sin AVX fisico; no certifica rendimiento de produccion.",
+  "apiMode": "live-http",
+  "tcpResults": [
+    {
+      "endpoint": {
+        "id": "mongodb",
+        "name": "MongoDB",
+        "role": "Módulo Documental / Cuentas",
+        "host": "127.0.0.1",
+        "port": 27017,
+        "protocol": "MongoDB Wire Protocol",
+        "environmentVarHost": "MONGO_HOST",
+        "environmentVarPort": "MONGO_PORT"
+      },
+      "status": "UP",
+      "latencyMs": 3,
+      "code": "CONNECTED",
+      "detail": "Conexión TCP establecida",
+      "interpretation": "Existe un listener activo y accesible en el host y puerto probado."
+    },
+    {
+      "endpoint": {
+        "id": "redis",
+        "name": "Redis",
+        "role": "Sesiones / Caché",
+        "host": "127.0.0.1",
+        "port": 6379,
+        "protocol": "RESP",
+        "environmentVarHost": "REDIS_HOST",
+        "environmentVarPort": "REDIS_PORT"
+      },
+      "status": "UP",
+      "latencyMs": 1,
+      "code": "CONNECTED",
+      "detail": "Conexión TCP establecida",
+      "interpretation": "Existe un listener activo y accesible en el host y puerto probado."
+    },
+    {
+      "endpoint": {
+        "id": "neo4j_bolt",
+        "name": "Neo4j (Bolt)",
+        "role": "Módulo Grafos / Partidos",
+        "host": "127.0.0.1",
+        "port": 7687,
+        "protocol": "Bolt",
+        "environmentVarHost": "NEO4J_HOST",
+        "environmentVarPort": "NEO4J_BOLT_PORT"
+      },
+      "status": "UP",
+      "latencyMs": 0,
+      "code": "CONNECTED",
+      "detail": "Conexión TCP establecida",
+      "interpretation": "Existe un listener activo y accesible en el host y puerto probado."
+    },
+    {
+      "endpoint": {
+        "id": "neo4j_http",
+        "name": "Neo4j (HTTP)",
+        "role": "Portal / Browser Neo4j",
+        "host": "127.0.0.1",
+        "port": 7474,
+        "protocol": "HTTP",
+        "environmentVarHost": "NEO4J_HOST",
+        "environmentVarPort": "NEO4J_HTTP_PORT"
+      },
+      "status": "UP",
+      "latencyMs": 0,
+      "code": "CONNECTED",
+      "detail": "Conexión TCP establecida",
+      "interpretation": "Existe un listener activo y accesible en el host y puerto probado."
+    },
+    {
+      "endpoint": {
+        "id": "cassandra_cql",
+        "name": "Cassandra (CQL)",
+        "role": "Módulo Comentarios",
+        "host": "127.0.0.1",
+        "port": 9042,
+        "protocol": "CQL",
+        "environmentVarHost": "CASSANDRA_HOST",
+        "environmentVarPort": "CASSANDRA_PORT"
+      },
+      "status": "UP",
+      "latencyMs": 0,
+      "code": "CONNECTED",
+      "detail": "Conexión TCP establecida",
+      "interpretation": "Existe un listener activo y accesible en el host y puerto probado."
+    },
+    {
+      "endpoint": {
+        "id": "influxdb_http",
+        "name": "InfluxDB 3 Core (HTTP)",
+        "role": "Módulo Series Temporales",
+        "host": "127.0.0.1",
+        "port": 8181,
+        "protocol": "HTTP",
+        "environmentVarHost": "INFLUXDB_HOST / INFLUXDB_URL",
+        "environmentVarPort": "INFLUXDB_PORT"
+      },
+      "status": "UP",
+      "latencyMs": 0,
+      "code": "CONNECTED",
+      "detail": "Conexión TCP establecida",
+      "interpretation": "Existe un listener activo y accesible en el host y puerto probado."
+    },
+    {
+      "endpoint": {
+        "id": "iris_superserver",
+        "name": "InterSystems IRIS (SuperServer)",
+        "role": "Módulo Multimodelo / Objetos",
+        "host": "127.0.0.1",
+        "port": 1972,
+        "protocol": "SuperServer",
+        "environmentVarHost": "IRIS_HOST",
+        "environmentVarPort": "IRIS_PORT / IRIS_SUPERSERVER_PORT"
+      },
+      "status": "UP",
+      "latencyMs": 1,
+      "code": "CONNECTED",
+      "detail": "Conexión TCP establecida",
+      "interpretation": "Existe un listener activo y accesible en el host y puerto probado."
+    },
+    {
+      "endpoint": {
+        "id": "iris_web",
+        "name": "InterSystems IRIS (Web/Portal)",
+        "role": "Management Portal IRIS",
+        "host": "127.0.0.1",
+        "port": 52773,
+        "protocol": "HTTP",
+        "environmentVarHost": "IRIS_HOST",
+        "environmentVarPort": "IRIS_WEB_PORT"
+      },
+      "status": "UP",
+      "latencyMs": 0,
+      "code": "CONNECTED",
+      "detail": "Conexión TCP establecida",
+      "interpretation": "Existe un listener activo y accesible en el host y puerto probado."
+    },
+    {
+      "endpoint": {
+        "id": "api_http",
+        "name": "API Integrada Fixture 2030",
+        "role": "Servidor Fastify HTTP",
+        "host": "127.0.0.1",
+        "port": 8000,
+        "protocol": "HTTP",
+        "environmentVarHost": "API_HOST",
+        "environmentVarPort": "API_PORT"
+      },
+      "status": "UP",
+      "latencyMs": 0,
+      "code": "CONNECTED",
+      "detail": "Conexión TCP establecida",
+      "interpretation": "Existe un listener activo y accesible en el host y puerto probado."
+    }
+  ],
+  "nativeResults": [
+    {
+      "product": "MongoDB",
+      "layer": "Handshake",
+      "status": "UP",
+      "latencyMs": 133,
+      "detail": "Handshake de protocolo y comando ping exitoso",
+      "diagnostic": "Listener accesible en 127.0.0.1:27017. Ping administrativo respondió ok: 1."
+    },
+    {
+      "product": "MongoDB",
+      "layer": "Contexto",
+      "status": "UP",
+      "latencyMs": 3,
+      "detail": "Base \"fixture2030\" y colección \"equipos\" verificadas mediante listCollections",
+      "diagnostic": "Contexto de base y colección verificado en el catálogo de MongoDB."
+    },
+    {
+      "product": "MongoDB",
+      "layer": "Operación mínima",
+      "status": "UP",
+      "latencyMs": 2,
+      "detail": "Equipo ARG encontrado en colección \"equipos\"",
+      "diagnostic": "Operación mínima de lectura ejecutada de forma no destructiva."
+    },
+    {
+      "product": "Redis",
+      "layer": "Handshake",
+      "status": "UP",
+      "latencyMs": 214,
+      "detail": "Comando PING respondió: PONG",
+      "diagnostic": "Protocolo RESP validado correctamente."
+    },
+    {
+      "product": "Redis",
+      "layer": "Contexto",
+      "status": "UP",
+      "latencyMs": 1,
+      "detail": "Base de datos lógica Redis #0 activa",
+      "diagnostic": "Contexto de base de datos indexada accesible."
+    },
+    {
+      "product": "Redis",
+      "layer": "Operación mínima",
+      "status": "UP",
+      "latencyMs": 1,
+      "detail": "Lectura de clave ausente devolvió: null. Consulta de TTL: -2 (clave inexistente comprobada sin escrituras).",
+      "diagnostic": "Operación de solo lectura completada: una clave ausente retorna null y TTL -2 sin alterar el estado de Redis."
+    },
+    {
+      "product": "Neo4j (Bolt)",
+      "layer": "Handshake",
+      "status": "UP",
+      "latencyMs": 47,
+      "detail": "Conexión Bolt y autenticación exitosa",
+      "diagnostic": "Handshake Bolt establecido en bolt://127.0.0.1:7687 como usuario \"neo4j\"."
+    },
+    {
+      "product": "Neo4j (Bolt)",
+      "layer": "Contexto",
+      "status": "UP",
+      "latencyMs": 7,
+      "detail": "Base de datos \"neo4j\" seleccionada correctamente",
+      "diagnostic": "Contexto de grafo accesible y permisos de consulta comprobados."
+    },
+    {
+      "product": "Neo4j (Bolt)",
+      "layer": "Operación mínima",
+      "status": "UP",
+      "latencyMs": 2,
+      "detail": "Cypher ping retorno: 1. Consulta :Partido parametrizada: Partido F2030-001 encontrado.",
+      "diagnostic": "Consulta Cypher parametrizada sobre etiqueta :Partido y propiedad id ejecutada sin alterar datos."
+    },
+    {
+      "product": "Cassandra (CQL)",
+      "layer": "Handshake",
+      "status": "UP",
+      "latencyMs": 15,
+      "detail": "Sesión binaria CQL establecida",
+      "diagnostic": "Listener CQL alcanzable en 127.0.0.1:9042 (datacenter: datacenter1)."
+    },
+    {
+      "product": "Cassandra (CQL)",
+      "layer": "Contexto",
+      "status": "UP",
+      "latencyMs": 5,
+      "detail": "Keyspace \"fixture2030_comentarios\" y tabla \"comentarios_por_partido\" verificados",
+      "diagnostic": "Contexto de keyspace y tabla de comentarios validado en metadatos."
+    },
+    {
+      "product": "Cassandra (CQL)",
+      "layer": "Operación mínima",
+      "status": "UP",
+      "latencyMs": 2,
+      "detail": "Lectura CQL particionada ejecutada (0 comentarios encontrados)",
+      "diagnostic": "Consulta CQL con partición real (partido_id, bucket_minuto, grupo) ejecutada con éxito."
+    },
+    {
+      "product": "InfluxDB 3 Core",
+      "layer": "Handshake",
+      "status": "UP",
+      "latencyMs": 19,
+      "detail": "Endpoint /health respondió HTTP 200",
+      "diagnostic": "Servicio InfluxDB 3 Core iniciado y saludable."
+    },
+    {
+      "product": "InfluxDB 3 Core",
+      "layer": "Contexto",
+      "status": "UP",
+      "latencyMs": 16,
+      "detail": "Base de datos \"fixture2030_h8_lab_detalle\" accesible y token validado",
+      "diagnostic": "Autenticación y contexto de base de series temporales comprobados."
+    },
+    {
+      "product": "InfluxDB 3 Core",
+      "layer": "Operación mínima",
+      "status": "UP",
+      "latencyMs": 16,
+      "detail": "Consulta temporal SQL parametrizada ejecutada en estadisticas_equipo",
+      "diagnostic": "Operación temporal mínima completada con éxito sin alterar datos."
+    },
+    {
+      "product": "InterSystems IRIS (Web)",
+      "layer": "Operación mínima",
+      "status": "UP",
+      "latencyMs": 20,
+      "detail": "Portal HTTP respondió con código 200",
+      "diagnostic": "Portal de administración web accesible y respondiendo correctamente."
+    },
+    {
+      "product": "InterSystems IRIS (SuperServer)",
+      "layer": "Handshake",
+      "status": "UP",
+      "latencyMs": 191,
+      "detail": "Conexión SuperServer establecida en 127.0.0.1:1972",
+      "diagnostic": "Autenticado en namespace \"USER\"."
+    },
+    {
+      "product": "InterSystems IRIS (SuperServer)",
+      "layer": "Contexto",
+      "status": "UP",
+      "latencyMs": 7,
+      "detail": "Namespace \"USER\" activo y clase Fixture.Partido consultada",
+      "diagnostic": "Contexto de objetos IRIS validado con consulta de clase persistente."
+    },
+    {
+      "product": "InterSystems IRIS (SuperServer)",
+      "layer": "Operación mínima",
+      "status": "UP",
+      "latencyMs": 7,
+      "detail": "Partido F2030-IRIS-0001 recuperado mediante modelo de objetos",
+      "diagnostic": "Operación no destructiva completada con el driver nativo IRIS."
+    }
+  ],
+  "apiResults": [
+    {
+      "route": {
+        "name": "Salud HTTP del Proceso (Liveness)",
+        "method": "GET",
+        "path": "/health",
+        "expectedDependency": "Ninguna (Solo proceso HTTP)",
+        "expectedStatus": 200,
+        "description": "Comprueba que el proceso de la API está iniciado y acepta peticiones."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 5,
+      "requestId": "7694c14f-2fbc-430c-be57-28ca0ab73436",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"status\":\"ok\",\"service\":\"fixture2030-api\"}"
+    },
+    {
+      "route": {
+        "name": "Contrato OpenAPI de la API",
+        "method": "GET",
+        "path": "/docs/json",
+        "expectedDependency": "Ninguna (Esquemas estáticos Zod)",
+        "expectedStatus": 200,
+        "description": "Comprueba que el catálogo y esquemas de la API son servidos."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 2,
+      "requestId": "8b3c9573-7184-42e8-8cbf-af9b87771a13",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"openapi\":\"3.0.3\",\"info\":{\"title\":\"Fixture 2030 API\",\"version\":\"0.1.0\",\"description\":\"API integrada del Fixture 2030..."
+    },
+    {
+      "route": {
+        "name": "Autenticación y Generación de Sesión (MongoDB + Redis)",
+        "method": "POST",
+        "path": "/auth/login",
+        "body": {
+          "username": "fixture-admin",
+          "password": "******"
+        },
+        "expectedDependency": "MongoDB (Colección accounts) + Redis (Tokens de sesión)",
+        "expectedStatus": 200,
+        "description": "Verifica el flujo de login, hash Argon2id y creación de token opaco en Redis."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 41,
+      "requestId": "b19ff685-4f0b-45c9-a9f6-7cbca462569e",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"accessToken\":\"******\",\"tokenType\":\"Bearer\",\"expiresIn\":1800,\"user\":{\"id\":\"40d0130c-1db9-4617-ad16-01194274fdf4\",\"us..."
+    },
+    {
+      "route": {
+        "name": "Consulta de Equipo Existente (MongoDB)",
+        "method": "GET",
+        "path": "/equipos/ARG",
+        "expectedDependency": "MongoDB (Colección equipos)",
+        "expectedStatus": 200,
+        "description": "Cadena completa de lectura documental para un equipo participante válido."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 4,
+      "requestId": "c77870b1-6237-4084-aff2-20d0ef20dafa",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"id\":\"4fe7c544-b1ce-5020-afae-7429c4c02d50\",\"code\":\"ARG\",\"name\":\"Argentina\",\"confederation\":\"CONMEBOL\",\"selectionOri..."
+    },
+    {
+      "route": {
+        "name": "Consulta de Equipo Inexistente (404 - Ausencia Válida)",
+        "method": "GET",
+        "path": "/equipos/ZZZ",
+        "expectedDependency": "MongoDB",
+        "expectedStatus": 404,
+        "description": "Diferencia un código 404 de ausencia legítima respecto a una falla de infraestructura."
+      },
+      "statusHttp": 404,
+      "expectedStatus": 404,
+      "statusMatches": true,
+      "responseTimeMs": 3,
+      "requestId": "6edb8a12-1f92-438a-b680-9c0e8261dbcc",
+      "resultSummary": "NOT_FOUND_VALID",
+      "interpretation": "Ausencia válida esperada: recurso inexistente retornó 404 correctamente.",
+      "responseSnippet": "{\"code\":\"RESOURCE_NOT_FOUND\",\"message\":\"El recurso no existe.\",\"requestId\":\"6edb8a12-1f92-438a-b680-9c0e8261dbcc\"}"
+    },
+    {
+      "route": {
+        "name": "Error de Validación de Entrada (400 - Parámetro Inválido)",
+        "method": "GET",
+        "path": "/equipos/CODIGO_INVALIDO_MUY_LARGO",
+        "expectedDependency": "Zod Validator (Sin llamada a base)",
+        "expectedStatus": 400,
+        "description": "Diferencia el rechazo sintáctico en la API de una consulta rechazada por la base."
+      },
+      "statusHttp": 400,
+      "expectedStatus": 400,
+      "statusMatches": true,
+      "responseTimeMs": 1,
+      "requestId": "f0372a80-05ee-435d-838c-f089cf2182f7",
+      "resultSummary": "VALIDATION_ERROR",
+      "interpretation": "Error de validación sintáctica esperado: esquema Zod interceptó el parámetro inválido (400).",
+      "responseSnippet": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"La entrada no es válida.\",\"requestId\":\"f0372a80-05ee-435d-838c-f089cf2182f7\"}"
+    },
+    {
+      "route": {
+        "name": "Plantel de Jugadores Paginado (MongoDB)",
+        "method": "GET",
+        "path": "/equipos/ARG/jugadores?page=1&limit=5",
+        "expectedDependency": "MongoDB (Colección jugadores)",
+        "expectedStatus": 200,
+        "description": "Lectura paginada con límite y proyección en MongoDB."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 5,
+      "requestId": "8bf8db89-b737-488d-ab32-b7b34b223c27",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"items\":[{\"id\":\"893fc2d2-0f0d-5793-8781-53bcf1a72a8e\",\"teamId\":\"4fe7c544-b1ce-5020-afae-7429c4c02d50\",\"teamCode\":\"AR..."
+    },
+    {
+      "route": {
+        "name": "Ficha de Partido Compuesta (Neo4j + MongoDB)",
+        "method": "GET",
+        "path": "/partidos/F2030-001",
+        "expectedDependency": "Neo4j (Nodo Partido) + MongoDB (Equipos)",
+        "expectedStatus": 200,
+        "description": "Consulta coordinada multimodelo sin permitir estados inconsistentes."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 5,
+      "requestId": "983e9733-44a8-444f-bd83-ec10d3194045",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"id\":\"F2030-001\",\"date\":\"2030-06-13\",\"time\":\"16:00:00Z\",\"phase\":\"Fase de grupos\",\"homeCode\":\"ARG\",\"awayCode\":\"BRA\",\"..."
+    },
+    {
+      "route": {
+        "name": "Eventos de Partido (Neo4j)",
+        "method": "GET",
+        "path": "/partidos/F2030-001/eventos?limit=10",
+        "expectedDependency": "Neo4j (Relaciones en Grafo)",
+        "expectedStatus": 200,
+        "description": "Consulta Cypher acotada sobre eventos asociados al partido."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 4,
+      "requestId": "f76816ea-0f51-402c-b57a-d744037de78e",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"items\":[{\"id\":\"F2030-H12-EVT-0001\",\"type\":\"Gol\",\"minute\":5,\"detail\":\"Evento sintético Hito 12 (Gol) de ARG #1 en F2..."
+    },
+    {
+      "route": {
+        "name": "Comentarios de Partido (Cassandra)",
+        "method": "GET",
+        "path": "/partidos/F2030-001/comentarios?minute=2030-06-13T20:01:00.000Z&limit=10",
+        "expectedDependency": "Cassandra (Keyspace fixture2030_comentarios)",
+        "expectedStatus": 200,
+        "description": "Consulta CQL particionada por partido y minuto."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 2,
+      "requestId": "bcc2d223-6277-45c4-ac53-ccbc032dae3f",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"items\":[],\"nextCursor\":null}"
+    },
+    {
+      "route": {
+        "name": "Resumen de Estadísticas (InfluxDB 3)",
+        "method": "GET",
+        "path": "/partidos/F2030-001/estadisticas?start=2030-06-13T20:00:00.000Z&end=2030-06-13T22:00:00.000Z",
+        "expectedDependency": "InfluxDB 3 (Base fixture2030_h8_lab_detalle)",
+        "expectedStatus": 200,
+        "description": "Consulta temporal agregada acotada por rango de tiempo."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 23,
+      "requestId": "4a32a6d8-f821-4b36-941c-8a7c169cf7d1",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"matchId\":\"F2030-001\",\"start\":\"2030-06-13T20:00:00.000Z\",\"end\":\"2030-06-13T22:00:00.000Z\",\"teams\":[]}"
+    },
+    {
+      "route": {
+        "name": "Detalle de Partido de Modelo Objeto (IRIS)",
+        "method": "GET",
+        "path": "/partidos/F2030-IRIS-0001/detalle",
+        "expectedDependency": "InterSystems IRIS (Namespace USER)",
+        "expectedStatus": 200,
+        "description": "Lectura de entidad persistente mediante modelo de objetos IRIS."
+      },
+      "statusHttp": 200,
+      "expectedStatus": 200,
+      "statusMatches": true,
+      "responseTimeMs": 205,
+      "requestId": "f1bc342c-1952-472d-9f01-f7231012a95c",
+      "resultSummary": "SUCCESS",
+      "interpretation": "Operación completada exitosamente a través de la cadena completa.",
+      "responseSnippet": "{\"code\":\"F2030-IRIS-0001\",\"dateTime\":\"2030-06-13 16:00:00\",\"homeCode\":\"ARG\",\"awayCode\":\"BRA\",\"state\":\"Finalizado\",\"re..."
+    }
+  ],
+  "summaryMatrix": [
+    {
+      "product": "MongoDB 7.0",
+      "role": "Módulo Documental / Cuentas",
+      "tcpState": "UP",
+      "nativeState": "UP",
+      "apiState": "UP",
+      "overallState": "UP",
+      "nextStep": "Dependencia totalmente validada desde TCP hasta la API."
+    },
+    {
+      "product": "Redis",
+      "role": "Sesiones / Caché",
+      "tcpState": "UP",
+      "nativeState": "UP",
+      "apiState": "UP",
+      "overallState": "UP",
+      "nextStep": "Dependencia totalmente validada desde TCP hasta la API."
+    },
+    {
+      "product": "Neo4j (Bolt/HTTP)",
+      "role": "Módulo Grafos / Partidos",
+      "tcpState": "Bolt: UP<br>HTTP: UP",
+      "nativeState": "UP",
+      "apiState": "UP",
+      "overallState": "UP",
+      "nextStep": "Dependencia totalmente validada desde TCP hasta la API."
+    },
+    {
+      "product": "Cassandra",
+      "role": "Módulo Comentarios",
+      "tcpState": "UP",
+      "nativeState": "UP",
+      "apiState": "UP",
+      "overallState": "UP",
+      "nextStep": "Dependencia totalmente validada desde TCP hasta la API."
+    },
+    {
+      "product": "InfluxDB 3 Core",
+      "role": "Módulo Series Temporales",
+      "tcpState": "UP",
+      "nativeState": "UP",
+      "apiState": "UP",
+      "overallState": "UP",
+      "nextStep": "Dependencia totalmente validada desde TCP hasta la API."
+    },
+    {
+      "product": "InterSystems IRIS",
+      "role": "Módulo Multimodelo / Objetos",
+      "tcpState": "SuperServer: UP<br>HTTP: UP",
+      "nativeState": "UP",
+      "apiState": "UP",
+      "overallState": "UP",
+      "nextStep": "Dependencia totalmente validada desde TCP hasta la API."
+    },
+    {
+      "product": "API Fastify Integrada",
+      "role": "Capa de Servicio HTTP",
+      "tcpState": "UP",
+      "nativeState": "NO PROBADO",
+      "apiState": "UP",
+      "overallState": "UP",
+      "nextStep": "Servicio HTTP activo y respondiendo rutas correctamente."
+    }
+  ]
+}

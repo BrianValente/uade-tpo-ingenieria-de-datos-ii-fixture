@@ -59,13 +59,14 @@ Para garantizar honestidad experimental (RNF17) y una clasificación rigurosa (R
 | **InterSystems IRIS** | Configuración | `IRIS_HOST`, `IRIS_PORT`, `IRIS_WEB_PORT`, `IRIS_NAMESPACE` | **UP** | <1ms | Namespace `USER` y puertos 1972 (SuperServer) / 52773 (Web) validados. |
 | | Transporte TCP (SS / Web) | Sockets TCP a `127.0.0.1:1972` y `127.0.0.1:52773` | **UP** / **DEGRADED** / **DOWN** | ~1ms / - | Evalúa ambos listeners y reporta `DEGRADED` si solo uno responde. |
 | | Handshake / Autenticación | `createConnection` hacia SuperServer 1972 | **UP** / **NOT_CONF** / **SKIP** | ~15ms | `NOT_CONFIGURED` sin credenciales; `SKIP` si el addon nativo no existe en la plataforma. |
-| | Contexto y `%SQLCODE` | `%Prepare` (`%Status === 1`) + `%Execute` y `%Next` sobre `Fixture.Partido` | **UP** / **DEGRADED** | ~3ms | Valida `rows.getNumber('%SQLCODE')` (`0` o `100`) y `rows.getString('%Message')` antes y después de `%Next`. |
-| | Operación Mínima | Verificación no destructiva de `F2030-IRIS-0011` | **UP** / **SKIP** | ~4ms | Distingue entidad encontrada o ausencia controlada (`100`) de error SQL (`< 0` -> `SKIP`). |
-| | Cadena API HTTP | `GET /partidos/F2030-IRIS-0011/detalle` | **UP** / **503** | ~12ms | Lectura de entidad persistente y eventos asociados en IRIS. |
+| | Contexto y `%SQLCODE` | `%Prepare` (`%Status` exitoso `1n`, `1`, `'1'` o `true`) + `%Execute` y `%Next` sobre `Fixture.Partido` | **UP** / **DEGRADED** | — | Valida `rows.getNumber('%SQLCODE')` (`0` o `100`) y `rows.getString('%Message')` antes y después de `%Next`. |
+| | Operación Mínima | Lectura del código persistido seleccionado con `H11_IRIS_MATCH_CODE` | **UP** / **SKIP** | — | Distingue entidad encontrada o ausencia controlada (`100`) de error SQL (`< 0` -> `SKIP`). |
+| | Cadena API HTTP | `GET /partidos/:codigo/detalle` | **UP** / **503** | — | Lectura de entidad persistente y eventos asociados en IRIS. |
 
 ---
 
 ## 3. Referencia de Estados en Entorno Observado vs. Entorno Docker Activo
 
-- **Estado real observado en este host (sin contenedores Docker activos):** Documentado y generado automáticamente por código en [`docs/evidencia/reporte_conectividad_inicial.md`](./evidencia/reporte_conectividad_inicial.md) (`MongoDB`: `DOWN`, `Redis`: `DOWN`, `Neo4j`: `NOT_CONFIGURED`, `Cassandra`: `DOWN`, `InfluxDB 3`: `DOWN`, `InterSystems IRIS`: `DOWN`, `API Fastify Integrada (In-Process)`: `UP (OK)`).
+- **Corrida real:** El [reporte consolidado](./evidencia/reporte_conectividad_inicial.md) y su [JSON](./evidencia/reporte_conectividad_inicial.json) contienen los estados medidos, commit, fecha y condiciones del laboratorio. `pnpm eval:conectividad --all --require-up` exige una matriz conforme con los seis motores y la API viva. Las latencias orientativas de la tabla anterior no son resultados de esa corrida.
+- **Recuperación real Redis:** El [ciclo real](./evidencia/ciclo_falla_recuperacion_real.md) compara la misma sesión, entidad, contenedor y mounts antes y después de stop/start, sin reiniciar la API.
 - **Simulación híbrida in-process de falla y retorno en la API:** Documentada y generada automáticamente en [`docs/evidencia/ciclo_falla_recuperacion.md`](./evidencia/ciclo_falla_recuperacion.md) y explicada en [`docs/diagnostico_de_fallas.md`](./diagnostico_de_fallas.md).

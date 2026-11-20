@@ -1,0 +1,46 @@
+{
+  "revisionOriginal": "e3df2a28a220dd15ac3f5c1b5568fdaa357af38a",
+  "vista": "Filtros de Trazas en escritorio y móvil. Las capturas muestran el área visible del dashboard.",
+  "capturas": [
+    {
+      "stage": "antes",
+      "dashboardFile": "hito-13-monitoreo/grafana/dashboards/fixture2030_trazas.json",
+      "fileSha256": "53cd931115959bf0e100c5bbfbe25f9511cc2a627c52ffed3c87440c40a48709",
+      "servedResponseSha256": "50f528e2170716fca2b1cefa8091276385bfd951cb6859b5906e0bb4c9a187e6",
+      "screens": [
+        {
+          "file": "antes-escritorio.png",
+          "width": 1440,
+          "height": 900,
+          "sha256": "667e22406d2db6556cedd97a1a86868ef5ae2fe8a07990abd87c17f7efd9d03a"
+        },
+        {
+          "file": "antes-movil.png",
+          "width": 390,
+          "height": 844,
+          "sha256": "83ee2623f0001caf94cc5a5f5a8cab16fafeabed7df225f2cc284f2e3a7747e8"
+        }
+      ]
+    },
+    {
+      "stage": "despues",
+      "dashboardFile": "hito-13-monitoreo/grafana/dashboards/fixture2030_trazas.json",
+      "fileSha256": "b1ea16cc04058e45f2f449eace440339acf54c2faa1541d4b6d94f7efa34d745",
+      "servedResponseSha256": "4441dde95059e801e2c6dd27994529a24e13a3896fd0399ddd9930bf69ad9dd7",
+      "screens": [
+        {
+          "file": "despues-escritorio.png",
+          "width": 1440,
+          "height": 900,
+          "sha256": "e3f33e14a8e621b6dde46ce401cd22849cc5368c3335889f6548dd9815b9080d"
+        },
+        {
+          "file": "despues-movil.png",
+          "width": 390,
+          "height": 844,
+          "sha256": "281c8171eeb7278886daee26a325b921feff9de4cd6bec63401ea0a228c9fd7b"
+        }
+      ]
+    }
+  ]
+}

@@ -751,7 +751,16 @@ async function main() {
   }
 
   const modeArg = args.find((a) => a.startsWith('--mode='))?.split('=')[1]
-  const mode: BenchmarkMode = modeArg === 'optimized' ? 'optimized' : 'baseline'
+  const mode: BenchmarkMode =
+    modeArg === 'optimized'
+      ? 'optimized'
+      : modeArg === 'isolated_o1'
+        ? 'isolated_o1'
+        : modeArg === 'isolated_o2'
+          ? 'isolated_o2'
+          : modeArg === 'isolated_o3'
+            ? 'isolated_o3'
+            : 'baseline'
   const outJsonArg = args
     .find((a) => a.startsWith('--output-json='))
     ?.split('=')[1]

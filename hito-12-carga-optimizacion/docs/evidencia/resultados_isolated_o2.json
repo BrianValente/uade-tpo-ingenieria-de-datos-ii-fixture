@@ -1,0 +1,647 @@
+{
+  "reportType": "HITO_12_LOAD_TEST",
+  "mode": "isolated_o2",
+  "environment": {
+    "timestamp": "2026-11-06T18:43:48.278Z",
+    "gitCommit": "cd653d6",
+    "gitBranch": "fix/hito13-complete",
+    "gitTreeState": "clean",
+    "executionNotes": "Laboratorio funcional con motores oficiales reales. MongoDB 7 e InfluxDB 3 bajo QEMU user-mode; IRIS 2026.2 en VM Linux QEMU TCG sin ISCAgent; plugins de paquetes Influx deshabilitados. H11 nativo y API H10 sobre Node 24.13/Ubuntu 24.04 para SDK IRIS oficial; H12/H13 sobre Node 24.13/Linux host. CPU fisica sin AVX. Tiempos de laboratorio emulado, no capacidad de produccion.",
+    "host": {
+      "platform": "linux",
+      "release": "7.2.11-arch1-1",
+      "arch": "x64",
+      "cpuModel": "QEMU Virtual CPU version 2.5+",
+      "logicalCpus": 24,
+      "totalMemoryGiB": 30.47,
+      "freeMemoryGiB": 19.91,
+      "nodeVersion": "v24.13.0"
+    },
+    "products": {
+      "mongodbVersion": "db version v7.0.45",
+      "neo4jVersion": "neo4j 2026.10.1",
+      "neo4jClientVersion": "Cypher-Shell 2026.10.1",
+      "redisVersion": "Redis server v=8.10.3 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=fa199f3d245589d0",
+      "fastifyVersion": "5.12.7"
+    }
+  },
+  "scenario": {
+    "mode": "isolated_o2",
+    "concurrency": 24,
+    "warmupSeconds": 3,
+    "warmupConcurrency": 4,
+    "rampupSeconds": 4,
+    "steadySeconds": 12,
+    "maxOperations": 500000,
+    "abortErrorRate": 0.5,
+    "requestTimeoutMs": 5000,
+    "seed": 203012,
+    "virtualSessionsCount": 20,
+    "mongoMaxPoolSize": 5,
+    "neo4jMaxConnectionPoolSize": 5,
+    "dependencyTimeoutMs": 3000,
+    "cacheTtlSeconds": {
+      "match": 120,
+      "team": 300,
+      "events": 15
+    },
+    "sessionRenewThrottleSeconds": 0,
+    "workloadDistribution": {
+      "match_composite": "40 %",
+      "team_players": "30 %",
+      "match_events": "20 %",
+      "team_profile": "10 %"
+    },
+    "hotspotRatio": "80 % tráfico sobre 4 partidos y 8 selecciones; 20 % sobre restantes"
+  },
+  "warmupSummary": {
+    "durationMs": 3000.8,
+    "requestsExecuted": 7476,
+    "successfulRequests": 7476,
+    "avgLatencyMs": 1.599
+  },
+  "measuredWindow": {
+    "startedAt": "2026-11-06T18:43:48.399Z",
+    "finishedAt": "2026-11-06T18:44:04.402Z",
+    "durationSeconds": 16.003,
+    "terminationReason": "TIME_WINDOW_COMPLETED",
+    "phasesReached": {
+      "rampupTargetSeconds": 4,
+      "steadyTargetSeconds": 12,
+      "observedRampupSeconds": 4,
+      "observedSteadySeconds": 12.003,
+      "rampupCompleted": true,
+      "steadyCompleted": true
+    },
+    "abortedEarly": false,
+    "abortReason": null,
+    "totalRequestsGenerated": 64462,
+    "successfulRequests": 64462,
+    "failedRequests": 0,
+    "errorRatePct": 0,
+    "errorsByType": {},
+    "payloadIntegrityVerified": 64462,
+    "payloadIntegrityErrors": 0,
+    "totalBytesTransferred": 209841843,
+    "throughputOpsPerSec": 4028.12,
+    "overallLatencyE2E": {
+      "count": 64462,
+      "minMs": 1.281,
+      "avgMs": 5.353,
+      "stdDevMs": 3.416,
+      "p50Ms": 5.232,
+      "p90Ms": 5.979,
+      "p95Ms": 9.539,
+      "p99Ms": 11.647,
+      "maxMs": 126.992,
+      "buckets": {
+        "under2ms": 1353,
+        "from2To5ms": 17009,
+        "from5To10ms": 43107,
+        "from10To25ms": 2909,
+        "from25To50ms": 12,
+        "from50To100ms": 48,
+        "over100ms": 24
+      }
+    },
+    "hotKeysLatencyE2E": {
+      "count": 51520,
+      "minMs": 1.281,
+      "avgMs": 5.345,
+      "stdDevMs": 3.358,
+      "p50Ms": 5.232,
+      "p90Ms": 5.979,
+      "p95Ms": 9.519,
+      "p99Ms": 11.643,
+      "maxMs": 126.991,
+      "buckets": {
+        "under2ms": 1065,
+        "from2To5ms": 13698,
+        "from5To10ms": 34362,
+        "from10To25ms": 2331,
+        "from25To50ms": 11,
+        "from50To100ms": 34,
+        "over100ms": 19
+      }
+    },
+    "coldKeysLatencyE2E": {
+      "count": 12942,
+      "minMs": 1.32,
+      "avgMs": 5.383,
+      "stdDevMs": 3.639,
+      "p50Ms": 5.232,
+      "p90Ms": 5.978,
+      "p95Ms": 9.586,
+      "p99Ms": 11.67,
+      "maxMs": 126.992,
+      "buckets": {
+        "under2ms": 288,
+        "from2To5ms": 3311,
+        "from5To10ms": 8745,
+        "from10To25ms": 578,
+        "from25To50ms": 1,
+        "from50To100ms": 14,
+        "over100ms": 5
+      }
+    },
+    "profiles": [
+      {
+        "profileId": "match_composite",
+        "endpointTemplate": "GET /partidos/:id",
+        "expectedSources": [
+          "Redis",
+          "Neo4j",
+          "MongoDB"
+        ],
+        "totalRequests": 25890,
+        "successfulRequests": 25890,
+        "failedRequests": 0,
+        "payloadIntegrityValid": 25890,
+        "payloadIntegrityFailed": 0,
+        "throughputOpsPerSec": 1617.82,
+        "bytesReceivedTotal": 17642709,
+        "latencyE2E": {
+          "count": 25890,
+          "minMs": 1.281,
+          "avgMs": 5.314,
+          "stdDevMs": 3.493,
+          "p50Ms": 5.207,
+          "p90Ms": 5.948,
+          "p95Ms": 9.146,
+          "p99Ms": 11.616,
+          "maxMs": 126.991,
+          "buckets": {
+            "under2ms": 582,
+            "from2To5ms": 7310,
+            "from5To10ms": 16874,
+            "from10To25ms": 1090,
+            "from25To50ms": 5,
+            "from50To100ms": 18,
+            "over100ms": 11
+          }
+        },
+        "hotKeysLatency": {
+          "count": 20733,
+          "minMs": 1.281,
+          "avgMs": 5.317,
+          "stdDevMs": 3.61,
+          "p50Ms": 5.205,
+          "p90Ms": 5.943,
+          "p95Ms": 9.236,
+          "p99Ms": 11.636,
+          "maxMs": 126.991,
+          "buckets": {
+            "under2ms": 469,
+            "from2To5ms": 5920,
+            "from5To10ms": 13428,
+            "from10To25ms": 888,
+            "from25To50ms": 4,
+            "from50To100ms": 14,
+            "over100ms": 10
+          }
+        },
+        "coldKeysLatency": {
+          "count": 5157,
+          "minMs": 1.32,
+          "avgMs": 5.3,
+          "stdDevMs": 2.98,
+          "p50Ms": 5.215,
+          "p90Ms": 5.956,
+          "p95Ms": 8.964,
+          "p99Ms": 11.505,
+          "maxMs": 126.924,
+          "buckets": {
+            "under2ms": 113,
+            "from2To5ms": 1390,
+            "from5To10ms": 3446,
+            "from10To25ms": 202,
+            "from25To50ms": 1,
+            "from50To100ms": 4,
+            "over100ms": 1
+          }
+        }
+      },
+      {
+        "profileId": "team_players",
+        "endpointTemplate": "GET /equipos/:codigo/jugadores?page=1&limit=24",
+        "expectedSources": [
+          "Redis",
+          "MongoDB"
+        ],
+        "totalRequests": 19258,
+        "successfulRequests": 19258,
+        "failedRequests": 0,
+        "payloadIntegrityValid": 19258,
+        "payloadIntegrityFailed": 0,
+        "throughputOpsPerSec": 1203.4,
+        "bytesReceivedTotal": 152350038,
+        "latencyE2E": {
+          "count": 19258,
+          "minMs": 1.356,
+          "avgMs": 5.378,
+          "stdDevMs": 3.215,
+          "p50Ms": 5.274,
+          "p90Ms": 6.003,
+          "p95Ms": 9.501,
+          "p99Ms": 11.604,
+          "maxMs": 126.99,
+          "buckets": {
+            "under2ms": 373,
+            "from2To5ms": 4498,
+            "from5To10ms": 13495,
+            "from10To25ms": 871,
+            "from25To50ms": 2,
+            "from50To100ms": 13,
+            "over100ms": 6
+          }
+        },
+        "hotKeysLatency": {
+          "count": 15346,
+          "minMs": 1.356,
+          "avgMs": 5.361,
+          "stdDevMs": 2.943,
+          "p50Ms": 5.277,
+          "p90Ms": 6.01,
+          "p95Ms": 9.512,
+          "p99Ms": 11.594,
+          "maxMs": 126.99,
+          "buckets": {
+            "under2ms": 294,
+            "from2To5ms": 3607,
+            "from5To10ms": 10727,
+            "from10To25ms": 705,
+            "from25To50ms": 2,
+            "from50To100ms": 7,
+            "over100ms": 4
+          }
+        },
+        "coldKeysLatency": {
+          "count": 3912,
+          "minMs": 1.38,
+          "avgMs": 5.447,
+          "stdDevMs": 4.113,
+          "p50Ms": 5.264,
+          "p90Ms": 5.98,
+          "p95Ms": 9.381,
+          "p99Ms": 11.697,
+          "maxMs": 126.891,
+          "buckets": {
+            "under2ms": 79,
+            "from2To5ms": 891,
+            "from5To10ms": 2768,
+            "from10To25ms": 166,
+            "from25To50ms": 0,
+            "from50To100ms": 6,
+            "over100ms": 2
+          }
+        }
+      },
+      {
+        "profileId": "match_events",
+        "endpointTemplate": "GET /partidos/:id/eventos?limit=20",
+        "expectedSources": [
+          "Redis",
+          "Neo4j"
+        ],
+        "totalRequests": 12832,
+        "successfulRequests": 12832,
+        "failedRequests": 0,
+        "payloadIntegrityValid": 12832,
+        "payloadIntegrityFailed": 0,
+        "throughputOpsPerSec": 801.85,
+        "bytesReceivedTotal": 38431371,
+        "latencyE2E": {
+          "count": 12832,
+          "minMs": 1.312,
+          "avgMs": 5.396,
+          "stdDevMs": 3.515,
+          "p50Ms": 5.235,
+          "p90Ms": 6.015,
+          "p95Ms": 10.107,
+          "p99Ms": 11.999,
+          "maxMs": 126.992,
+          "buckets": {
+            "under2ms": 265,
+            "from2To5ms": 3340,
+            "from5To10ms": 8559,
+            "from10To25ms": 649,
+            "from25To50ms": 4,
+            "from50To100ms": 10,
+            "over100ms": 5
+          }
+        },
+        "hotKeysLatency": {
+          "count": 10338,
+          "minMs": 1.312,
+          "avgMs": 5.376,
+          "stdDevMs": 3.353,
+          "p50Ms": 5.234,
+          "p90Ms": 6.006,
+          "p95Ms": 10.033,
+          "p99Ms": 11.911,
+          "maxMs": 126.904,
+          "buckets": {
+            "under2ms": 201,
+            "from2To5ms": 2722,
+            "from5To10ms": 6893,
+            "from10To25ms": 506,
+            "from25To50ms": 4,
+            "from50To100ms": 9,
+            "over100ms": 3
+          }
+        },
+        "coldKeysLatency": {
+          "count": 2494,
+          "minMs": 1.341,
+          "avgMs": 5.475,
+          "stdDevMs": 4.119,
+          "p50Ms": 5.239,
+          "p90Ms": 6.073,
+          "p95Ms": 10.283,
+          "p99Ms": 12.209,
+          "maxMs": 126.992,
+          "buckets": {
+            "under2ms": 64,
+            "from2To5ms": 618,
+            "from5To10ms": 1666,
+            "from10To25ms": 143,
+            "from25To50ms": 0,
+            "from50To100ms": 1,
+            "over100ms": 2
+          }
+        }
+      },
+      {
+        "profileId": "team_profile",
+        "endpointTemplate": "GET /equipos/:codigo",
+        "expectedSources": [
+          "Redis",
+          "MongoDB"
+        ],
+        "totalRequests": 6482,
+        "successfulRequests": 6482,
+        "failedRequests": 0,
+        "payloadIntegrityValid": 6482,
+        "payloadIntegrityFailed": 0,
+        "throughputOpsPerSec": 405.05,
+        "bytesReceivedTotal": 1417725,
+        "latencyE2E": {
+          "count": 6482,
+          "minMs": 1.327,
+          "avgMs": 5.351,
+          "stdDevMs": 3.485,
+          "p50Ms": 5.202,
+          "p90Ms": 5.966,
+          "p95Ms": 9.739,
+          "p99Ms": 11.604,
+          "maxMs": 126.935,
+          "buckets": {
+            "under2ms": 133,
+            "from2To5ms": 1861,
+            "from5To10ms": 4179,
+            "from10To25ms": 299,
+            "from25To50ms": 1,
+            "from50To100ms": 7,
+            "over100ms": 2
+          }
+        },
+        "hotKeysLatency": {
+          "count": 5103,
+          "minMs": 1.368,
+          "avgMs": 5.351,
+          "stdDevMs": 3.476,
+          "p50Ms": 5.205,
+          "p90Ms": 5.967,
+          "p95Ms": 9.705,
+          "p99Ms": 11.573,
+          "maxMs": 126.935,
+          "buckets": {
+            "under2ms": 101,
+            "from2To5ms": 1449,
+            "from5To10ms": 3314,
+            "from10To25ms": 232,
+            "from25To50ms": 1,
+            "from50To100ms": 4,
+            "over100ms": 2
+          }
+        },
+        "coldKeysLatency": {
+          "count": 1379,
+          "minMs": 1.327,
+          "avgMs": 5.348,
+          "stdDevMs": 3.517,
+          "p50Ms": 5.19,
+          "p90Ms": 5.961,
+          "p95Ms": 10.024,
+          "p99Ms": 11.749,
+          "maxMs": 73.673,
+          "buckets": {
+            "under2ms": 32,
+            "from2To5ms": 412,
+            "from5To10ms": 865,
+            "from10To25ms": 67,
+            "from25To50ms": 0,
+            "from50To100ms": 3,
+            "over100ms": 0
+          }
+        }
+      }
+    ]
+  },
+  "layerTelemetry": {
+    "mode": "isolated_o2",
+    "recordingActive": false,
+    "apiInternalLatency": {
+      "count": 64462,
+      "minMs": 0.493,
+      "avgMs": 2.302,
+      "stdDevMs": 3.104,
+      "p50Ms": 1.935,
+      "p90Ms": 3.104,
+      "p95Ms": 3.664,
+      "p99Ms": 7.821,
+      "maxMs": 122.446,
+      "buckets": {
+        "under2ms": 38667,
+        "from2To5ms": 23977,
+        "from5To10ms": 1678,
+        "from10To25ms": 56,
+        "from25To50ms": 12,
+        "from50To100ms": 48,
+        "over100ms": 24
+      }
+    },
+    "dependencies": {
+      "mongodb": {
+        "operationsCount": 2,
+        "failuresCount": 0,
+        "poolSizeConfigured": 5,
+        "latency": {
+          "count": 2,
+          "minMs": 2.528,
+          "avgMs": 4.792,
+          "stdDevMs": 2.264,
+          "p50Ms": 2.528,
+          "p90Ms": 7.056,
+          "p95Ms": 7.056,
+          "p99Ms": 7.056,
+          "maxMs": 7.056,
+          "buckets": {
+            "under2ms": 0,
+            "from2To5ms": 1,
+            "from5To10ms": 1,
+            "from10To25ms": 0,
+            "from25To50ms": 0,
+            "from50To100ms": 0,
+            "over100ms": 0
+          }
+        }
+      },
+      "neo4j": {
+        "operationsCount": 37,
+        "failuresCount": 0,
+        "poolSizeConfigured": 5,
+        "latency": {
+          "count": 37,
+          "minMs": 2.964,
+          "avgMs": 5.211,
+          "stdDevMs": 2.087,
+          "p50Ms": 4.538,
+          "p90Ms": 10.186,
+          "p95Ms": 11.47,
+          "p99Ms": 11.923,
+          "maxMs": 11.923,
+          "buckets": {
+            "under2ms": 0,
+            "from2To5ms": 27,
+            "from5To10ms": 6,
+            "from10To25ms": 4,
+            "from25To50ms": 0,
+            "from50To100ms": 0,
+            "over100ms": 0
+          }
+        }
+      },
+      "redisSession": {
+        "operationsCount": 64462,
+        "renewWritesExecuted": 64462,
+        "renewWritesSkippedByThrottle": 0,
+        "failuresCount": 0,
+        "latency": {
+          "count": 64462,
+          "minMs": 0.149,
+          "avgMs": 1.014,
+          "stdDevMs": 2.608,
+          "p50Ms": 0.801,
+          "p90Ms": 1.235,
+          "p95Ms": 1.569,
+          "p99Ms": 6.059,
+          "maxMs": 106.937,
+          "buckets": {
+            "under2ms": 62345,
+            "from2To5ms": 867,
+            "from5To10ms": 1175,
+            "from10To25ms": 0,
+            "from25To50ms": 3,
+            "from50To100ms": 48,
+            "over100ms": 24
+          }
+        }
+      },
+      "redisCache": {
+        "enabled": true,
+        "lookupsCount": 64462,
+        "cacheHits": 64423,
+        "cacheMisses": 39,
+        "cacheWrites": 39,
+        "hitRatioPct": 99.94,
+        "latency": {
+          "count": 64501,
+          "minMs": 0.098,
+          "avgMs": 0.71,
+          "stdDevMs": 0.867,
+          "p50Ms": 0.375,
+          "p90Ms": 1.347,
+          "p95Ms": 1.888,
+          "p99Ms": 2.854,
+          "maxMs": 31.628,
+          "buckets": {
+            "under2ms": 62038,
+            "from2To5ms": 1957,
+            "from5To10ms": 434,
+            "from10To25ms": 63,
+            "from25To50ms": 9,
+            "from50To100ms": 0,
+            "over100ms": 0
+          }
+        }
+      }
+    }
+  },
+  "resources": {
+    "processBefore": {
+      "rssMiB": 399.59,
+      "heapUsedMiB": 200.56,
+      "heapTotalMiB": 284.83,
+      "externalMiB": 28.14,
+      "cpuUserMs": 4287.11,
+      "cpuSystemMs": 543.45
+    },
+    "processAfter": {
+      "rssMiB": 734.49,
+      "heapUsedMiB": 275.19,
+      "heapTotalMiB": 601.03,
+      "externalMiB": 26.62,
+      "cpuUserMs": 16500.47,
+      "cpuSystemMs": 1646.68
+    },
+    "dockerContainersAfter": [
+      {
+        "container": "fixture2030-fix-mongodb-1",
+        "cpuPercent": "0.98%",
+        "memUsage": "322.1MiB / 29.28GiB",
+        "memPercent": "1.07%",
+        "netIO": "18.7MB / 119MB",
+        "blockIO": "347MB / 37.3MB"
+      },
+      {
+        "container": "fixture2030-fix-neo4j-1",
+        "cpuPercent": "2.59%",
+        "memUsage": "1.229GiB / 29.28GiB",
+        "memPercent": "4.20%",
+        "netIO": "20.7MB / 33MB",
+        "blockIO": "77.1MB / 57.1MB"
+      },
+      {
+        "container": "fixture2030-fix-redis-1",
+        "cpuPercent": "0.07%",
+        "memUsage": "13.71MiB / 29.28GiB",
+        "memPercent": "0.05%",
+        "netIO": "72MB / 283MB",
+        "blockIO": "21.3MB / 39.9MB"
+      }
+    ],
+    "redisMetricsBefore": {
+      "usedMemoryHuman": "2.61M",
+      "usedMemoryBytes": 2737768,
+      "maxMemoryHuman": "256.00M",
+      "connectedClients": 3,
+      "totalCommandsProcessed": 360237,
+      "keyspaceHits": 157448,
+      "keyspaceMisses": 203,
+      "expiredKeys": 2,
+      "evictedKeys": 0
+    },
+    "redisMetricsAfter": {
+      "usedMemoryHuman": "2.62M",
+      "usedMemoryBytes": 2747608,
+      "maxMemoryHuman": "256.00M",
+      "connectedClients": 3,
+      "totalCommandsProcessed": 876002,
+      "keyspaceHits": 415257,
+      "keyspaceMisses": 242,
+      "expiredKeys": 34,
+      "evictedKeys": 0
+    }
+  }
+}

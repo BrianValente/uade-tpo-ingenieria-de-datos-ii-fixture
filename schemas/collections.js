@@ -99,4 +99,9 @@ projectDatabase.jugadores.createIndex(
   { name: "jugadores_equipo_posicion_dorsal" },
 );
 
+projectDatabase.jugadores.createIndex(
+  { equipoCodigo: 1, posicion: 1, dorsal: 1 },
+  { name: "jugadores_codigo_posicion_dorsal" },
+);
+
 print(`Colecciones y validaciones configuradas en ${databaseName}.`);

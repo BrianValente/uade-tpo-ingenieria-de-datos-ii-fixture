@@ -1,0 +1,39 @@
+global:
+  scrape_interval: 5s
+  scrape_timeout: 4s
+  evaluation_interval: 5s
+  external_labels:
+    proyecto: "fixture-mundial-2030"
+    hito: "hito-13-monitoreo"
+    entorno: "laboratorio-local"
+
+rule_files:
+  - "/etc/prometheus/reglas-o-alertas.yml"
+
+scrape_configs:
+  - job_name: "prometheus"
+    honor_labels: true
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          service_target: "prometheus"
+          layer: "observability"
+
+  - job_name: "fixture2030_api"
+    honor_labels: true
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["host.docker.internal:8013"]
+        labels:
+          service_target: "api-fastify"
+          layer: "application-and-probes"
+
+  - job_name: "redis_exporter"
+    honor_labels: true
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+        labels:
+          service_target: "redis"
+          layer: "database-exporter"

@@ -1,0 +1,106 @@
+{
+  "uid": "fixture2030-pedido",
+  "title": "Fixture 2030 - Detalle de request",
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "traceId",
+        "label": "ID de traza",
+        "type": "textbox",
+        "hide": 2,
+        "current": {
+          "text": "",
+          "value": ""
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Log del pedido",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki_fixture2030"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "wrapLogMessage": true,
+        "showTime": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki_fixture2030"
+          },
+          "expr": "{service_name=\"fixture2030-api\"} | trace_id =~ \"0*${traceId:regex}\"",
+          "queryType": "range",
+          "maxLines": 1
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Operaciones de la API",
+      "type": "traces",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo_fixture2030"
+      },
+      "gridPos": {
+        "h": 17,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo_fixture2030"
+          },
+          "queryType": "traceql",
+          "query": "${traceId}"
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "type": "link",
+      "title": "Salud del sistema",
+      "url": "/d/fixture2030-hito13-obs/salud",
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Trazas",
+      "url": "/d/fixture2030-trazas/trazas",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "type": "link",
+      "title": "Logs",
+      "url": "/d/fixture2030-logs/logs",
+      "keepTime": true,
+      "includeVars": true
+    }
+  ]
+}

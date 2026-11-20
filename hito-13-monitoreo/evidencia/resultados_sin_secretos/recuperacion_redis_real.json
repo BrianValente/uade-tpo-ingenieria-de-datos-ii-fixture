@@ -1,0 +1,124 @@
+{
+  "reportType": "HITO_11_REAL_REDIS_RECOVERY",
+  "environment": {
+    "timestamp": "2026-11-06T19:57:12.571Z",
+    "gitCommit": "46af5f5",
+    "gitBranch": "fix/hito13-complete",
+    "gitTreeState": "clean",
+    "executionNotes": "API instrumentada H13 real en Node24.13/Ubuntu24.04; stop/start Redis sin reiniciar API, mismo token y datos. Mongo7/Influx3 bajo QEMU user-mode; IRIS en VM QEMU TCG; AVX no expuesto en esta VM, sin inferir capacidades del host fisico.",
+    "host": {
+      "platform": "linux",
+      "release": "7.2.11-arch1-1",
+      "arch": "x64",
+      "cpuModel": "QEMU Virtual CPU version 2.5+",
+      "logicalCpus": 24,
+      "totalMemoryGiB": 16.81,
+      "freeMemoryGiB": 5.99,
+      "nodeVersion": "v24.13.0"
+    },
+    "products": {
+      "mongodbVersion": "db version v7.0.45",
+      "neo4jVersion": "neo4j 2026.10.1",
+      "neo4jClientVersion": "Cypher-Shell 2026.10.1",
+      "redisVersion": "Redis server v=8.10.3 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=fa199f3d245589d0",
+      "fastifyVersion": "5.12.7"
+    }
+  },
+  "mechanism": "docker compose stop/start redis; API persistente y mismo token real; sin dobles, reinicio de API ni borrado de datos/volúmenes",
+  "before": {
+    "api": {
+      "timestamp": "2026-11-06T19:57:15.905Z",
+      "statusHttp": 200,
+      "requestId": "5a531137-b598-4aea-93dc-1ed8997cd7d4",
+      "bodySha256": "58c1ab30a8f35aa1529a19ff77a53dfadf0cd2a79b50836915b84b8cbfd09de7",
+      "body": {
+        "id": "4fe7c544-b1ce-5020-afae-7429c4c02d50",
+        "code": "ARG",
+        "name": "Argentina",
+        "confederation": "CONMEBOL",
+        "selectionOrigin": "clasificado_2026",
+        "qualificationStage": "Qualified for the 2026 FIFA World Cup",
+        "participates": true
+      }
+    },
+    "redis": {
+      "up": true,
+      "detail": "PONG",
+      "sessionIdentitySha256": "15f82ff437f8b51e813821d5e7420fe5f05a730602405166a32c00c2e5732b29",
+      "sessionTtlSeconds": 1800
+    }
+  },
+  "during": {
+    "api": {
+      "timestamp": "2026-11-06T19:57:16.454Z",
+      "statusHttp": 503,
+      "requestId": "f763ff5a-6080-44e7-8df3-47705facaecf",
+      "bodySha256": "9afa0485de631480abfd4af95eb802622ea0cc73d3a4f18e03f3a8b0bc8ac4fa",
+      "body": {
+        "code": "DEPENDENCY_UNAVAILABLE",
+        "message": "Una dependencia no está disponible.",
+        "requestId": "f763ff5a-6080-44e7-8df3-47705facaecf"
+      }
+    },
+    "redis": {
+      "up": false,
+      "detail": "connect ECONNREFUSED 127.0.0.1:6379",
+      "sessionIdentitySha256": "",
+      "sessionTtlSeconds": -2
+    }
+  },
+  "after": {
+    "api": {
+      "timestamp": "2026-11-06T19:57:16.905Z",
+      "statusHttp": 200,
+      "requestId": "e11e4a96-be43-4cdd-91df-e2c0895b7d72",
+      "bodySha256": "58c1ab30a8f35aa1529a19ff77a53dfadf0cd2a79b50836915b84b8cbfd09de7",
+      "body": {
+        "id": "4fe7c544-b1ce-5020-afae-7429c4c02d50",
+        "code": "ARG",
+        "name": "Argentina",
+        "confederation": "CONMEBOL",
+        "selectionOrigin": "clasificado_2026",
+        "qualificationStage": "Qualified for the 2026 FIFA World Cup",
+        "participates": true
+      }
+    },
+    "redis": {
+      "up": true,
+      "detail": "PONG",
+      "sessionIdentitySha256": "15f82ff437f8b51e813821d5e7420fe5f05a730602405166a32c00c2e5732b29",
+      "sessionTtlSeconds": 1799
+    }
+  },
+  "persistenceBefore": {
+    "containerId": "2ff06cd09cc12089cb13236c11385a552353da6f6d414f5aa9faac50691dc1d0",
+    "mounts": [
+      {
+        "Type": "volume",
+        "Name": "fixture2030-fix_redis_fix",
+        "Source": "/var/lib/docker/volumes/fixture2030-fix_redis_fix/_data",
+        "Destination": "/data"
+      }
+    ]
+  },
+  "persistenceAfter": {
+    "containerId": "2ff06cd09cc12089cb13236c11385a552353da6f6d414f5aa9faac50691dc1d0",
+    "mounts": [
+      {
+        "Type": "volume",
+        "Name": "fixture2030-fix_redis_fix",
+        "Source": "/var/lib/docker/volumes/fixture2030-fix_redis_fix/_data",
+        "Destination": "/data"
+      }
+    ]
+  },
+  "checks": {
+    "initialRead": true,
+    "realOutage": true,
+    "recoveredRead": true,
+    "samePersistedEntity": true,
+    "sameSession": true,
+    "sameContainerAndVolumes": true
+  },
+  "verificationPassed": true
+}

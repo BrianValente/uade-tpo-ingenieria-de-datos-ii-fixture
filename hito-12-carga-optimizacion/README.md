@@ -25,22 +25,18 @@ El trabajo sigue una metodología experimental rigurosa en seis etapas:
 
 ## 2. Resumen Ejecutivo de Resultados (Línea Base vs. Optimizado)
 
-Ambas corridas se ejecutaron completando la ventana temporal configurada (`TIME_WINDOW_COMPLETED`: `16.125 s` en base vs. `16.018 s` en optimizado, tras `3 s` de warm-up excluido, con `4 s` de ramp-up y `12 s` de sostenimiento completados al 100 %, tope de seguridad `50.000` ops, `24` usuarios virtuales concurrentes, distribución 40/30/20/10 sobre 4 partidos y 8 selecciones calientes en proporción 80/20 con semilla PRNG `203012`, commit `5533d42` `clean`):
+Las cuatro corridas del 6 de noviembre de 2026 se ejecutaron sobre el código `cd653d6`, con 24 VUs, semilla `203012`, 20 sesiones y ventanas completas de 4 s de rampa + 12 s de sostenimiento, tras 3 s de calentamiento. El tope se configuró en `500000` para que no truncara el modo más rápido. Todos los payloads medidos fueron verificados sin errores HTTP ni de integridad.
 
-| Indicador Clave | Línea Base (`baseline`) | Prueba Optimizada (`optimized`) | Variación |
-| :--- | ---: | ---: | ---: |
-| **Ventana Medida (Cierre)** | `16.125 s` (`TIME_WINDOW_COMPLETED`) | **`16.018 s`** (`TIME_WINDOW_COMPLETED`) | **`-0.7 %` (ventanas equivalentes)** |
-| **Throughput Global Sostenido** | `124.59 ops/s` (`2.009` ops) | **`514.98 ops/s`** (`8.249` ops) | **`+313.3 %` ($4,13\times$)** |
-| **Tasa de Error HTTP** | `0.00 %` (`0` errores) | **`0.00 %`** (`0` errores) | **`0.00 pp` (100 % éxito e integridad)** |
-| **Latencia Media E2E (`avg`)** | `172.95 ms` | **`41.89 ms`** | **`-75.8 %`** |
-| **Latencia Mediana E2E (`p50`)** | `167.84 ms` | **`39.30 ms`** | **`-76.6 %`** |
-| **Latencia Percentil 90 (`p90`)** | `247.19 ms` | **`54.38 ms`** | **`-78.0 %`** |
-| **Latencia Percentil 95 (`p95`)** | `308.75 ms` | **`65.57 ms`** | **`-78.8 %` ($4,71\times$)** |
-| **Latencia Percentil 99 (`p99`)** | `532.10 ms` | **`83.59 ms`** | **`-84.3 %` ($6,37\times$)** |
-| **Consultas Driver MongoDB** | `3.592` llamadas (`pool=5`) | **`83` llamadas** (`pool=25`) | **`-97.7 %`** |
-| **Consultas Driver Neo4j** | `1.227` llamadas (`pool=5`) | **`43` llamadas** (`pool=25`) | **`-96.5 %`** |
-| **Cache Hit Ratio (Read-Aside Redis)** | `0.00 %` (sin caché) | **`98.57 %`** (`8.131` hits / `118` misses) | **`+98.57 pp`** |
-| **Renovaciones de Sesión Ahorradas** | `0` (`2.009` escrituras) | **`8.249` escrituras evitadas** (`0` ejecutadas) | **`100 %` en ventana $<60\text{ s}$** |
+| Perfil | Operaciones medidas | Throughput (ops/s) | p95 HTTP (ms) | Interpretación |
+| :--- | ---: | ---: | ---: | :--- |
+| Base | 17669 | 1103.48 | 31.381 | Pools 5, sin caché ni throttle |
+| Solo O1 | 20398 | 1274.00 | 24.791 | Paquete pools/proyección/batching; no separa sus contribuciones |
+| Solo O2 | 64462 | 4028.12 | 9.539 | Únicamente cambia la política de caché; pools 5 y sin throttle |
+| Conjunto O1+O2+O3 | 63452 | 3965.25 | 9.254 | Efecto conjunto, no atribuible a una mejora individual |
+
+La [comparación O2](docs/evidencia/comparacion_isolated_o2.md) cumple la comparación de una política solicitada por el profesor: caudal +265.04 % y p95 −69.60 % respecto de la base en esta repetición. El conjunto no superó el caudal de O2; no se oculta esa observación. Su hit ratio fue 99.94 % y omitió 63452 renovaciones de sesión durante la ventana inferior a 60 s, no indefinidamente.
+
+Los [JSON y tablas generadas](docs/evidencia/tablas_o_graficos.md) son la fuente de métricas completas. Los motores son reales, pero MongoDB/InfluxDB usan QEMU user-mode e IRIS una VM QEMU TCG por falta de AVX físico. La RAM visible varió entre instantáneas de las corridas. Una política de código aislada no equivale a aislamiento físico perfecto; estos tiempos no certifican capacidad de producción.
 
 ---
 
@@ -99,13 +95,22 @@ hito-12-carga-optimizacion/
 ```bash
 cd hito-10-api
 
+# Parámetros de las corridas registradas (Bash; en PowerShell usar $env:...):
+export H12_CONCURRENCY=24 H12_SEED=203012 H12_VIRTUAL_SESSIONS=20
+export H12_WARMUP_SECONDS=3 H12_RAMPUP_SECONDS=4 H12_STEADY_SECONDS=12
+export H12_MAX_OPERATIONS=500000 DEPENDENCY_TIMEOUT_MS=3000
+
 # 1. Preparar datos sintéticos idempotentes (320 eventos HITO_12, 20 sesiones Redis e índices):
 pnpm h12:preparar
 
 # 2. Ejecutar Línea Base (Baseline sin optimizaciones):
 pnpm h12:linea-base
 
-# 3. Ejecutar Prueba Optimizada (con O1 + O2 + O3 y generación de tablas comparativas):
+# 3. Comparar una política (O2) y el paquete O1 por separado:
+pnpm h12:aislada --mode=isolated_o1
+pnpm h12:aislada --mode=isolated_o2
+
+# Ejecutar también el conjunto O1 + O2 + O3:
 pnpm h12:optimizada
 
 # 4. Validar integridad post-carga en MongoDB, Neo4j y Redis (8 controles):

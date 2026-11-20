@@ -1,0 +1,288 @@
+{
+  "uid": "fixture2030-trazas",
+  "title": "Fixture 2030 - Trazas",
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "links": [
+    {
+      "type": "link",
+      "title": "Salud del sistema",
+      "url": "/d/fixture2030-hito13-obs/salud",
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Logs",
+      "url": "/d/fixture2030-logs/logs",
+      "keepTime": true,
+      "includeVars": true
+    }
+  ],
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "refresh": "10s",
+  "templating": {
+    "list": [
+      {
+        "name": "endpoint",
+        "label": "Endpoint",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus_fixture2030"
+        },
+        "query": {
+          "query": "label_values(fixture2030_http_requests_total, route)",
+          "refId": "Endpoints"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "cache",
+        "label": "Caché",
+        "type": "custom",
+        "query": "hit,miss",
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": false,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": [
+          {
+            "text": "hit",
+            "value": "hit",
+            "selected": false
+          },
+          {
+            "text": "miss",
+            "value": "miss",
+            "selected": false
+          }
+        ]
+      },
+      {
+        "name": "requestId",
+        "label": "Request ID",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "skipUrlSync": false
+      },
+      {
+        "name": "traceId",
+        "label": "Trace ID",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "skipUrlSync": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Llamadas a la API",
+      "type": "table",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki_fixture2030"
+      },
+      "gridPos": {
+        "h": 22,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki_fixture2030"
+          },
+          "expr": "{service_name=\"fixture2030-api\"} | json endpoint=\"route\", rid=\"request_id\", tid=\"trace_id\", cache=\"cache_result\" | endpoint =~ `${endpoint:regex}` | rid =~ `(?i).*(${requestId:raw}).*` | tid =~ `(?i).*(${traceId:raw}).*` | cache =~ `${cache:regex}`",
+          "queryType": "range",
+          "maxLines": 200
+        }
+      ],
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json",
+            "replace": true,
+            "keepTime": true
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": {
+              "Time": 0,
+              "method": 1,
+              "route": 2,
+              "status_code": 3,
+              "duration_ms": 4,
+              "cache_result": 5,
+              "request_id": 6,
+              "trace_id": 7
+            },
+            "renameByName": {
+              "Time": "Hora",
+              "method": "Método",
+              "route": "Endpoint",
+              "status_code": "HTTP",
+              "duration_ms": "Duración (ms)",
+              "cache_result": "Caché",
+              "request_id": "Request ID",
+              "trace_id": "Trace ID"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Trace ID"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Abrir pedido",
+                    "url": "/d/fixture2030-pedido/pedido?var-traceId=${__value.raw}&from=${__from}&to=${__to}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 250
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Hora"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 108
+              },
+              {
+                "id": "unit",
+                "value": "time:HH:mm:ss.SSS"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Método"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 66
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Endpoint"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 163
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "HTTP"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 56
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duración (ms)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 108
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Caché"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 59
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Request ID"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 281
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Hora",
+            "desc": true
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "reportType": "HITO_11_REAL_REDIS_RECOVERY",
+  "environment": {
+    "timestamp": "2026-11-06T18:46:55.074Z",
+    "gitCommit": "cd653d6",
+    "gitBranch": "fix/hito13-complete",
+    "gitTreeState": "modified",
+    "executionNotes": "Laboratorio funcional con motores oficiales reales. MongoDB 7 e InfluxDB 3 bajo QEMU user-mode; IRIS 2026.2 en VM Linux QEMU TCG sin ISCAgent; plugins de paquetes Influx deshabilitados. H11 nativo y API H10 sobre Node 24.13/Ubuntu 24.04 para SDK IRIS oficial; H12/H13 sobre Node 24.13/Linux host. CPU fisica sin AVX. Tiempos de laboratorio emulado, no capacidad de produccion.",
+    "host": {
+      "platform": "linux",
+      "release": "7.2.11-arch1-1",
+      "arch": "x64",
+      "cpuModel": "QEMU Virtual CPU version 2.5+",
+      "logicalCpus": 24,
+      "totalMemoryGiB": 31.26,
+      "freeMemoryGiB": 20.71,
+      "nodeVersion": "v24.13.0"
+    },
+    "products": {
+      "mongodbVersion": "db version v7.0.45",
+      "neo4jVersion": "neo4j 2026.10.1",
+      "neo4jClientVersion": "Cypher-Shell 2026.10.1",
+      "redisVersion": "Redis server v=8.10.3 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=fa199f3d245589d0",
+      "fastifyVersion": "5.12.7"
+    }
+  },
+  "mechanism": "docker compose stop/start redis; API persistente y mismo token real; sin dobles, reinicio de API ni borrado de datos/volúmenes",
+  "before": {
+    "api": {
+      "timestamp": "2026-11-06T18:46:58.050Z",
+      "statusHttp": 200,
+      "requestId": "29c24d34-2e82-499b-bc2f-b81e4f1d7f28",
+      "bodySha256": "58c1ab30a8f35aa1529a19ff77a53dfadf0cd2a79b50836915b84b8cbfd09de7",
+      "body": {
+        "id": "4fe7c544-b1ce-5020-afae-7429c4c02d50",
+        "code": "ARG",
+        "name": "Argentina",
+        "confederation": "CONMEBOL",
+        "selectionOrigin": "clasificado_2026",
+        "qualificationStage": "Qualified for the 2026 FIFA World Cup",
+        "participates": true
+      }
+    },
+    "redis": {
+      "up": true,
+      "detail": "PONG",
+      "sessionIdentitySha256": "7df692ea59de49e140e8cb3e6fa3790b15de69785ab4d9126900ddd425f50ac9",
+      "sessionTtlSeconds": 1800
+    }
+  },
+  "during": {
+    "api": {
+      "timestamp": "2026-11-06T18:46:58.499Z",
+      "statusHttp": 503,
+      "requestId": "d3b2418a-af55-477c-9539-ff7c59707140",
+      "bodySha256": "3d193d6552928268319b984c24be01ecc12e1f78918af86815c75fe829cb6fdf",
+      "body": {
+        "code": "DEPENDENCY_UNAVAILABLE",
+        "message": "Una dependencia no está disponible.",
+        "requestId": "d3b2418a-af55-477c-9539-ff7c59707140"
+      }
+    },
+    "redis": {
+      "up": false,
+      "detail": "connect ECONNREFUSED 127.0.0.1:6379",
+      "sessionIdentitySha256": "",
+      "sessionTtlSeconds": -2
+    }
+  },
+  "after": {
+    "api": {
+      "timestamp": "2026-11-06T18:46:58.928Z",
+      "statusHttp": 200,
+      "requestId": "1d9fee67-5f85-4136-bec8-ef2a9641500e",
+      "bodySha256": "58c1ab30a8f35aa1529a19ff77a53dfadf0cd2a79b50836915b84b8cbfd09de7",
+      "body": {
+        "id": "4fe7c544-b1ce-5020-afae-7429c4c02d50",
+        "code": "ARG",
+        "name": "Argentina",
+        "confederation": "CONMEBOL",
+        "selectionOrigin": "clasificado_2026",
+        "qualificationStage": "Qualified for the 2026 FIFA World Cup",
+        "participates": true
+      }
+    },
+    "redis": {
+      "up": true,
+      "detail": "PONG",
+      "sessionIdentitySha256": "7df692ea59de49e140e8cb3e6fa3790b15de69785ab4d9126900ddd425f50ac9",
+      "sessionTtlSeconds": 1800
+    }
+  },
+  "persistenceBefore": {
+    "containerId": "2ff06cd09cc12089cb13236c11385a552353da6f6d414f5aa9faac50691dc1d0",
+    "mounts": [
+      {
+        "Type": "volume",
+        "Name": "fixture2030-fix_redis_fix",
+        "Source": "/var/lib/docker/volumes/fixture2030-fix_redis_fix/_data",
+        "Destination": "/data"
+      }
+    ]
+  },
+  "persistenceAfter": {
+    "containerId": "2ff06cd09cc12089cb13236c11385a552353da6f6d414f5aa9faac50691dc1d0",
+    "mounts": [
+      {
+        "Type": "volume",
+        "Name": "fixture2030-fix_redis_fix",
+        "Source": "/var/lib/docker/volumes/fixture2030-fix_redis_fix/_data",
+        "Destination": "/data"
+      }
+    ]
+  },
+  "checks": {
+    "initialRead": true,
+    "realOutage": true,
+    "recoveredRead": true,
+    "samePersistedEntity": true,
+    "sameSession": true,
+    "sameContainerAndVolumes": true
+  },
+  "verificationPassed": true
+}
