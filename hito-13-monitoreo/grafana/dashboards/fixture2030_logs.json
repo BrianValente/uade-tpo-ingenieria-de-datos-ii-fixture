@@ -1,0 +1,135 @@
+{
+  "uid": "fixture2030-logs",
+  "title": "Fixture 2030 - Logs",
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "links": [
+    {
+      "type": "link",
+      "title": "Salud del sistema",
+      "url": "/d/fixture2030-hito13-obs/salud",
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Trazas",
+      "url": "/d/fixture2030-trazas/trazas",
+      "keepTime": true,
+      "includeVars": true
+    }
+  ],
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "refresh": "10s",
+  "templating": {
+    "list": [
+      {
+        "name": "endpoint",
+        "label": "Endpoint",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus_fixture2030"
+        },
+        "query": {
+          "query": "label_values(fixture2030_http_requests_total, route)",
+          "refId": "Endpoints"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "nivel",
+        "label": "Nivel",
+        "type": "custom",
+        "query": "INFO,ERROR",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": [
+          {
+            "text": "INFO",
+            "value": "INFO",
+            "selected": false
+          },
+          {
+            "text": "ERROR",
+            "value": "ERROR",
+            "selected": false
+          }
+        ]
+      },
+      {
+        "name": "requestId",
+        "label": "Request ID (separar con |)",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "skipUrlSync": false
+      },
+      {
+        "name": "traceId",
+        "label": "Trace ID (separar con |)",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "skipUrlSync": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Logs de la API",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki_fixture2030"
+      },
+      "gridPos": {
+        "h": 22,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki_fixture2030"
+          },
+          "expr": "{service_name=\"fixture2030-api\"} | severity_text =~ `${nivel:regex}` | json endpoint=\"route\", rid=\"request_id\", tid=\"trace_id\" | endpoint =~ `${endpoint:regex}` | rid =~ `(?i).*(${requestId:raw}).*` | tid =~ `(?i).*(${traceId:raw}).*`",
+          "queryType": "range",
+          "maxLines": 200
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    }
+  ]
+}

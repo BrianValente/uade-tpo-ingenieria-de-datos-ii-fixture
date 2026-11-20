@@ -276,7 +276,7 @@ describe('Hito 13 — Monitoreo, Prometheus, Grafana y Defensa Final', () => {
     expect(failMd).toContain('`HTTP 503`')
   })
 
-  it('valida la estructura del dashboard exportable de Grafana y las consultas de métricas, logs y trazas (RF6, RF7)', async () => {
+  it('valida la estructura del dashboard exportable de Grafana de salud y sus nueve paneles de métricas (RF6, RF7)', async () => {
     const dashPath = resolve(
       process.cwd(),
       '../hito-13-monitoreo/grafana/dashboards/fixture2030_observabilidad.json',
@@ -300,26 +300,16 @@ describe('Hito 13 — Monitoreo, Prometheus, Grafana y Defensa Final', () => {
     }
 
     expect(parsed.uid).toBe('fixture2030-hito13-obs')
-    expect(
-      parsed.panels.filter((p) => p.datasource.type === 'prometheus'),
-    ).toHaveLength(9)
+    expect(parsed.panels).toHaveLength(9)
     expect(parsed.panels[0]?.targets?.[0]?.legendFormat).toBe(
       '{{job}} ({{service_target}})',
     )
     for (const panel of parsed.panels) {
       expect(panel.title.length).toBeGreaterThan(5)
-      if (panel.datasource.type === 'prometheus')
-        expect(panel.fieldConfig?.defaults?.unit).toBeDefined()
+      expect(panel.datasource.type).toBe('prometheus')
+      expect(panel.fieldConfig?.defaults?.unit).toBeDefined()
       expect((panel.targets ?? []).length).toBeGreaterThan(0)
     }
-    expect(
-      parsed.panels.find((p) => p.datasource.type === 'loki')?.targets?.[0]
-        ?.expr,
-    ).toContain('fixture2030-api')
-    expect(
-      parsed.panels.find((p) => p.datasource.type === 'tempo')?.targets?.[0]
-        ?.query,
-    ).toContain('fixture2030-api')
   })
 
   it('verifica consistencia entre archivos JSON y Markdown de evidencia y enlaces relativos del Hito 13', async () => {

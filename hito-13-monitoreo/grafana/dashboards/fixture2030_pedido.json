@@ -1,6 +1,6 @@
 {
   "uid": "fixture2030-pedido",
-  "title": "Fixture 2030 · Detalle del pedido",
+  "title": "Fixture 2030 - Detalle del pedido",
   "editable": false,
   "schemaVersion": 39,
   "version": 1,
@@ -79,6 +79,28 @@
           "query": "${traceId}"
         }
       ]
+    }
+  ],
+  "links": [
+    {
+      "type": "link",
+      "title": "Salud del sistema",
+      "url": "/d/fixture2030-hito13-obs/salud",
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Trazas",
+      "url": "/d/fixture2030-trazas/trazas",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "type": "link",
+      "title": "Logs",
+      "url": "/d/fixture2030-logs/logs",
+      "keepTime": true,
+      "includeVars": true
     }
   ]
 }

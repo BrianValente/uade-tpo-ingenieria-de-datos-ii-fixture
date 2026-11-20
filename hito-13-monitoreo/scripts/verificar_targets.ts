@@ -71,6 +71,7 @@ export interface GrafanaDashboardVerification {
   dashboardUrl: string
   panelsVerified: Array<{
     panelId: number
+    dashboardUid?: string
     datasource?: PanelSource
     title: string
     unit: string
@@ -351,13 +352,13 @@ export function buildDashboardSummaryMarkdown(
     '',
     '## 2. Consultas habilitadas de los paneles mediante el datasource de Grafana (RNF4)',
     '',
-    '| ID Panel / Target | Título del Panel | Fuente | Unidad | Resultados | Muestra Observada | Consulta |',
+    '| Dashboard / Panel / Target | Título del Panel | Fuente | Unidad | Resultados | Muestra Observada | Consulta |',
     '| :---: | :--- | :--- | :---: | :---: | :--- | :--- |',
   ]
 
   for (const p of verification.panelsVerified) {
     lines.push(
-      `| ${p.panelId} / ${p.refId} | ${p.title} | ${p.datasource ?? 'prometheus'} | \`${p.unit}\` | ${p.seriesCount} | \`${p.sampleValue}\` | \`${p.expr}\` |`,
+      `| ${p.dashboardUid ?? verification.dashboardUid} / ${p.panelId} / ${p.refId} | ${p.title} | ${p.datasource ?? 'prometheus'} | \`${p.unit}\` | ${p.seriesCount} | \`${p.sampleValue}\` | \`${p.expr.replaceAll('|', '\\|')}\` |`,
     )
   }
 
@@ -375,12 +376,15 @@ async function evaluateGrafanaTarget(
   const start = end - 15 * 60
   let path: string
   const params = new URLSearchParams()
-  if (source === 'prometheus') {
+  if (source === 'tempo') {
+    if (!/^[0-9a-f]{32}$/i.test(expr)) throw new Error('ID de traza inválido')
+    path = '/api/traces/' + expr
+  } else if (source === 'prometheus') {
     path = '/api/v1/query'
     params.set('query', expr)
   } else {
-    path = source === 'loki' ? '/loki/api/v1/query_range' : '/api/search'
-    params.set(source === 'loki' ? 'query' : 'q', expr)
+    path = '/loki/api/v1/query_range'
+    params.set('query', expr)
     params.set('start', String(start))
     params.set('end', String(end))
     if (limit !== undefined) params.set('limit', String(limit))
@@ -402,15 +406,20 @@ async function evaluateGrafanaTarget(
   const json = await res.json()
   const samples: string[] = []
   if (source === 'tempo') {
-    if (!Array.isArray(json?.traces)) throw invalid()
-    for (const trace of json.traces) {
-      if (
-        typeof trace?.traceID !== 'string' ||
-        !/^(?!0+$)[0-9a-f]{1,32}$/i.test(trace.traceID)
-      )
-        throw invalid()
-      // Tempo omite los ceros iniciales en las búsquedas. Loki conserva los 32 dígitos.
-      samples.push(trace.traceID.padStart(32, '0').toLowerCase())
+    if (!Array.isArray(json?.batches)) throw invalid()
+    for (const batch of json.batches) {
+      if (!Array.isArray(batch?.scopeSpans)) throw invalid()
+      for (const scope of batch.scopeSpans) {
+        if (!Array.isArray(scope?.spans)) throw invalid()
+        for (const span of scope.spans) {
+          if (
+            typeof span?.traceId !== 'string' ||
+            Buffer.from(span.traceId, 'base64').toString('hex') !== expr
+          )
+            throw invalid()
+          samples.push(expr)
+        }
+      }
     }
   } else {
     const expected = source === 'loki' ? 'streams' : 'vector'
@@ -460,6 +469,44 @@ async function evaluateGrafanaTarget(
     seriesCount: samples.length,
     sampleValue: samples[0] ?? 'sin muestras',
   }
+}
+
+const requiredPanels = {
+  'fixture2030-hito13-obs': { prometheus: 9 },
+  'fixture2030-trazas': { loki: 1 },
+  'fixture2030-logs': { loki: 1 },
+  'fixture2030-pedido': { loki: 1, tempo: 1 },
+} as const
+
+type DashboardResponse = {
+  dashboard: {
+    id?: number
+    uid: string
+    title?: string
+    templating?: {
+      list?: Array<{
+        name: string
+        current?: { value?: string }
+        allValue?: string
+      }>
+    }
+    panels?: Array<{
+      id: number
+      title: string
+      datasource?: { type?: string; uid?: string }
+      targets?: Array<{
+        refId?: string
+        expr?: string
+        query?: string
+        maxLines?: number
+        limit?: number
+        hide?: boolean
+        datasource?: { type?: string; uid?: string }
+      }>
+      fieldConfig?: { defaults?: { unit?: string } }
+    }>
+  }
+  meta?: { url?: string }
 }
 
 export async function verifyGrafanaAndPanels(
@@ -518,137 +565,144 @@ export async function verifyGrafanaAndPanels(
   }
   const foundDs = dsJson.find((ds) => ds.uid === 'prometheus_fixture2030')!
 
-  const foundDash = searchJson.find((d) => d.uid === 'fixture2030-hito13-obs')
-  if (!foundDash?.uid) {
-    throw new Error(
-      'Dashboard exacto con UID "fixture2030-hito13-obs" no encontrado en Grafana /api/search',
-    )
-  }
-
-  const dashRes = await fetch(
-    `${grafanaBaseUrl}/api/dashboards/uid/${foundDash.uid}`,
-    { signal: AbortSignal.timeout(4000) },
-  )
-  if (!dashRes.ok) {
-    throw new Error(
-      `Grafana dashboard fetch failed with HTTP ${dashRes.status} for uid ${foundDash.uid}`,
-    )
-  }
-  const dashJson = (await dashRes.json()) as {
-    dashboard: {
-      id?: number
-      uid?: string
-      title?: string
-      panels?: Array<{
-        id: number
-        title: string
-        datasource?: { type?: string; uid?: string }
-        targets?: Array<{
-          refId?: string
-          expr?: string
-          query?: string
-          maxLines?: number
-          limit?: number
-          hide?: boolean
-          datasource?: { type?: string; uid?: string }
-        }>
-        fieldConfig?: { defaults?: { unit?: string } }
-      }>
-    }
-    meta?: { url?: string }
-  }
-
-  if (dashJson.dashboard.uid !== 'fixture2030-hito13-obs') {
-    throw new Error(
-      `UID de dashboard inesperado: esperado "fixture2030-hito13-obs", recibido "${dashJson.dashboard.uid}"`,
-    )
-  }
-
-  const rawPanels = dashJson.dashboard?.panels ?? []
+  let healthDashboard: DashboardResponse | undefined
   const panelsVerified: GrafanaDashboardVerification['panelsVerified'] = []
-
-  for (const panel of rawPanels) {
-    const panelUid = panel.datasource?.uid
-    if (panelUid && !Object.hasOwn(sources, panelUid)) {
-      throw new Error(
-        `Panel ${panel.id} ("${panel.title}") tiene asignado un datasource ajeno: "${panelUid}"`,
-      )
-    }
-    const targets = (panel.targets ?? []).filter((t) => !t.hide)
-    if (targets.length === 0) continue
-
-    for (let i = 0; i < targets.length; i++) {
-      const target = targets[i]
-      if (!target) continue
-      const uid = target.datasource?.uid ?? panelUid
-      if (
-        !uid ||
-        !Object.hasOwn(sources, uid) ||
-        (panelUid && uid !== panelUid)
-      ) {
-        throw new Error(
-          `Datasource inesperado "${uid}" en el target ${i + 1} del panel ${panel.id}`,
-        )
-      }
-      const dsUid = uid as keyof typeof sources
-      const datasource = sources[dsUid]
-      if (
-        (panel.datasource?.type && panel.datasource.type !== datasource) ||
-        (target.datasource?.type && target.datasource.type !== datasource)
-      ) {
-        throw new Error(`Tipo de datasource inesperado en el panel ${panel.id}`)
-      }
-      const expr = datasource === 'tempo' ? target.query : target.expr
-      if (!expr?.trim())
-        throw new Error(
-          `Falta la consulta del target ${i + 1} del panel ${panel.id}`,
-        )
-      const summary = await evaluateGrafanaTarget(
-        grafanaBaseUrl,
-        dsUid,
-        expr,
-        datasource === 'loki' ? target.maxLines : target.limit,
-      )
-      panelsVerified.push({
-        panelId: panel.id,
-        title: panel.title,
-        unit: panel.fieldConfig?.defaults?.unit ?? 'none',
-        refId: target.refId ?? String(i + 1),
-        expr,
-        datasource,
-        ...summary,
-      })
-    }
-  }
-
-  for (const source of Object.values(sources)) {
-    const ids = new Set(
-      panelsVerified
-        .filter((p) => p.datasource === source)
-        .map((p) => p.panelId),
+  let recentTrace: string | undefined
+  for (const [uid, expected] of Object.entries(requiredPanels)) {
+    if (!searchJson.some((d) => d.uid === uid))
+      throw new Error(`Falta el dashboard ${uid} en Grafana`)
+    const response = await fetch(
+      `${grafanaBaseUrl}/api/dashboards/uid/${uid}`,
+      {
+        signal: AbortSignal.timeout(4000),
+      },
     )
-    if (ids.size < (source === 'prometheus' ? 9 : 1)) {
-      throw new Error(
-        `Faltan paneles de ${source} con consultas verificadas en el dashboard`,
-      )
+    if (!response.ok)
+      throw new Error(`Grafana dashboard ${uid}: HTTP ${response.status}`)
+    const { dashboard, meta } = (await response.json()) as DashboardResponse
+    if (dashboard?.uid !== uid || !dashboard.id)
+      throw new Error(`Grafana devolvió un dashboard inesperado para ${uid}`)
+    if (uid === 'fixture2030-hito13-obs')
+      healthDashboard = { dashboard, ...(meta && { meta }) }
+    const detail = uid === 'fixture2030-pedido'
+    if (
+      detail &&
+      !dashboard.templating?.list?.some((v) => v.name === 'traceId')
+    ) {
+      throw new Error('El dashboard de detalle requiere la variable traceId')
+    }
+    const counts = new Map<string, Set<number>>()
+    for (const panel of dashboard.panels ?? []) {
+      const panelUid = panel.datasource?.uid
+      if (panelUid && !Object.hasOwn(sources, panelUid)) {
+        throw new Error(
+          `Panel ${panel.id} ("${panel.title}") tiene asignado un datasource ajeno: "${panelUid}"`,
+        )
+      }
+      const targets = (panel.targets ?? []).filter((t) => !t.hide)
+      if (targets.length === 0) continue
+
+      for (let i = 0; i < targets.length; i++) {
+        const target = targets[i]
+        if (!target) continue
+        const uid = target.datasource?.uid ?? panelUid
+        if (
+          !uid ||
+          !Object.hasOwn(sources, uid) ||
+          (panelUid && uid !== panelUid)
+        ) {
+          throw new Error(
+            `Datasource inesperado "${uid}" en el target ${i + 1} del panel ${panel.id}`,
+          )
+        }
+        const dsUid = uid as keyof typeof sources
+        const datasource = sources[dsUid]
+        if (
+          (panel.datasource?.type && panel.datasource.type !== datasource) ||
+          (target.datasource?.type && target.datasource.type !== datasource)
+        ) {
+          throw new Error(
+            `Tipo de datasource inesperado en el panel ${panel.id}`,
+          )
+        }
+        const expr = datasource === 'tempo' ? target.query : target.expr
+        if (!expr?.trim())
+          throw new Error(
+            `Falta la consulta del target ${i + 1} del panel ${panel.id}`,
+          )
+        if (!Object.hasOwn(expected, datasource)) {
+          throw new Error(
+            `El dashboard ${dashboard.uid} contiene un panel inesperado de ${datasource}`,
+          )
+        }
+        if (detail && !expr.includes('${traceId'))
+          throw new Error('El detalle debe filtrar por traceId')
+        if (detail && datasource === 'tempo' && expr !== '${traceId}')
+          throw new Error('Tempo requiere el identificador del pedido')
+        const resolved = expr.replace(
+          /\$\{(\w+)(?::(?:regex|raw))?\}/g,
+          (_placeholder, name: string) => {
+            const variable = dashboard.templating?.list?.find(
+              (v) => v.name === name,
+            )
+            if (!variable) throw new Error(`Variable sin definir: ${name}`)
+            if (detail && name === 'traceId') return recentTrace ?? ''
+            const value = variable.current?.value
+            if (value === '$__all' && variable.allValue !== undefined)
+              return variable.allValue
+            if (typeof value !== 'string')
+              throw new Error(`Valor inválido para ${name}`)
+            return value
+          },
+        )
+        const summary =
+          detail && !recentTrace
+            ? { seriesCount: 0, sampleValue: 'sin muestras' }
+            : await evaluateGrafanaTarget(
+                grafanaBaseUrl,
+                dsUid,
+                resolved,
+                datasource === 'loki' ? target.maxLines : target.limit,
+              )
+        if (detail && recentTrace && summary.sampleValue !== recentTrace)
+          throw new Error(`Falta la traza ${recentTrace} en ${datasource}`)
+        if (!detail && datasource === 'loki' && summary.seriesCount > 0)
+          recentTrace ??= summary.sampleValue
+        const ids = counts.get(datasource) ?? new Set<number>()
+        ids.add(panel.id)
+        counts.set(datasource, ids)
+        panelsVerified.push({
+          dashboardUid: dashboard.uid,
+          panelId: panel.id,
+          title: panel.title,
+          unit: panel.fieldConfig?.defaults?.unit ?? 'none',
+          refId: target.refId ?? String(i + 1),
+          expr,
+          datasource,
+          ...summary,
+        })
+      }
+    }
+
+    for (const [source, min] of Object.entries(expected)) {
+      if ((counts.get(source)?.size ?? 0) < min)
+        throw new Error(`Faltan paneles de ${source} en ${uid}`)
     }
   }
-
+  if (!healthDashboard) throw new Error('Falta el dashboard de salud')
   return {
     grafanaHealthy: healthRes.ok && healthJson.database === 'ok',
     grafanaVersion: healthJson.version ?? '11.5.2',
     datasourceProvisioned: Boolean(foundDs),
     datasourceName: foundDs.name ?? 'Prometheus Fixture 2030',
     datasourceUid: foundDs.uid ?? 'prometheus_fixture2030',
-    dashboardProvisioned: Boolean(dashJson.dashboard?.id),
-    dashboardUid: dashJson.dashboard?.uid ?? foundDash.uid,
+    dashboardProvisioned: Boolean(healthDashboard.dashboard.id),
+    dashboardUid: healthDashboard.dashboard.uid,
     dashboardTitle:
-      dashJson.dashboard?.title ??
-      foundDash.title ??
+      healthDashboard.dashboard.title ??
       'Fixture Mundial 2030 — Observabilidad Políglota (Hito 13)',
     dashboardUrl:
-      dashJson.meta?.url ??
-      foundDash.url ??
+      healthDashboard.meta?.url ??
       '/d/fixture2030-hito13-obs/fixture-mundial-2030-observabilidad-poliglota-hito-13',
     panelsVerified,
   }
