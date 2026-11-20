@@ -49,6 +49,31 @@
         }
       },
       {
+        "name": "cache",
+        "label": "Caché",
+        "type": "custom",
+        "query": "hit,miss",
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": false,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": [
+          {
+            "text": "hit",
+            "value": "hit",
+            "selected": false
+          },
+          {
+            "text": "miss",
+            "value": "miss",
+            "selected": false
+          }
+        ]
+      },
+      {
         "name": "requestId",
         "label": "Request ID",
         "type": "textbox",
@@ -94,7 +119,7 @@
             "type": "loki",
             "uid": "loki_fixture2030"
           },
-          "expr": "{service_name=\"fixture2030-api\"} | json endpoint=\"route\", rid=\"request_id\", tid=\"trace_id\" | endpoint =~ `${endpoint:regex}` | rid =~ `(?i).*(${requestId:raw}).*` | tid =~ `(?i).*(${traceId:raw}).*`",
+          "expr": "{service_name=\"fixture2030-api\"} | json endpoint=\"route\", rid=\"request_id\", tid=\"trace_id\", cache=\"cache_result\" | endpoint =~ `${endpoint:regex}` | rid =~ `(?i).*(${requestId:raw}).*` | tid =~ `(?i).*(${traceId:raw}).*` | cache =~ `${cache:regex}`",
           "queryType": "range",
           "maxLines": 200
         }

@@ -1,0 +1,45 @@
+{
+  "revisionOriginal": "acf8ab9a75080c8d00737570c52bf4a77534c80a",
+  "capturas": [
+    {
+      "stage": "antes",
+      "dashboardFile": "hito-13-monitoreo/grafana/dashboards/fixture2030_trazas.json",
+      "fileSha256": "b1ea16cc04058e45f2f449eace440339acf54c2faa1541d4b6d94f7efa34d745",
+      "servedResponseSha256": "4441dde95059e801e2c6dd27994529a24e13a3896fd0399ddd9930bf69ad9dd7",
+      "screens": [
+        {
+          "file": "antes-escritorio.png",
+          "width": 1440,
+          "height": 900,
+          "sha256": "f2800e7fcb05c6efcaa37f03cc5ea443d3e864dd29132988d387de3001cc86dd"
+        },
+        {
+          "file": "antes-movil.png",
+          "width": 390,
+          "height": 844,
+          "sha256": "5f529c1dfb05e455f1212b6e7b2a6f17f8518bd00462031beab0b59b0bad4c4d"
+        }
+      ]
+    },
+    {
+      "stage": "despues",
+      "dashboardFile": "hito-13-monitoreo/grafana/dashboards/fixture2030_trazas.json",
+      "fileSha256": "a824805cd4b1951575e1cf686924f2adcb16256945ca31d94a5410e090a19c11",
+      "servedResponseSha256": "8e64f76367105f0d501b916a7bb86fdd179a0756ccdfe93e4ba6cd02ef2f7560",
+      "screens": [
+        {
+          "file": "despues-escritorio.png",
+          "width": 1440,
+          "height": 900,
+          "sha256": "4886111e31f3ded44974fb82c37e9b1a8641f880dfea037e43220529cd29d70d"
+        },
+        {
+          "file": "despues-movil.png",
+          "width": 390,
+          "height": 844,
+          "sha256": "c12a7b185d9642d6d6cc692a60ee38940c24a93fd4d94d8dce58a97c22f0f76d"
+        }
+      ]
+    }
+  ]
+}
