@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url'
 
 import {
   collectEnvironmentMetadata,
-  loadLocalEnvironment,
   type EnvironmentMetadata,
 } from '../../hito-12-carga-optimizacion/scripts/entorno_y_recursos.js'
 import type {
@@ -52,6 +51,14 @@ export interface PrometheusTargetsReport {
   polyglotComponentsStatus: ComponentStatusSnapshot[]
 }
 
+const sources = {
+  prometheus_fixture2030: 'prometheus',
+  loki_fixture2030: 'loki',
+  tempo_fixture2030: 'tempo',
+} as const
+
+type PanelSource = (typeof sources)[keyof typeof sources]
+
 export interface GrafanaDashboardVerification {
   grafanaHealthy: boolean
   grafanaVersion: string
@@ -64,6 +71,7 @@ export interface GrafanaDashboardVerification {
   dashboardUrl: string
   panelsVerified: Array<{
     panelId: number
+    datasource?: PanelSource
     title: string
     unit: string
     expr: string
@@ -343,40 +351,45 @@ export function buildDashboardSummaryMarkdown(
     '',
     '## 2. Consultas habilitadas de los paneles mediante el datasource de Grafana (RNF4)',
     '',
-    '| ID Panel / Target | Título del Panel | Unidad | Series Activas | Muestra Observada | Expresión PromQL |',
-    '| :---: | :--- | :---: | :---: | :--- | :--- |',
+    '| ID Panel / Target | Título del Panel | Fuente | Unidad | Resultados | Muestra Observada | Consulta |',
+    '| :---: | :--- | :--- | :---: | :---: | :--- | :--- |',
   ]
 
   for (const p of verification.panelsVerified) {
     lines.push(
-      `| ${p.panelId} / ${p.refId} | ${p.title} | \`${p.unit}\` | ${p.seriesCount} | \`${p.sampleValue}\` | \`${p.expr}\` |`,
+      `| ${p.panelId} / ${p.refId} | ${p.title} | ${p.datasource ?? 'prometheus'} | \`${p.unit}\` | ${p.seriesCount} | \`${p.sampleValue}\` | \`${p.expr}\` |`,
     )
   }
 
   return `${lines.join('\n')}\n`
 }
 
-async function evaluatePromqlViaGrafanaProxy(
+async function evaluateGrafanaTarget(
   grafanaBaseUrl: string,
-  dsUid: string,
+  dsUid: keyof typeof sources,
   expr: string,
-): Promise<Array<{ metric: Record<string, string>; value: string }>> {
-  const proxyUrl = `${grafanaBaseUrl}/api/datasources/proxy/uid/${dsUid}/api/v1/query?query=${encodeURIComponent(expr)}`
-  let res = await fetch(proxyUrl, {
+  limit?: number,
+): Promise<{ seriesCount: number; sampleValue: string }> {
+  const source = sources[dsUid]
+  const end = Math.floor(Date.now() / 1000)
+  const start = end - 15 * 60
+  let path: string
+  const params = new URLSearchParams()
+  if (source === 'prometheus') {
+    path = '/api/v1/query'
+    params.set('query', expr)
+  } else {
+    path = source === 'loki' ? '/loki/api/v1/query_range' : '/api/search'
+    params.set(source === 'loki' ? 'query' : 'q', expr)
+    params.set('start', String(start))
+    params.set('end', String(end))
+    if (limit !== undefined) params.set('limit', String(limit))
+  }
+  const proxyUrl = `${grafanaBaseUrl}/api/datasources/proxy/uid/${dsUid}${path}?${params}`
+  const res = await fetch(proxyUrl, {
     headers: { accept: 'application/json' },
     signal: AbortSignal.timeout(5000),
   })
-
-  if (res.status === 401 || res.status === 403) {
-    const env = await loadLocalEnvironment()
-    res = await fetch(proxyUrl, {
-      headers: {
-        accept: 'application/json',
-        authorization: `Basic ${Buffer.from(`${env.GF_SECURITY_ADMIN_USER ?? 'admin'}:${env.GF_SECURITY_ADMIN_PASSWORD ?? 'fixture2030_grafana_local'}`).toString('base64')}`,
-      },
-      signal: AbortSignal.timeout(5000),
-    })
-  }
 
   if (!res.ok) {
     throw new Error(
@@ -384,31 +397,69 @@ async function evaluatePromqlViaGrafanaProxy(
     )
   }
 
-  const json = (await res.json()) as {
-    status?: string
-    error?: string
-    data?: {
-      resultType?: string
-      result?: Array<{
-        metric: Record<string, string>
-        value: [number, string]
-      }>
+  const invalid = () =>
+    new Error(`Respuesta inválida de ${source} para la consulta: ${expr}`)
+  const json = await res.json()
+  const samples: string[] = []
+  if (source === 'tempo') {
+    if (!Array.isArray(json?.traces)) throw invalid()
+    for (const trace of json.traces) {
+      if (
+        typeof trace?.traceID !== 'string' ||
+        !/^(?!0+$)[0-9a-f]{1,32}$/i.test(trace.traceID)
+      )
+        throw invalid()
+      // Tempo omite los ceros iniciales en las búsquedas. Loki conserva los 32 dígitos.
+      samples.push(trace.traceID.padStart(32, '0').toLowerCase())
+    }
+  } else {
+    const expected = source === 'loki' ? 'streams' : 'vector'
+    if (
+      json?.status !== 'success' ||
+      json.data?.resultType !== expected ||
+      !Array.isArray(json.data.result)
+    )
+      throw invalid()
+    for (const item of json.data.result) {
+      if (source === 'loki') {
+        if (!item?.stream || !Array.isArray(item.values)) throw invalid()
+        for (const row of item.values) {
+          if (
+            !Array.isArray(row) ||
+            typeof row[0] !== 'string' ||
+            !/^\d+$/.test(row[0]) ||
+            typeof row[1] !== 'string'
+          )
+            throw invalid()
+          const log = JSON.parse(row[1])
+          if (
+            typeof log?.trace_id !== 'string' ||
+            !/^[0-9a-f]{32}$/i.test(log.trace_id)
+          )
+            throw invalid()
+          samples.push(log.trace_id)
+        }
+      } else {
+        const value = item?.value
+        if (
+          !Array.isArray(value) ||
+          !Number.isFinite(value[0]) ||
+          typeof value[1] !== 'string'
+        )
+          throw invalid()
+        const raw = value[1]
+        const numeric = Number(raw)
+        if (raw.trim() && Number.isFinite(numeric))
+          samples.push(numeric.toFixed(3))
+        else if (['NaN', '+Inf', '-Inf'].includes(raw)) samples.push(raw)
+        else throw invalid()
+      }
     }
   }
-  if (
-    json.status !== 'success' ||
-    json.data?.resultType !== 'vector' ||
-    !Array.isArray(json.data.result)
-  ) {
-    throw new Error(
-      `PromQL error vía Grafana proxy para expresión "${expr}": ${json.error ?? 'error'}`,
-    )
+  return {
+    seriesCount: samples.length,
+    sampleValue: samples[0] ?? 'sin muestras',
   }
-
-  return json.data.result.map((item) => ({
-    metric: item.metric,
-    value: item.value[1],
-  }))
 }
 
 export async function verifyGrafanaAndPanels(
@@ -458,12 +509,14 @@ export async function verifyGrafanaAndPanels(
     type?: string
   }>
 
-  const foundDs = dsJson.find((ds) => ds.uid === 'prometheus_fixture2030')
-  if (!foundDs || !foundDs.uid || foundDs.type !== 'prometheus') {
-    throw new Error(
-      'Datasource exacto con UID "prometheus_fixture2030" no encontrado en Grafana /api/datasources',
-    )
+  for (const [uid, type] of Object.entries(sources)) {
+    if (!dsJson.some((ds) => ds.uid === uid && ds.type === type)) {
+      throw new Error(
+        `Datasource ${type} con UID "${uid}" no encontrado en Grafana`,
+      )
+    }
   }
+  const foundDs = dsJson.find((ds) => ds.uid === 'prometheus_fixture2030')!
 
   const foundDash = searchJson.find((d) => d.uid === 'fixture2030-hito13-obs')
   if (!foundDash?.uid) {
@@ -493,6 +546,9 @@ export async function verifyGrafanaAndPanels(
         targets?: Array<{
           refId?: string
           expr?: string
+          query?: string
+          maxLines?: number
+          limit?: number
           hide?: boolean
           datasource?: { type?: string; uid?: string }
         }>
@@ -512,55 +568,70 @@ export async function verifyGrafanaAndPanels(
   const panelsVerified: GrafanaDashboardVerification['panelsVerified'] = []
 
   for (const panel of rawPanels) {
-    if (panel.datasource?.uid && panel.datasource.uid !== foundDs.uid) {
+    const panelUid = panel.datasource?.uid
+    if (panelUid && !Object.hasOwn(sources, panelUid)) {
       throw new Error(
-        `Panel ${panel.id} ("${panel.title}") tiene asignado un datasource ajeno: "${panel.datasource.uid}"`,
+        `Panel ${panel.id} ("${panel.title}") tiene asignado un datasource ajeno: "${panelUid}"`,
       )
     }
-
     const targets = (panel.targets ?? []).filter((t) => !t.hide)
     if (targets.length === 0) continue
 
     for (let i = 0; i < targets.length; i++) {
       const target = targets[i]
       if (!target) continue
-      const datasourceUid = target.datasource?.uid ?? panel.datasource?.uid
-      if (datasourceUid !== foundDs.uid) {
+      const uid = target.datasource?.uid ?? panelUid
+      if (
+        !uid ||
+        !Object.hasOwn(sources, uid) ||
+        (panelUid && uid !== panelUid)
+      ) {
         throw new Error(
-          `Target ${i + 1} del panel ${panel.id} ("${panel.title}") no referencia el datasource esperado: "${datasourceUid}"`,
+          `Datasource inesperado "${uid}" en el target ${i + 1} del panel ${panel.id}`,
         )
       }
-      const expr = target.expr
-      if (!expr) continue
-
-      const series = await evaluatePromqlViaGrafanaProxy(
-        grafanaBaseUrl,
-        foundDs.uid,
-        expr,
-      )
-
-      const firstVal = series[0]?.value
-      let sampleValue = 'sin muestras'
-      if (firstVal !== undefined) {
-        const numeric = Number(firstVal)
-        sampleValue = Number.isFinite(numeric) ? numeric.toFixed(3) : firstVal
+      const dsUid = uid as keyof typeof sources
+      const datasource = sources[dsUid]
+      if (
+        (panel.datasource?.type && panel.datasource.type !== datasource) ||
+        (target.datasource?.type && target.datasource.type !== datasource)
+      ) {
+        throw new Error(`Tipo de datasource inesperado en el panel ${panel.id}`)
       }
+      const expr = datasource === 'tempo' ? target.query : target.expr
+      if (!expr?.trim())
+        throw new Error(
+          `Falta la consulta del target ${i + 1} del panel ${panel.id}`,
+        )
+      const summary = await evaluateGrafanaTarget(
+        grafanaBaseUrl,
+        dsUid,
+        expr,
+        datasource === 'loki' ? target.maxLines : target.limit,
+      )
       panelsVerified.push({
         panelId: panel.id,
         title: panel.title,
         unit: panel.fieldConfig?.defaults?.unit ?? 'none',
         refId: target.refId ?? String(i + 1),
         expr,
-        seriesCount: series.length,
-        sampleValue,
+        datasource,
+        ...summary,
       })
     }
   }
 
-  if (panelsVerified.length === 0) {
-    throw new Error(
-      'El dashboard provisionado en Grafana no contiene paneles con consultas PromQL válidas',
+  for (const source of Object.values(sources)) {
+    const ids = new Set(
+      panelsVerified
+        .filter((p) => p.datasource === source)
+        .map((p) => p.panelId),
     )
+    if (ids.size < (source === 'prometheus' ? 9 : 1)) {
+      throw new Error(
+        `Faltan paneles de ${source} con consultas verificadas en el dashboard`,
+      )
+    }
   }
 
   return {

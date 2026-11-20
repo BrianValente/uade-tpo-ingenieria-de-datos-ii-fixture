@@ -1,0 +1,44 @@
+{
+  "verificado_utc": "2026-11-20T16:46:11+00:00",
+  "entorno": "VM de laboratorio del TP",
+  "consulta": "Dos lecturas consecutivas autenticadas. Correlación por x-trace-id y x-request-id de las respuestas mediante los datasources públicos de Grafana.",
+  "pedidos": [
+    {
+      "pedido": "GET /partidos/F2030-002",
+      "log": {
+        "trace_id": "70d47d5016b55ec3abbac56513d3dac2",
+        "request_id": "982ec8d1-6e43-404d-ae62-c84406f232dc",
+        "method": "GET",
+        "route": "/partidos/:id",
+        "status_code": 200,
+        "duration_ms": 5.23,
+        "cache_result": "miss"
+      },
+      "spans": [
+        "GET /partidos/:id",
+        "redis.session.readAndRenew",
+        "redis.cache.get",
+        "neo4j.match",
+        "mongodb.matchTeamsBatch",
+        "redis.cache.set"
+      ]
+    },
+    {
+      "pedido": "GET /partidos/F2030-002",
+      "log": {
+        "trace_id": "ad2aefbfc49f9b8e9fc26957be9f6f90",
+        "request_id": "b96055c0-13e5-4f80-bbe9-28ee4ec13128",
+        "method": "GET",
+        "route": "/partidos/:id",
+        "status_code": 200,
+        "duration_ms": 0.86,
+        "cache_result": "hit"
+      },
+      "spans": [
+        "GET /partidos/:id",
+        "redis.session.readAndRenew",
+        "redis.cache.get"
+      ]
+    }
+  ]
+}

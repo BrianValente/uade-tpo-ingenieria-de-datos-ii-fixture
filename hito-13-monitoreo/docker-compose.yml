@@ -39,12 +39,49 @@ services:
       timeout: 3s
       retries: 5
 
+  loki:
+    image: grafana/loki:3.7.9@sha256:0db216b630ae1f348a1584c67f3cead8b4c1fc839169a39501db664744158e28
+    restart: unless-stopped
+    mem_limit: 384m
+    command: ["-config.file=/etc/loki/fixture.yml"]
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - ./loki/loki.yml:/etc/loki/fixture.yml:ro
+      - loki_data:/loki
+
+  tempo:
+    image: grafana/tempo:2.10.10@sha256:12b0820f13ffa10ce956b6e9acc3b03f3cffded99109be6cc09d106fe56e5d38
+    restart: unless-stopped
+    mem_limit: 384m
+    command: ["-config.file=/etc/tempo.yml"]
+    ports:
+      - "127.0.0.1:4318:4318"
+    volumes:
+      - ./tempo/tempo.yml:/etc/tempo.yml:ro
+      - tempo_data:/var/tempo
+
+  consultas:
+    image: nginx:1.30.5-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94
+    restart: unless-stopped
+    mem_limit: 48m
+    user: nginx
+    read_only: true
+    entrypoint: ["nginx", "-g", "daemon off;"]
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx:uid=101,gid=101,mode=0700
+    volumes:
+      - ./grafana/consultas.conf:/etc/nginx/nginx.conf:ro
+
   grafana:
     image: grafana/grafana:11.5.2
     restart: unless-stopped
     depends_on:
       prometheus:
         condition: service_healthy
+      consultas:
+        condition: service_started
     environment:
       GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-fixture2030_grafana_local}
@@ -68,6 +105,8 @@ services:
 volumes:
   prometheus_data:
   grafana_data:
+  loki_data:
+  tempo_data:
 
 networks:
   default:

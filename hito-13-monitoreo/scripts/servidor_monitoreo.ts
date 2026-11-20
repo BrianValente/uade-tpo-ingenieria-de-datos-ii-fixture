@@ -11,6 +11,8 @@ import {
 } from '../../hito-11-conectividad/scripts/driver_loader.js'
 import { loadLocalEnvironment } from '../../hito-12-carga-optimizacion/scripts/entorno_y_recursos.js'
 
+import { RequestTelemetry } from './telemetria.js'
+
 export type MonitoredComponentId =
   | 'api-fastify'
   | 'mongodb'
@@ -373,8 +375,15 @@ export interface RunningMonitoredServer {
 export async function startMonitoredServer(options?: {
   host?: string
   port?: number
+  telemetry?: boolean
 }): Promise<RunningMonitoredServer> {
   const env = await loadLocalEnvironment()
+  const telemetry = options?.telemetry
+    ? new RequestTelemetry(
+        env.H13_TEMPO_ENDPOINT ?? 'http://127.0.0.1:4318/v1/traces',
+        env.H13_LOKI_ENDPOINT ?? 'http://127.0.0.1:3100/otlp/v1/logs',
+      )
+    : undefined
   const host = options?.host ?? env.H13_API_HOST ?? '0.0.0.0'
   const requestedPort = options?.port ?? Number(env.H13_API_PORT ?? 8013)
   const dependencyTimeoutMs = Number(env.DEPENDENCY_TIMEOUT_MS ?? 3000)
@@ -402,12 +411,16 @@ export async function startMonitoredServer(options?: {
         hook: string,
         fn: (
           req: {
+            id: string
             method: string
             url: string
             routeOptions?: { url?: string }
             __h13StartMs?: number
           },
-          reply: { statusCode: number },
+          reply: {
+            statusCode: number
+            header: (key: string, value: string) => unknown
+          },
           done: () => void,
         ) => void,
       ) => void
@@ -651,6 +664,7 @@ export async function startMonitoredServer(options?: {
     try {
       const res = await fn()
       const elapsed = performance.now() - start
+      telemetry?.operation(`mongodb.${operation}`, start, true)
       registry.incCounter('fixture2030_db_operations_total', {
         engine: 'mongodb',
         operation,
@@ -664,6 +678,7 @@ export async function startMonitoredServer(options?: {
       return res
     } catch (err) {
       const elapsed = performance.now() - start
+      telemetry?.operation(`mongodb.${operation}`, start, false)
       registry.incCounter('fixture2030_db_operations_total', {
         engine: 'mongodb',
         operation,
@@ -695,6 +710,7 @@ export async function startMonitoredServer(options?: {
     try {
       const res = await fn()
       const elapsed = performance.now() - start
+      telemetry?.operation(`neo4j.${operation}`, start, true)
       registry.incCounter('fixture2030_db_operations_total', {
         engine: 'neo4j',
         operation,
@@ -708,6 +724,7 @@ export async function startMonitoredServer(options?: {
       return res
     } catch (err) {
       const elapsed = performance.now() - start
+      telemetry?.operation(`neo4j.${operation}`, start, false)
       registry.incCounter('fixture2030_db_operations_total', {
         engine: 'neo4j',
         operation,
@@ -740,6 +757,7 @@ export async function startMonitoredServer(options?: {
     try {
       const res = await fn()
       const elapsed = performance.now() - start
+      telemetry?.operation(`${component}.${operation}`, start, true)
       registry.incCounter('fixture2030_db_operations_total', {
         engine: component,
         operation,
@@ -753,6 +771,7 @@ export async function startMonitoredServer(options?: {
       return res
     } catch (err) {
       const elapsed = performance.now() - start
+      telemetry?.operation(`${component}.${operation}`, start, false)
       registry.incCounter('fixture2030_db_operations_total', {
         engine: component,
         operation,
@@ -793,14 +812,18 @@ export async function startMonitoredServer(options?: {
           entity,
           result: 'hit',
         })
-        return JSON.parse(raw) as T
+        const value = JSON.parse(raw) as T
+        telemetry?.operation('redis.cache.get', start, true, 'hit')
+        return value
       }
       registry.incCounter('fixture2030_cache_events_total', {
         entity,
         result: 'miss',
       })
+      telemetry?.operation('redis.cache.get', start, true, 'miss')
       return null
     } catch {
+      telemetry?.operation('redis.cache.get', start, false, 'error')
       registry.incCounter('fixture2030_db_operations_total', {
         engine: 'redis_cache',
         operation: 'get',
@@ -826,6 +849,7 @@ export async function startMonitoredServer(options?: {
         { EX: ttlSec },
       )
       const elapsed = performance.now() - start
+      telemetry?.operation('redis.cache.set', start, true)
       registry.incCounter('fixture2030_db_operations_total', {
         engine: 'redis_cache',
         operation: 'setex',
@@ -841,6 +865,7 @@ export async function startMonitoredServer(options?: {
         result: 'write',
       })
     } catch {
+      telemetry?.operation('redis.cache.set', start, false)
       registry.incCounter('fixture2030_db_operations_total', {
         engine: 'redis_cache',
         operation: 'setex',
@@ -896,6 +921,7 @@ export async function startMonitoredServer(options?: {
           ],
         })
         const elapsed = performance.now() - start
+        telemetry?.operation('redis.session.readAndRenew', start, true)
         registry.incCounter('fixture2030_db_operations_total', {
           engine: 'redis_session',
           operation: 'readAndRenew',
@@ -930,6 +956,7 @@ export async function startMonitoredServer(options?: {
         }
       } catch {
         const elapsed = performance.now() - start
+        telemetry?.operation('redis.session.readAndRenew', start, false)
         registry.incCounter('fixture2030_db_operations_total', {
           engine: 'redis_session',
           operation: 'readAndRenew',
@@ -1444,12 +1471,14 @@ export async function startMonitoredServer(options?: {
     return reply.send(payload)
   })
 
-  app.addHook('onRequest', (request, _reply, done) => {
+  app.addHook('onRequest', (request, reply, done) => {
     request.__h13StartMs = performance.now()
+    if (telemetry) return telemetry.begin(request, reply, done)
     done()
   })
 
   app.addHook('onResponse', (request, reply, done) => {
+    telemetry?.finish(request, reply.statusCode)
     const startMs = request.__h13StartMs
     const routeUrl = request.routeOptions?.url ?? 'unmatched'
     if (routeUrl !== '/metrics') {
@@ -1517,6 +1546,7 @@ export async function startMonitoredServer(options?: {
         closing = (async () => {
           await activeProbePromise?.catch(() => undefined)
           await app.close()
+          await telemetry?.drain()
         })()
       }
       return closing
@@ -1525,9 +1555,9 @@ export async function startMonitoredServer(options?: {
 }
 
 async function runCli(): Promise<void> {
-  const server = await startMonitoredServer()
+  const server = await startMonitoredServer({ telemetry: true })
   console.log(
-    `[Hito 13] Servidor API con instrumentación Prometheus activo en ${server.baseUrl} (métricas: ${server.metricsUrl})`,
+    `[Hito 13] Servidor API con métricas, logs y trazas activo en ${server.baseUrl} (métricas: ${server.metricsUrl})`,
   )
   const shutdown = async () => {
     await server.close()

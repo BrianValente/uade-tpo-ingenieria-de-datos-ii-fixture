@@ -649,11 +649,76 @@
           "refId": "C"
         }
       ]
+    },
+    {
+      "id": 10,
+      "type": "logs",
+      "title": "Pedidos de la API · logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki_fixture2030"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 29
+      },
+      "options": {
+        "showTime": true,
+        "enableLogDetails": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki_fixture2030"
+          },
+          "expr": "{service_name=\"fixture2030-api\"}",
+          "queryType": "range",
+          "maxLines": 50
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Recorrido de cada pedido · trazas",
+      "fieldConfig": {"defaults": {}, "overrides": [{"matcher": {"id": "byName", "options": "Trace ID"}, "properties": [{"id": "links", "value": [{"title": "Ver traza y log", "url": "/d/fixture2030-pedido/pedido?var-traceId=${__value.raw}"}]}]}]},
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo_fixture2030"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 38
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo_fixture2030"
+          },
+          "query": "{ resource.service.name = \"fixture2030-api\" && kind = server }",
+          "queryType": "traceql",
+          "tableType": "traces",
+          "limit": 30
+        }
+      ]
     }
   ],
   "refresh": "5s",
   "schemaVersion": 39,
-  "tags": ["fixture2030", "hito-13", "poliglota", "prometheus"],
+  "tags": ["fixture2030", "hito-13", "poliglota", "prometheus", "loki", "tempo"],
   "templating": {
     "list": []
   },

@@ -39,6 +39,8 @@ export async function waitForHttpOk(
 export async function startMonitoringStack(): Promise<{
   prometheusHealthy: boolean
   redisExporterHealthy: boolean
+  lokiHealthy: boolean
+  tempoHealthy: boolean
   grafanaHealthy: boolean
 }> {
   const localEnv = await loadLocalEnvironment()
@@ -51,7 +53,6 @@ export async function startMonitoringStack(): Promise<{
     { cwd: REPO_ROOT, env: mergedEnv, timeout: 60_000, maxBuffer: 32 * 1024 * 1024 },
   )
 
-  // 2. Levantar stack de monitoreo del Hito 13 (Prometheus, Redis Exporter, Grafana)
   await execFileAsync(
     'docker',
     [
@@ -65,15 +66,17 @@ export async function startMonitoringStack(): Promise<{
     { cwd: HITO13_ROOT, env: mergedEnv, timeout: 180_000, maxBuffer: 32 * 1024 * 1024 },
   )
 
-  const [prom, redisExp, graf] = await Promise.all([
+  const [prom, redisExp, graf, loki, tempo] = await Promise.all([
     waitForHttpOk('http://127.0.0.1:9090/-/healthy', 35_000),
     waitForHttpOk('http://127.0.0.1:9121/metrics', 35_000),
     waitForHttpOk('http://127.0.0.1:3000/api/health', 45_000),
+    waitForHttpOk('http://127.0.0.1:3000/api/datasources/proxy/uid/loki_fixture2030/ready', 60_000),
+    waitForHttpOk('http://127.0.0.1:3000/api/datasources/proxy/uid/tempo_fixture2030/ready', 60_000),
   ])
 
-  if (!prom.ok || !redisExp.ok || !graf.ok) {
+  if (!prom.ok || !redisExp.ok || !graf.ok || !loki.ok || !tempo.ok) {
     throw new Error(
-      `Stack de monitoreo incompleto: prometheus=${prom.ok} (${prom.status}), redis-exporter=${redisExp.ok} (${redisExp.status}), grafana=${graf.ok} (${graf.status})`,
+      `Stack de monitoreo incompleto: prometheus=${prom.ok} (${prom.status}), redis-exporter=${redisExp.ok} (${redisExp.status}), grafana=${graf.status}, loki=${loki.status}, tempo=${tempo.status}`,
     )
   }
 
@@ -87,11 +90,13 @@ export async function startMonitoringStack(): Promise<{
     prometheusHealthy: prom.ok,
     redisExporterHealthy: redisExp.ok,
     grafanaHealthy: graf.ok,
+    lokiHealthy: loki.ok,
+    tempoHealthy: tempo.ok,
   }
 }
 
 async function runCli(): Promise<void> {
-  console.log('[Hito 13] Iniciando stack de monitoreo (Prometheus + Redis Exporter + Grafana)...')
+  console.log('[Hito 13] Iniciando stack de monitoreo...')
   const status = await startMonitoringStack()
   console.log('[Hito 13] Stack operativo:', JSON.stringify(status))
 }

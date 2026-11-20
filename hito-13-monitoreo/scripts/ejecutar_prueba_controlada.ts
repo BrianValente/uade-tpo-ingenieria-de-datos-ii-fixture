@@ -409,7 +409,7 @@ export async function runFullControlledVerification(): Promise<void> {
   const envMeta = await collectEnvironmentMetadata()
   let server: Awaited<ReturnType<typeof startMonitoredServer>>
   try {
-    server = await startMonitoredServer({ host: '0.0.0.0', port: 8013 })
+    server = await startMonitoredServer({ host: '0.0.0.0', port: 8013, telemetry: true })
   } catch (err: unknown) {
     if (
       err instanceof Error &&

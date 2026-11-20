@@ -1,0 +1,125 @@
+{
+  "revisionOriginal": "0420befde443da6a31d650f08b9d97a9df58ded7",
+  "escenario": "Grafana público en una sesión anónima de Chromium, vista kiosco, últimos 15 minutos en UTC, al pie del dashboard.",
+  "alcance": "Las capturas muestran el área visible tras desplazarse hasta el último panel. La vista de detalle adicional se capturó con un rango de seis horas y el ID del cache miss. Los datos cambian con la hora de captura. La comparación muestra qué paneles se agregaron.",
+  "limites": "Las imágenes anteriores son una referencia visual. El recorte omite la parte superior del dashboard. En móvil los títulos largos pueden quedar recortados.",
+  "revisionVisual": "Inspección de las cinco imágenes. Se muestran datos de observabilidad de la demo. No se aplicaron máscaras ni recortes posteriores.",
+  "hashes": "SHA-256 de los bytes del PNG, del JSON en el repositorio y de la respuesta HTTP cruda de la API de Grafana, incluida su metadata.",
+  "capturas": [
+    {
+      "stage": "antes",
+      "capturedAt": "2026-11-20T16:42:03.121Z",
+      "dashboardUrl": "https://fixture-grafana.lab.valente.ar/d/fixture2030-hito13-obs/662372f?orgId=1&from=now-15m&to=now&timezone=utc&kiosk",
+      "apiUrl": "https://fixture-grafana.lab.valente.ar/api/dashboards/uid/fixture2030-hito13-obs",
+      "httpStatus": 200,
+      "servedResponseSha256": "fe3f88f377729e70d388d79aeb40d700964bd2571f72393cc7c5d778e622f63a",
+      "dashboardFile": "hito-13-monitoreo/grafana/dashboards/fixture2030_observabilidad.json",
+      "fileSha256": "d7044849c0a73e00a1db93d8d308304a8c1a804bd13b3cf8e5e84170ce08ee6e",
+      "panelIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "screens": [
+        {
+          "file": "antes-escritorio.png",
+          "width": 1440,
+          "height": 900,
+          "sha256": "d0979d4bf6166e380b73dcceb550d24e165d340dee332ff97dfe94bb1abd8856",
+          "visibleHeadings": [
+            "3. Latencia HTTP API (p50, p95, p99 - Ventana 1m)",
+            "4. Comparación de Latencia p95 por Motor de Datos (MongoDB vs Neo4j vs Redis)",
+            "5. Throughput / Volumen de Peticiones HTTP por Ruta (req/s)",
+            "6. Comparación de Volumen de Operaciones por Base de Datos (ops/s)",
+            "7. Tasa de Errores HTTP (4xx/5xx) y Fallos de Dependencia",
+            "8. Eficiencia de Caché Redis y Throttling de Sesiones",
+            "9. Recursos de Infraestructura: Memoria API Node.js y Redis"
+          ]
+        },
+        {
+          "file": "antes-movil.png",
+          "width": 390,
+          "height": 844,
+          "sha256": "1aba4eb368176848a831d83ccb36677115db735c8de7ced67a81e3c6649be7f9",
+          "visibleHeadings": [
+            "8. Eficiencia de Caché Redis y Throttling de Sesiones",
+            "9. Recursos de Infraestructura: Memoria API Node.js y Redis"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "despues",
+      "capturedAt": "2026-11-20T16:48:17.991Z",
+      "dashboardUrl": "https://fixture-grafana.lab.valente.ar/d/fixture2030-hito13-obs/662372f?orgId=1&from=now-15m&to=now&timezone=utc&kiosk",
+      "apiUrl": "https://fixture-grafana.lab.valente.ar/api/dashboards/uid/fixture2030-hito13-obs",
+      "httpStatus": 200,
+      "servedResponseSha256": "7759985b4fa9ef122089af4366bc346fc512ee41977945806e57c992ac53d9cb",
+      "dashboardFile": "hito-13-monitoreo/grafana/dashboards/fixture2030_observabilidad.json",
+      "fileSha256": "40a8dc7c8a83edbd6908287fdfb74108fafcc56b0f638c8db39922f495a31eee",
+      "panelIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "screens": [
+        {
+          "file": "despues-escritorio.png",
+          "width": 1440,
+          "height": 900,
+          "sha256": "369df5604b2702c42f320be9df74ad1a8c3bd73d6ea1a887da8437cac580774a",
+          "visibleHeadings": [
+            "Pedidos de la API · logs",
+            "Recorrido de cada pedido · trazas"
+          ]
+        },
+        {
+          "file": "despues-movil.png",
+          "width": 390,
+          "height": 844,
+          "sha256": "4f633d990907d47826f3ec1c7095ed98142cdb1488d12050761820b9a3deda25",
+          "visibleHeadings": [
+            "Pedidos de la API · logs",
+            "Recorrido de cada pedido · trazas"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "detalle del pedido",
+      "capturedAt": "2026-11-20T16:50:05.742Z",
+      "dashboardUrl": "https://fixture-grafana.lab.valente.ar/d/fixture2030-pedido/pedido?var-traceId=70d47d5016b55ec3abbac56513d3dac2&from=now-6h&to=now&timezone=utc&kiosk",
+      "apiUrl": "https://fixture-grafana.lab.valente.ar/api/dashboards/uid/fixture2030-pedido",
+      "httpStatus": 200,
+      "servedResponseSha256": "ae863cddd3e6e0d13f323cfb05d3bcd8a3180219c0591c15aadb0b2b7d489e81",
+      "dashboardFile": "hito-13-monitoreo/grafana/dashboards/fixture2030_pedido.json",
+      "fileSha256": "f6aaa8205017f36baca7ea42e9b01eb6b072e2a923e79b878c515fcf50fb6912",
+      "panelIds": [
+        1,
+        2
+      ],
+      "screens": [
+        {
+          "file": "detalle-miss-escritorio.png",
+          "width": 1440,
+          "height": 900,
+          "sha256": "45b4c00e7b2029cec2084d34e89cb499022c7325151c881163b332b0ec176483"
+        }
+      ]
+    }
+  ]
+}
